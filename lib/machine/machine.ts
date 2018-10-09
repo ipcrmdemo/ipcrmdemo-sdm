@@ -105,12 +105,12 @@ import {
     IsNode,
 } from "@atomist/sdm-pack-node";
 import {
-    AutoCheckSonarScan,
-} from "../support/sonarQube";
-import {
     StagingDeploymentGoalWApproval,
     ProductionDeploymentGoalWPreApproval,
 } from "./goals";
+// import {
+//     AutoCheckSonarScan,
+// } from "../support/sonarQube";
 
 export const FingerprintGoal = new Fingerprint();
 export function machine(
@@ -137,8 +137,8 @@ export function machine(
         .with(ReduceMemorySize);
 
     // Code Inspections
-    const codeInspectionGoal = new AutoCodeInspection()
-        .with(AutoCheckSonarScan);
+    const codeInspectionGoal = new AutoCodeInspection();
+    // const autoCheckSonarGoal = new AutoCodeInspection().with(AutoCheckSonarScan);
 
     // Versioners
     const MavenVersion = new Version().withVersioner(MavenProjectVersioner);
@@ -283,7 +283,7 @@ export function machine(
         intent: "create spring",
         description: "Create a new Java Spring Boot REST service",
         parameters: SpringProjectCreationParameterDefinitions,
-        startingPoint: GitHubRepoRef.from({ owner: "ipcrmdemo", repo: "spring-rest", branch: "master" }),
+        startingPoint: GitHubRepoRef.from({ owner: "atomist-seeds", repo: "spring-rest", branch: "master" }),
         transform: [
             ReplaceReadmeTitle,
             SetAtomistTeamInApplicationYml,
@@ -308,7 +308,7 @@ export function machine(
 
     // Maven
     const MavenBaseGoals = goals("checks")
-        .plan(autofix, codeInspectionGoal, FingerprintGoal, new PushImpact());
+        .plan(MavenVersion, autofix, new PushImpact());
     const SdmBuildGoals = goals("build")
         .plan(sdmBuild).after(autofix, MavenVersion);
     const BuildGoals = goals("build")

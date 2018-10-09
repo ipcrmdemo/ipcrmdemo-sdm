@@ -34,6 +34,7 @@ import {
     StagingEndpointGoal,
     ProductionEndpointGoal,
     ProductionUndeploymentGoal,
+    Fingerprint,
 } from "@atomist/sdm";
 import {
     StagingUndeploymentGoal,
@@ -93,6 +94,17 @@ import {
 } from "@atomist/sdm-pack-cloudfoundry";
 import { SonarQubeSupport } from "@atomist/sdm-pack-sonarqube";
 import {
+    fingerprintSupport,
+    forFingerprints,
+    renderDiffSnippet,
+} from "@atomist/sdm-pack-fingerprints";
+import {
+    setNewTarget,
+} from "@atomist/sdm-pack-fingerprints/lib/handlers/commands/pushImpactCommandHandlers";
+import {
+    IsNode,
+} from "@atomist/sdm-pack-node";
+import {
     AutoCheckSonarScan,
 } from "../support/sonarQube";
 import {
@@ -100,6 +112,7 @@ import {
     ProductionDeploymentGoalWPreApproval,
 } from "./goals";
 
+export const FingerprintGoal = new Fingerprint();
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
 ): SoftwareDeliveryMachine {
@@ -107,6 +120,17 @@ export function machine(
     const sdm: SoftwareDeliveryMachine = createSoftwareDeliveryMachine(
         { name: "Organization ipcrmdemo sdm", configuration },
     );
+
+    // Bot Commands
+    sdm.addCommand(EnableDeploy)
+        .addCommand(DisableDeploy)
+        .addCommand(DisplayDeployEnablement)
+        .addPushImpactListener(enableDeployOnCloudFoundryManifestAddition(sdm))
+        .addCodeTransformCommand(AddDockerFile)
+        .addCodeTransformCommand(FixSmallMemory);
+
+    // Github Integration
+    summarizeGoalsInGitHubStatus(sdm);
 
     // Autofix
     const autofix = new Autofix()
@@ -117,7 +141,7 @@ export function machine(
         .with(AutoCheckSonarScan);
 
     // Versioners
-    const version = new Version().withVersioner(MavenProjectVersioner);
+    const MavenVersion = new Version().withVersioner(MavenProjectVersioner);
 
     // Builds
     const sdmBuild = new Build().with({
@@ -223,6 +247,34 @@ export function machine(
         CloudFoundrySupport,
         pack.goalState.GoalState,
         SonarQubeSupport,
+        fingerprintSupport(
+            FingerprintGoal,
+            {
+                selector: forFingerprints(
+                    "clojure-project-deps",
+                    "maven-project-deps",
+                    "npm-project-deps"),
+                diffHandler: renderDiffSnippet,
+            },
+            {
+                selector: forFingerprints(
+                    "clojure-project-coordinates",
+                    "maven-project-coordinates",
+                    "npm-project-coordinates"),
+                    diffHandler: async (ctx, diff) => {
+
+                        await ctx.messageClient.addressChannels(
+                            `Version update to ${diff.to.data.name}:
+                                 Change from ${diff.from.data.version} to ${diff.to.data.version}`,
+                            diff.channel);
+                        return setNewTarget(
+                            ctx,
+                            diff.to.data.name,
+                            diff.to.data.version,
+                            diff.channel);
+                    },
+            },
+        ),
     );
 
     // Generators
@@ -231,7 +283,7 @@ export function machine(
         intent: "create spring",
         description: "Create a new Java Spring Boot REST service",
         parameters: SpringProjectCreationParameterDefinitions,
-        startingPoint: GitHubRepoRef.from({ owner: "atomist-seeds", repo: "spring-rest-seed", branch: "master" }),
+        startingPoint: GitHubRepoRef.from({ owner: "ipcrmdemo", repo: "spring-rest", branch: "master" }),
         transform: [
             ReplaceReadmeTitle,
             SetAtomistTeamInApplicationYml,
@@ -240,17 +292,39 @@ export function machine(
         ],
     });
 
-    // Generic Goals
-    const BaseGoals = goals("checks")
-        .plan(version, autofix, codeInspectionGoal, new PushImpact());
-    const SdmBuildGoals = goals("build")
-        .plan(sdmBuild).after(autofix, version);
-    const BuildGoals = goals("build")
-        .plan(build).after(autofix, version);
+    sdm.addGeneratorCommand<SpringProjectCreationParameters>({
+        name: "create-spring-external-build",
+        intent: "create spring jenkins build",
+        description: "Create a new Java Spring Boot REST service that builds with Jenkins",
+        parameters: SpringProjectCreationParameterDefinitions,
+        startingPoint: GitHubRepoRef.from({ owner: "ipcrmdemo", repo: "spring-rest-jenkins", branch: "master" }),
+        transform: [
+            ReplaceReadmeTitle,
+            SetAtomistTeamInApplicationYml,
+            TransformSeedToCustomProject,
+            AddFinalNameToPom,
+        ],
+    });
 
-    // Goalset config
+    // Maven
+    const MavenBaseGoals = goals("checks")
+        .plan(autofix, codeInspectionGoal, FingerprintGoal, new PushImpact());
+    const SdmBuildGoals = goals("build")
+        .plan(sdmBuild).after(autofix, MavenVersion);
+    const BuildGoals = goals("build")
+        .plan(build).after(autofix, MavenVersion);
+
+    // Node
+    const NodeBaseGoals = goals("checks")
+        .plan(autofix, FingerprintGoal, new PushImpact());
+
+    // Rules
     sdm.addGoalContributions(goalContributors(
-        onAnyPush().setGoals(BaseGoals),
+        onAnyPush(),
+        whenPushSatisfies(IsMaven, not(IsNode))
+            .setGoals(MavenBaseGoals),
+        whenPushSatisfies(not(IsMaven), IsNode)
+            .setGoals(NodeBaseGoals),
         whenPushSatisfies(IsMaven, hasJenkinsfile)
             .setGoals(BuildGoals),
         whenPushSatisfies(IsMaven, not(hasJenkinsfile))
@@ -260,15 +334,5 @@ export function machine(
         whenPushSatisfies(HasDockerfile, ToDefaultBranch)
             .setGoals(K8sDeployGoals)));
 
-    // Bot Commands
-    sdm.addCommand(EnableDeploy)
-        .addCommand(DisableDeploy)
-        .addCommand(DisplayDeployEnablement)
-        .addPushImpactListener(enableDeployOnCloudFoundryManifestAddition(sdm))
-        .addCodeTransformCommand(AddDockerFile)
-        .addCodeTransformCommand(FixSmallMemory);
-
-    // Github Integration
-    summarizeGoalsInGitHubStatus(sdm);
     return sdm;
 }

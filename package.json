@@ -33,6 +33,8 @@
     "@atomist/sdm-pack-node": "1.0.0-M.5",
     "@atomist/sdm-pack-sonarqube": "^1.0.0-M.5",
     "@atomist/sdm-pack-spring": "1.0.0-M.5",
+    "@atomist/sdm-pack-fingerprints": "1.0.0-master.20181008215050",
+    "@atomist/clj-editors": "latest",
     "@types/dateformat": "^1.0.1",
     "@types/lodash": "^4.14.108",
     "axios": "^0.18.0",

@@ -74,6 +74,9 @@ import {
     AddDockerFile,
 } from "../transform/addDockerfile";
 import {
+    UpdateDockerfileMaintainer,
+} from "../transform/updateDockerFileMaintainer";
+import {
     ReduceMemorySize,
     FixSmallMemory,
 } from "../transform/smallMemory";
@@ -89,7 +92,7 @@ import {
 import {
     CloudFoundrySupport,
     HasCloudFoundryManifest,
-    CloudFoundryBlueGreenDeployer,
+    CloudFoundryPushDeployer,
     EnvironmentCloudFoundryTarget,
 } from "@atomist/sdm-pack-cloudfoundry";
 import { SonarQubeSupport } from "@atomist/sdm-pack-sonarqube";
@@ -127,6 +130,7 @@ export function machine(
         .addCommand(DisplayDeployEnablement)
         .addPushImpactListener(enableDeployOnCloudFoundryManifestAddition(sdm))
         .addCodeTransformCommand(AddDockerFile)
+        .addCodeTransformCommand(UpdateDockerfileMaintainer)
         .addCodeTransformCommand(FixSmallMemory);
 
     // Github Integration
@@ -171,7 +175,7 @@ export function machine(
 
     // PCF Deploys
     const deployToStaging = {
-            deployer: new CloudFoundryBlueGreenDeployer(sdm.configuration.sdm.projectLoader),
+            deployer: new CloudFoundryPushDeployer(sdm.configuration.sdm.projectLoader),
             targeter: () => new EnvironmentCloudFoundryTarget("staging"),
             deployGoal: StagingDeploymentGoalWApproval,
             endpointGoal: StagingEndpointGoal,
@@ -196,7 +200,7 @@ export function machine(
         AnyPush);
 
     const deployToProduction = {
-        deployer: new CloudFoundryBlueGreenDeployer(sdm.configuration.sdm.projectLoader),
+        deployer: new CloudFoundryPushDeployer(sdm.configuration.sdm.projectLoader),
         targeter: () => new EnvironmentCloudFoundryTarget("production"),
         deployGoal: ProductionDeploymentGoalWPreApproval,
         endpointGoal: ProductionEndpointGoal,

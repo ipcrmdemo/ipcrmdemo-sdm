@@ -2,8 +2,8 @@ import {
     AutoInspectRegistration,
     CodeInspection,
     ParametersInvocation,
-    PushReactionResponse,
     StringCapturingProgressLog,
+    PushImpactResponse,
 } from "@atomist/sdm";
 import {
     isLocalProject,
@@ -58,15 +58,15 @@ export const SonarCubeScan: CodeInspection<SonarResults> =
 
 export async function failIfSonarScanFails(
     result: SonarResults,
-    inv: ParametersInvocation<NoParameters>): Promise<PushReactionResponse> {
+    inv: ParametersInvocation<NoParameters>): Promise<PushImpactResponse> {
         const Pattern = /ANALYSIS SUCCESSFUL, you can browse ([^\s^[]*)/;
         const parsed = Pattern.exec(result);
         if (parsed) {
             await inv.addressChannels(`SonarQube Ran successfully! - <${parsed[1]}|Results>`);
-            return PushReactionResponse.proceed;
+            return PushImpactResponse.proceed;
         }
         await inv.addressChannels(parsed[0]);
-        return PushReactionResponse.failGoals;
+        return PushImpactResponse.failGoals;
 }
 
 export const AutoCheckSonarScan: AutoInspectRegistration<SonarResults> = {

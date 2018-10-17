@@ -193,8 +193,12 @@ export function machine(
     const cfDeployment = new CloudFoundryDeploy({preApproval: true})
         .with({ environment: "production", strategy: CloudFoundryDeploymentStrategy.API });
 
+    const cfDeploymentStaging = new CloudFoundryDeploy({approval: true})
+        .with({ environment: "staging", strategy: CloudFoundryDeploymentStrategy.API });
+
     const PcfDeploymentGoals = goals("cfdeploy")
-        .plan(cfDeployment).after(mavenBuild);
+        .plan(cfDeploymentStaging).after(mavenBuild)
+        .plan(cfDeployment).after(cfDeploymentStaging);
 
     // Ext Packs setup
     sdm.addExtensionPacks(

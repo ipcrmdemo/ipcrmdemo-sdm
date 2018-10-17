@@ -96,6 +96,7 @@ import {
     ReduceMemorySize,
 } from "../transform/smallMemory";
 import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintainer";
+// import { sonarQubeSupport } from "@atomist/sdm-pack-sonarqube";
 // import {
 //     AutoCheckSonarScan,
 // } from "../support/sonarQube";
@@ -213,6 +214,10 @@ export function machine(
 
     // Ext Packs setup
     sdm.addExtensionPacks(
+        // sonarQubeSupport({
+        //     ...sdm.configuration.sdm.sonar,
+        //     inspectGoal: codeInspection,
+        // }),
         springSupport({
             review: {
                 springStyle: true,

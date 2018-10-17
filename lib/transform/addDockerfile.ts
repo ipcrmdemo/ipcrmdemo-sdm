@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-import { NoParameters, PullRequest } from "@atomist/automation-client";
+import { NoParameters } from "@atomist/automation-client";
 import {
     AutofixRegistration,
     CodeTransform,
     CodeTransformRegistration,
 } from "@atomist/sdm";
 import * as _ from "lodash";
+import { PullRequest } from "@atomist/automation-client/lib/operations/edit/editModes";
 
 export const AddDockerfileTransform: CodeTransform<NoParameters> = async (p, inv) => {
     const name = _.get(inv, "parameters.target.repo") || p.name;

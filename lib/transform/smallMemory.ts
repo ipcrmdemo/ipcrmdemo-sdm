@@ -4,8 +4,8 @@ import {
     hasFile,
     CodeTransform,
     CodeTransformRegistration,
-    PullRequest,
 } from "@atomist/sdm";
+import { PullRequest } from "@atomist/automation-client/lib/operations/edit/editModes";
 
 const AtomistGeneratedMarker = "[atomist:generated]";
 const FixSmallMemoryMarker = "[atomist:fix-small-memory]";

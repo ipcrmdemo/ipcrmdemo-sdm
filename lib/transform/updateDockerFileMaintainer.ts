@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import { NoParameters, PullRequest } from "@atomist/automation-client";
+import { NoParameters, logger } from "@atomist/automation-client";
 import {
     AutofixRegistration,
     CodeTransform,
     CodeTransformRegistration,
-    logger,
 } from "@atomist/sdm";
 import { parse } from "docker-file-parser";
+import { PullRequest } from "@atomist/automation-client/lib/operations/edit/editModes";
 
 const newMaintainer = "ipcrm <ipcrm@noreply.com>";
 
@@ -29,7 +29,7 @@ export const AddDockerfileMaintainerTransform: CodeTransform<NoParameters> = asy
     if (await p.hasFile("pom.xml") && await p.hasFile("Dockerfile")) {
         const dF = await p.getFile("Dockerfile");
         let currentDockerFile = await dF.getContent();
-        const parsedDockerFile = parse(await currentDockerFile, { includeComments: false});
+        const parsedDockerFile = parse(currentDockerFile, { includeComments: false});
 
         for (const cmd of parsedDockerFile) {
             if (cmd.name === "MAINTAINER" && cmd.args !== newMaintainer) {

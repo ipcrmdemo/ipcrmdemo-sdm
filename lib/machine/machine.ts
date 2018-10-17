@@ -14,104 +14,94 @@
  * limitations under the License.
  */
 
+import { GitHubRepoRef } from "@atomist/automation-client";
 import {
-    not,
     allSatisfied,
     AutoCodeInspection,
     Autofix,
+    Fingerprint,
     goalContributors,
     goals,
+    LogSuppressor,
+    not,
     onAnyPush,
     PushImpact,
     SoftwareDeliveryMachine,
     SoftwareDeliveryMachineConfiguration,
-    whenPushSatisfies,
     ToDefaultBranch,
-    Fingerprint,
-    LogSuppressor,
+    whenPushSatisfies,
 } from "@atomist/sdm";
 import {
-    GitHubRepoRef,
-} from "@atomist/automation-client";
-import {
-    Build, Artifact,
-} from "@atomist/sdm-pack-build";
-import {
     createSoftwareDeliveryMachine,
-    Version,
     DisableDeploy,
     DisplayDeployEnablement,
     EnableDeploy,
     pack,
+    Version,
 } from "@atomist/sdm-core";
+import {
+    Artifact,
+    Build,
+} from "@atomist/sdm-pack-build";
+import {
+    CloudFoundryDeploy,
+    CloudFoundryDeploymentStrategy,
+    CloudFoundrySupport,
+    HasCloudFoundryManifest,
+} from "@atomist/sdm-pack-cloudfoundry";
 import {
     DockerBuild,
     HasDockerfile,
 } from "@atomist/sdm-pack-docker";
 import {
+    fingerprintSupport,
+    forFingerprints,
+    renderDiffSnippet,
+} from "@atomist/sdm-pack-fingerprints";
+import { setNewTarget } from "@atomist/sdm-pack-fingerprints/lib/handlers/commands/pushImpactCommandHandlers";
+import {
+    KubernetesDeploy,
+    kubernetesSupport,
+} from "@atomist/sdm-pack-k8";
+import {
+    IsNode,
+    nodeBuilder,
+    NodeProjectVersioner,
+    NpmProgressReporter,
+    NpmVersionProjectListener,
+} from "@atomist/sdm-pack-node";
+import {
     IsMaven,
+    mavenBuilder,
+    MavenDefaultOptions,
     MavenProjectVersioner,
+    MvnPackage,
+    MvnVersion,
     ReplaceReadmeTitle,
     SetAtomistTeamInApplicationYml,
     SpringProjectCreationParameterDefinitions,
     SpringProjectCreationParameters,
     springSupport,
     TransformSeedToCustomProject,
-    mavenBuilder,
-    MavenDefaultOptions,
-    MvnVersion,
-    MvnPackage,
 } from "@atomist/sdm-pack-spring";
-import {
-    KubernetesDeploy,
-    kubernetesSupport,
-} from "@atomist/sdm-pack-k8";
-import {
-    CloudFoundrySupport,
-    HasCloudFoundryManifest,
-    CloudFoundryDeploy,
-    CloudFoundryDeploymentStrategy,
-    // CloudFoundryDeploy,
-    // CloudFoundryDeploymentStrategy,
-} from "@atomist/sdm-pack-cloudfoundry";
-import {
-    fingerprintSupport,
-    forFingerprints,
-    renderDiffSnippet,
-} from "@atomist/sdm-pack-fingerprints";
-import {
-    setNewTarget,
-} from "@atomist/sdm-pack-fingerprints/lib/handlers/commands/pushImpactCommandHandlers";
-import {
-    IsNode,
-    nodeBuilder,
-    NpmVersionProjectListener,
-    NpmProgressReporter,
-    NodeProjectVersioner,
-} from "@atomist/sdm-pack-node";
-import {
-    AddDockerFile,
-} from "../transform/addDockerfile";
-import {
-    AddJenkinsfileRegistration,
-} from "../transform/addJenkinsfile";
-import {
-    UpdateDockerfileMaintainer,
-} from "../transform/updateDockerFileMaintainer";
-import {
-    ReduceMemorySize,
-    FixSmallMemory,
-} from "../transform/smallMemory";
 import {
     hasJenkinsfile,
     npmHasBuildScript,
 } from "../support/preChecks";
+import { AddDockerFile } from "../transform/addDockerfile";
 import { AddFinalNameToPom } from "../transform/addFinalName";
+import { AddJenkinsfileRegistration } from "../transform/addJenkinsfile";
+import {
+    FixSmallMemory,
+    ReduceMemorySize,
+} from "../transform/smallMemory";
+import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintainer";
 // import {
 //     AutoCheckSonarScan,
 // } from "../support/sonarQube";
 
-export const FingerprintGoal = new Fingerprint();
+export const fingerprint = new Fingerprint();
+
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
 ): SoftwareDeliveryMachine {
@@ -130,33 +120,36 @@ export function machine(
         .addCodeTransformCommand(FixSmallMemory);
 
     // Global
-    const PushImpactGoal = new PushImpact();
+    const pushImpact = new PushImpact();
 
     // Artifact
-    const artifactGoal = new Artifact();
+    const artifact = new Artifact();
 
     // Autofix
     const autofix = new Autofix()
         .with(ReduceMemorySize);
 
     // Code Inspections
-    const codeInspectionGoal = new AutoCodeInspection();
+    const codeInspection = new AutoCodeInspection();
 
     // Versioners
-    const MavenVersion = new Version().withVersioner(MavenProjectVersioner);
-    const NodeVersion = new Version().withVersioner(NodeProjectVersioner);
+    const mavenVersion = new Version().withVersioner(MavenProjectVersioner);
+    const nodeVersion = new Version().withVersioner(NodeProjectVersioner);
 
     // Builds
     const mavenBuild = new Build()
-        .with({...MavenDefaultOptions,
+        .with({
+            ...MavenDefaultOptions,
             name: "maven-run-build",
-            builder: mavenBuilder([{name: "maven-run-build"}]),
-            pushTest: MavenDefaultOptions.pushTest});
+            builder: mavenBuilder([{ name: "maven-run-build" }]),
+            pushTest: MavenDefaultOptions.pushTest,
+        });
 
     const externalBuild = new Build()
         .with({
             externalTool: "jenkins",
-            pushTest: hasJenkinsfile });
+            pushTest: hasJenkinsfile,
+        });
 
     const nodeBuild = new Build()
         .with({
@@ -167,36 +160,54 @@ export function machine(
             pushTest: IsNode,
         });
 
-    const SdmDockerBuild = new DockerBuild()
+    const dockerBuild = new DockerBuild()
         .with({
             options: { push: true, ...sdm.configuration.sdm.dockerinfo },
             pushTest: allSatisfied(IsMaven, HasDockerfile),
         })
-            .withProjectListener(MvnVersion)
-            .withProjectListener(MvnPackage)
+        .withProjectListener(MvnVersion)
+        .withProjectListener(MvnPackage)
 
         .with({
             options: { push: true, ...sdm.configuration.sdm.dockerinfo },
             pushTest: allSatisfied(IsNode, HasDockerfile),
         })
-            .withProjectListener(NpmVersionProjectListener);
+        .withProjectListener(NpmVersionProjectListener);
 
     // Kubernetes Deploys
-    const K8sStagingDeploy    = new KubernetesDeploy({ environment: "testing", approval: true });
-    const K8sProductionDeploy = new KubernetesDeploy({ environment: "production"  });
-    const K8sDeployGoals = goals("deploy")
-        .plan(SdmDockerBuild).after(mavenBuild, nodeBuild)
-        .plan(K8sStagingDeploy).after(SdmDockerBuild)
-        .plan(K8sProductionDeploy).after(K8sStagingDeploy);
+    const k8sStagingDeploy = new KubernetesDeploy({ environment: "testing", approval: true });
+    const k8sProductionDeploy = new KubernetesDeploy({ environment: "production" });
+
+    const k8sDeployGoals = goals("deploy")
+        .plan(dockerBuild).after(mavenBuild, nodeBuild)
+        .plan(k8sStagingDeploy).after(dockerBuild)
+        .plan(k8sProductionDeploy).after(k8sStagingDeploy);
 
     // CF Deployment
-    const cfDeployment = new CloudFoundryDeploy({preApproval: true})
+    const cfDeployment = new CloudFoundryDeploy({
+        displayName: "Deploy to CF `production`",
+        environment: "production",
+        preApproval: true,
+        descriptions: {
+            inProcess: "Deploying to Cloud Foundry `production`",
+            completed: "Deployed to Cloud Foundry `production`",
+        },
+    })
         .with({ environment: "production", strategy: CloudFoundryDeploymentStrategy.API });
 
-    const cfDeploymentStaging = new CloudFoundryDeploy({approval: true})
+    const cfDeploymentStaging = new CloudFoundryDeploy({
+            displayName: "Deploy to CF `testing`",
+            environment: "testing",
+            preApproval: true,
+            descriptions: {
+                inProcess: "Deploying to Cloud Foundry `testing`",
+                completed: "Deployed to Cloud Foundry `testing`",
+            },
+        },
+    )
         .with({ environment: "staging", strategy: CloudFoundryDeploymentStrategy.API });
 
-    const PcfDeploymentGoals = goals("cfdeploy")
+    const pcfDeploymentGoals = goals("cfdeploy")
         .plan(cfDeploymentStaging).after(mavenBuild)
         .plan(cfDeployment).after(cfDeploymentStaging);
 
@@ -210,18 +221,18 @@ export function machine(
             autofix: {
                 springStyle: true,
             },
-            inspectGoal: codeInspectionGoal,
+            inspectGoal: codeInspection,
             autofixGoal: autofix,
             reviewListeners: [],
         }),
         kubernetesSupport(),
         CloudFoundrySupport({
-            pushImpactGoal: PushImpactGoal,
+            pushImpactGoal: pushImpact,
         }),
         pack.goalState.GoalState,
         pack.githubGoalStatus.GitHubGoalStatus,
         fingerprintSupport(
-            FingerprintGoal,
+            fingerprint,
             {
                 selector: forFingerprints(
                     "clojure-project-deps",
@@ -234,19 +245,19 @@ export function machine(
                     "clojure-project-coordinates",
                     "maven-project-coordinates",
                     "npm-project-coordinates"),
-                    diffHandler: async (ctx, diff) => {
+                diffHandler: async (ctx, diff) => {
 
-                        await ctx.messageClient.addressChannels(
-                            `Version update to ${diff.to.data.name}:
+                    await ctx.messageClient.addressChannels(
+                        `Version update to ${diff.to.data.name}:
                                  Change from ${diff.from.data.version} to ${diff.to.data.version}`,
-                            diff.channel);
-                        return setNewTarget(
-                            ctx,
-                            diff.to.name,
-                            diff.to.data.name,
-                            diff.to.data.version,
-                            diff.channel);
-                    },
+                        diff.channel);
+                    return setNewTarget(
+                        ctx,
+                        diff.to.name,
+                        diff.to.data.name,
+                        diff.to.data.version,
+                        diff.channel);
+                },
             },
         ),
     );
@@ -282,15 +293,15 @@ export function machine(
 
     // global
     const GlobalGoals = goals("global")
-        .plan(autofix, FingerprintGoal, codeInspectionGoal, PushImpactGoal);
+        .plan(autofix, fingerprint, codeInspection, pushImpact);
 
     // Maven
     const MavenBaseGoals = goals("maven-base")
-        .plan(MavenVersion, mavenBuild, artifactGoal);
+        .plan(mavenVersion, mavenBuild, artifact);
 
     // Node
     const NodeBaseGoals = goals("node-base")
-        .plan(NodeVersion, nodeBuild);
+        .plan(nodeVersion, nodeBuild);
 
     // Rules
     sdm.addGoalContributions(goalContributors(
@@ -304,13 +315,13 @@ export function machine(
             .setGoals(NodeBaseGoals),
 
         whenPushSatisfies(IsMaven, hasJenkinsfile)
-            .setGoals(goals("maven-external").plan(MavenVersion, externalBuild)),
+            .setGoals(goals("maven-external").plan(mavenVersion, externalBuild)),
 
         whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch)
-            .setGoals(PcfDeploymentGoals),
+            .setGoals(pcfDeploymentGoals),
 
         whenPushSatisfies(HasDockerfile, ToDefaultBranch)
-            .setGoals(K8sDeployGoals)));
+            .setGoals(k8sDeployGoals)));
 
     return sdm;
 }

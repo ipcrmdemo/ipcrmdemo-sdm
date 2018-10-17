@@ -23,12 +23,12 @@
   "main": "./index.js",
   "types": "./index.d.ts",
   "dependencies": {
-    "@atomist/automation-client": "1.0.0-RC.1",
+    "@atomist/automation-client": "1.0.0-master.20181017160341",
     "@atomist/clj-editors": "0.5.7",
     "@atomist/sdm": "1.0.0-master.20181017121533",
     "@atomist/sdm-core": "1.0.0-master.20181017084730",
     "@atomist/sdm-pack-build": "1.0.0-RC.1",
-    "@atomist/sdm-pack-cloudfoundry": "1.0.0-ipcrm-sf-updates.20181017143127",
+    "@atomist/sdm-pack-cloudfoundry": "1.0.0-master.20181017201935",
     "@atomist/sdm-pack-docker": "1.0.0-RC.1",
     "@atomist/sdm-pack-fingerprints": "1.2.0",
     "@atomist/sdm-pack-k8": "1.0.0-RC.1",
@@ -43,7 +43,7 @@
     "lodash": "^4.17.10"
   },
   "devDependencies": {
-    "@atomist/sdm-local": "latest",
+    "@atomist/sdm-local": "1.0.0-master.20181017154846",
     "@types/mocha": "^5.2.5",
     "@types/node": "^10.7.1",
     "@types/power-assert": "^1.5.0",

@@ -84,6 +84,8 @@ import {
     springSupport,
     TransformSeedToCustomProject,
 } from "@atomist/sdm-pack-spring";
+import { changelogSupport } from "@atomist/sdm-pack-changelog";
+import { IssueSupport } from "@atomist/sdm-pack-issue";
 import {
     hasJenkinsfile,
     npmHasBuildScript,
@@ -236,6 +238,8 @@ export function machine(
         }),
         pack.goalState.GoalState,
         pack.githubGoalStatus.GitHubGoalStatus,
+        changelogSupport(),
+        IssueSupport,
         fingerprintSupport(
             fingerprint,
             {

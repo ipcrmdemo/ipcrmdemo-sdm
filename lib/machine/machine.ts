@@ -182,7 +182,7 @@ export function machine(
     const k8sProductionDeploy = new KubernetesDeploy({ environment: "production" });
 
     const k8sDeployGoals = goals("deploy")
-        .plan(dockerBuild).after(mavenBuild, nodeBuild)
+        .plan(dockerBuild).after(mavenBuild, nodeBuild, externalBuild)
         .plan(k8sStagingDeploy).after(dockerBuild)
         .plan(k8sProductionDeploy).after(k8sStagingDeploy);
 
@@ -331,6 +331,14 @@ export function machine(
 
         whenPushSatisfies(HasDockerfile, ToDefaultBranch)
             .setGoals(k8sDeployGoals)));
-
     return sdm;
 }
+
+    // sdm.addCommand<{ name: string }>({
+    //     name: "hello",
+    //     intent: "hello",
+    //     parameters: {
+    //         name: { description: "Your name" },
+    //     },
+    //     listener: async cli => cli.addressChannels(`Hello ${cli.parameters.name}`),
+    // });

@@ -1,31 +1,7 @@
 import { ECS } from "aws-sdk";
-// import * as stringify from "json-stringify-safe";
-
-// Task def params
-const params = {
-  containerDefinitions: [
-    {
-        name: "sleep",
-        command: [
-        "sleep",
-        "360",
-        ],
-        cpu: 12,
-        essential: true,
-        image: "busybox",
-        memory: 10,
-    },
-  ],
-  family: "sleep360",
-  // taskRoleArn: "",
-  volumes: [
-  ],
- };
-
-const ecs = new ECS();
 
 // Get a listing of active ARNs for the supplied task def family
-const ecsListTaskDefinitions = async (
+export const ecsListTaskDefinitions = async (
   ecsService: ECS,
   ecsFamily: string,
 ): Promise<string[]> => {
@@ -50,7 +26,7 @@ const ecsListTaskDefinitions = async (
 };
 
 // Supply one of the entries from ecsListTaskDefinitions and get returned the json definition
-const ecsGetTaskDefinition = async (
+export const ecsGetTaskDefinition = async (
   ecsService: ECS,
   ecsTaskDef: string,
   ): Promise<ECS.Types.DescribeTaskDefinitionResponse> => {
@@ -76,7 +52,7 @@ export const ecsRegisterTask = async (
   ecsService: ECS,
   ecsParams: ECS.Types.RegisterTaskDefinitionRequest): Promise<ECS.Types.RegisterTaskDefinitionResponse> => {
     return new Promise<ECS.Types.RegisterTaskDefinitionResponse>((resolve, reject) => {
-      ecsService.registerTaskDefinition(params, async (err, data) => {
+      ecsService.registerTaskDefinition(ecsParams, async (err, data) => {
         if (err) {
           reject(err.message);
         }
@@ -90,7 +66,7 @@ export const ecsRegisterTask = async (
 //  ie; iterate keys of obj1 and see if they match in obj2
 //  used to determine if a user supplied definition (which contains a subset of available keys)
 //  matches an existing task definion revision
-const cmpSuppliedTaskDefinition = (obj1, obj2): boolean => {
+export const cmpSuppliedTaskDefinition = (obj1, obj2): boolean => {
     let notEqualCount = 0;
     Object.keys(obj1).forEach( k => {
       if ( obj2.hasOwnProperty(k)) {
@@ -111,32 +87,3 @@ const cmpSuppliedTaskDefinition = (obj1, obj2): boolean => {
     });
     return notEqualCount > 0 ? false : true;
 };
-
-// List available task definitions for the given family
-ecsListTaskDefinitions(ecs, "sleep360")
-  .then( v => {
-    ecsGetTaskDefinition(ecs, v.pop())
-      .then( v3 => {
-
-        // tslint:disable-next-line:no-console
-        // Does the latest task definition match the one supplied?
-        //  If not, create a new rev
-        if (!cmpSuppliedTaskDefinition(params, v3.taskDefinition)) {
-            ecsRegisterTask(ecs, params)
-              .then(value => {
-                // tslint:disable-next-line:no-console
-                console.log(value);
-              });
-
-        } else {
-
-                // tslint:disable-next-line:no-console
-          console.log(v3.taskDefinition);
-        }
-
-      });
-  })
-  .catch(reason => {
-    throw Error(reason.message);
-  });
-

@@ -211,18 +211,22 @@ export function machine(
         },
     })
         .with({
-            serviceName: "ecs-test-1-production",
-            taskDefinition: "tutorial:1",
-            launchType: "FARGATE",
-            cluster: "tutorial",
-            desiredCount: 1,
-            networkConfiguration: {
-                awsvpcConfiguration: {
-                    subnets: ["subnet-02ddf34bfe7f6c19a", "subnet-0c5bfb43a631bee45"],
-                    securityGroups: ["sg-0959d9866b23698f2"],
-                    assignPublicIp: "ENABLED",
+            name: "test",
+            pushTest: HasDockerfile,
+            serviceRequest: {
+                serviceName: "ecs-test-1-production",
+                taskDefinition: "tutorial:1",
+                launchType: "FARGATE",
+                cluster: "tutorial",
+                desiredCount: 1,
+                networkConfiguration: {
+                    awsvpcConfiguration: {
+                        subnets: ["subnet-02ddf34bfe7f6c19a", "subnet-0c5bfb43a631bee45"],
+                        securityGroups: ["sg-0959d9866b23698f2"],
+                        assignPublicIp: "ENABLED",
+                    },
                 },
-            },
+            }
         });
 
     // const cfDeploymentStaging = new CloudFoundryDeploy({

@@ -16,6 +16,9 @@ import {
     GoalDefinition,
     Implementation,
     Deployment,
+    FulfillmentRegistration,
+    SdmGoalEvent,
+    RepoContext,
 } from "@atomist/sdm";
 import { ProjectOperationCredentials, logger, RemoteRepoRef } from "@atomist/automation-client";
 import _ = require("lodash");
@@ -35,8 +38,13 @@ const EcsGoalDefinition: GoalDefinition = {
     canceledDescription: "Deployment to ECS cancelled",
 };
 
+export interface EcsDeployRegistration extends FulfillmentRegistration {
+    serviceRequest: Partial<ECS.Types.CreateServiceRequest>;
+    taskDefinition?: ECS.Types.RegisterTaskDefinitionRequest;
+}
+
 // tslint:disable-next-line:max-line-length
-export class EcsDeploy extends FulfillableGoalWithRegistrations<ECS.Types.CreateServiceRequest> {
+export class EcsDeploy extends FulfillableGoalWithRegistrations<EcsDeployRegistration> {
     // tslint:disable-next-line
     constructor(protected details: FulfillableGoalDetails | string = DefaultGoalNameGenerator.generateName("ecs-deploy-push"), 
                 ...dependsOn: Goal[]) {
@@ -48,31 +56,49 @@ export class EcsDeploy extends FulfillableGoalWithRegistrations<ECS.Types.Create
     }
 
     public with(
-        registration: Partial<ECS.Types.CreateServiceRequest>,
-        taskRegistration?: ECS.Types.RegisterTaskDefinitionRequest,
+        registration: EcsDeployRegistration,
         ): this {
 
         // tslint:disable-next-line:no-object-literal-type-assertion
         this.addFulfillment({
             name: DefaultGoalNameGenerator.generateName("ecs-deployer"),
-            goalExecutor: executeEcsDeploy(registration, taskRegistration),
-            ...registration,
+            goalExecutor: executeEcsDeploy(),
         } as Implementation);
+
+        this.addFulfillmentCallback({
+            goal: this,
+            callback: ecsDataCallback(this, registration),
+        });
+
         return this;
     }
 }
 
+async function createEcsTask(
+    ecs: ECS,
+    newTaskDef: ECS.Types.RegisterTaskDefinitionRequest): Promise<ECS.Types.TaskDefinition> {
+    return ecsRegisterTask(ecs, newTaskDef)
+        .then(value => {
+            logger.info(`Registered new task definition for ${value.taskDefinition.family}`);
+            return value.taskDefinition;
+        })
+        .catch(reason => {
+            // tslint:disable-next-line:no-console
+            console.log("TEST 1 - 2.1");
+            logger.error(`Something went south - ${reason.message}`);
+            throw new Error(reason.message);
+        });
+}
+
 // Execute an ECS deploy
 //  *IF there is a task partion task definition, inject
-export function executeEcsDeploy(
-    serviceRequest: Partial<ECS.Types.CreateServiceRequest>,
-    taskRegistration?: ECS.Types.RegisterTaskDefinitionRequest,
-
-    ): ExecuteGoal {
+export function executeEcsDeploy(): ExecuteGoal {
     return async (goalInvocation: GoalInvocation): Promise<ExecuteGoalResult> => {
         const {sdmGoal, credentials, id, progressLog, configuration} = goalInvocation;
 
-        logger.info("Deploying project %s:%s to ECS in %s]", id.owner, id.repo, serviceRequest.cluster);
+        const goalData = JSON.parse(sdmGoal.data);
+
+        logger.info("Deploying project %s:%s to ECS in %s]", id.owner, id.repo, goalData.serviceRequest.cluster);
 
         const image: DeployableArtifact = {
             name: sdmGoal.repo.name,
@@ -81,111 +107,10 @@ export function executeEcsDeploy(
             id,
         };
 
-        // Set image string, example source value:
-        //  <registry>/<author>/<image>:<version>"
-        const imageString = sdmGoal.push.after.image.imageName.split("/").pop().split(":")[0];
-
-        // Create or Update a task definition
-        // Check for passed taskdefinition info, and update the container field
-        // tslint:disable-next-line:no-var-keyword
-        let newTaskDef: ECS.Types.RegisterTaskDefinitionRequest = {
-            family: "",
-            containerDefinitions: [],
-        };
-
-        if (!taskRegistration) {
-
-            // Check if there is an in-project configuration
-            const dockerFile = await configuration.sdm.projectLoader.doWithProject(
-                {credentials, id, readOnly: !image.cwd}, async p => {
-                    if (p.hasFile("Dockerfile")) {
-                        const d = await p.getFile("Dockerfile");
-                        return d.getContent();
-                    } else {
-                        throw Error("No task definition present and no dockerfile found!");
-                    }
-            });
-
-            // Get Docker commands out
-            const parser = require("docker-file-parser");
-            const options = { includeComments: false };
-            const commands = parser.parse(dockerFile, options);
-            const exposeCommands = commands.filter((c: any) => c.name === "EXPOSE");
-
-            if (exposeCommands.length > 1) {
-                throw new Error(`Unable to determine port for default ingress. Dockerfile in project ` +
-                    `'${sdmGoal.repo.owner}/${sdmGoal.repo.name}' has more then one EXPOSE instruction: ` +
-                    exposeCommands.map((c: any) => c.args).join(", "));
-            } else if (exposeCommands.length === 1) {
-                newTaskDef.family = imageString;
-                newTaskDef.containerDefinitions = [
-                    {
-                        name: imageString,
-                        image: sdmGoal.push.after.image.imageName,
-                        portMappings: [{
-                            containerPort: exposeCommands[0].args[0],
-                            hostPort: exposeCommands[0].args[0],
-                        }],
-
-                    },
-                ];
-            }
-        } else {
-            newTaskDef = taskRegistration;
-            newTaskDef.containerDefinitions.forEach( k => {
-                if (imageString === k.name) {
-                    k.image = sdmGoal.push.after.image.imageName;
-                }
-            });
-        }
-
-        // tslint:disable-next-line:no-console
-        console.log(`NEWTASKDEF:\n${JSON.stringify(newTaskDef)}`);
-
-        // Retrieve existing Task definitions, if we find a matching revision - use that
-        //  otherwise create a new task definition
-        const ecs = new ECS();
-
-        // Pull latest def info
-        let goodTaskDefinition: ECS.Types.TaskDefinition;
-        const taskDefs = await ecsListTaskDefinitions(ecs, newTaskDef.family);
-        // tslint:disable-next-line:no-console
-        console.log(`NEWTASKDEF:\n${JSON.stringify(newTaskDef)}`);
-
-        const latestRev = taskDefs ? await ecsGetTaskDefinition(ecs, taskDefs.pop()) : undefined;
-
-        // Compare latest def to new def
-        // - if they differ create a new revision
-        // - if they don't use the existing rev
-        if (!cmpSuppliedTaskDefinition(latestRev, newTaskDef)) {
-            await ecsRegisterTask(ecs, newTaskDef)
-                .then(value => {
-                    logger.info(`Registered new task definition for ${value.taskDefinition.family}`);
-                    goodTaskDefinition = value.taskDefinition;
-                })
-                .catch(reason => {
-                    // tslint:disable-next-line:no-console
-                    console.log("TEST 1 - 2.1");
-                    logger.error(`Something went south - ${reason.message}`);
-                    throw new Error(reason.message);
-                });
-        }
-
-        // tslint:disable-next-line:no-console
-        console.log("TEST 2");
-
-        // Update Service Request with up to date task definition
-        let newServiceRequest: ECS.Types.CreateServiceRequest;
-        newServiceRequest = {
-            ...serviceRequest,
-            serviceName: serviceRequest.serviceName ? serviceRequest.serviceName : sdmGoal.repo.name,
-            taskDefinition: `${goodTaskDefinition.family}:${goodTaskDefinition.revision}`,
-        };
-
         const deployInfo = {
             name: sdmGoal.repo.name,
             description: sdmGoal.name,
-            ...newServiceRequest,
+            ...goalData.serviceRequest,
         };
 
         const deployments = await new EcsDeployer(configuration.sdm.projectLoader).deploy(
@@ -275,4 +200,115 @@ export class EcsDeployer implements Deployer<EcsDeploymentInfo, EcsDeployment> {
         };
     }
 
+}
+
+function ecsDataCallback(ecsDeploy: EcsDeploy,
+                         registration: EcsDeployRegistration)
+: (goal: SdmGoalEvent, context: RepoContext) => Promise<SdmGoalEvent> {
+    return async (sdmGoal, ctx) => {
+        return ecsDeploy.sdm.configuration.sdm.projectLoader.doWithProject({
+            credentials: ctx.credentials, id: ctx.id, context: ctx.context, readOnly: true,
+        }, async p => {
+
+            // Set image string, example source value:
+            //  <registry>/<author>/<image>:<version>"
+            const imageString = sdmGoal.push.after.image.imageName.split("/").pop().split(":")[0];
+
+            // Create or Update a task definition
+            // Check for passed taskdefinition info, and update the container field
+            // tslint:disable-next-line:no-var-keyword
+            let newTaskDef: ECS.Types.RegisterTaskDefinitionRequest = {
+                family: "",
+                containerDefinitions: [],
+            };
+
+            if (!registration.taskDefinition) {
+
+                // Check if there is an in-project configuration
+                let dockerFile;
+                if (p.hasFile("Dockerfile")) {
+                            const d = await p.getFile("Dockerfile");
+                            dockerFile = await d.getContent();
+                } else {
+                    throw Error("No task definition present and no dockerfile found!");
+                }
+
+                // Get Docker commands out
+                const parser = require("docker-file-parser");
+                const options = { includeComments: false };
+                const commands = parser.parse(dockerFile, options);
+                const exposeCommands = commands.filter((c: any) => c.name === "EXPOSE");
+
+                if (exposeCommands.length > 1) {
+                    throw new Error(`Unable to determine port for default ingress. Dockerfile in project ` +
+                        `'${sdmGoal.repo.owner}/${sdmGoal.repo.name}' has more then one EXPOSE instruction: ` +
+                        exposeCommands.map((c: any) => c.args).join(", "));
+                } else if (exposeCommands.length === 1) {
+                    newTaskDef.family = imageString;
+                    newTaskDef.containerDefinitions = [
+                        {
+                            name: imageString,
+                            image: sdmGoal.push.after.image.imageName,
+                            portMappings: [{
+                                containerPort: exposeCommands[0].args[0],
+                                hostPort: exposeCommands[0].args[0],
+                            }],
+
+                        },
+                    ];
+                }
+            } else {
+                newTaskDef = registration.taskDefinition;
+                newTaskDef.containerDefinitions.forEach( k => {
+                    if (imageString === k.name) {
+                        k.image = sdmGoal.push.after.image.imageName;
+                    }
+                });
+            }
+
+            // Retrieve existing Task definitions, if we find a matching revision - use that
+            //  otherwise create a new task definition
+            const ecs = new ECS();
+
+            // Pull latest def info
+            let goodTaskDefinition: ECS.Types.TaskDefinition;
+
+            // tslint:disable-next-line:no-console
+            console.log(`NEWTASKDEF:\n${JSON.stringify(newTaskDef)}`);
+
+            const taskDefs = await ecsListTaskDefinitions(ecs, newTaskDef.family);
+
+            // tslint:disable-next-line:no-console
+            console.log(`NEWTASKDEF:\n${JSON.stringify(newTaskDef)}`);
+
+            const latestRev = taskDefs ? await ecsGetTaskDefinition(ecs, taskDefs.pop()) : undefined;
+
+            // Compare latest def to new def
+            // - if they differ create a new revision
+            // - if they don't use the existing rev
+            if (!cmpSuppliedTaskDefinition(latestRev, newTaskDef)) {
+                goodTaskDefinition = await createEcsTask(ecs, newTaskDef);
+            }
+
+            // tslint:disable-next-line:no-console
+            console.log("TEST 2");
+
+            // Update Service Request with up to date task definition
+            let newServiceRequest: ECS.Types.CreateServiceRequest;
+            newServiceRequest = {
+                ...registration.serviceRequest,
+                serviceName: registration.serviceRequest ? registration.serviceRequest.serviceName : sdmGoal.repo.name,
+                taskDefinition: `${goodTaskDefinition.family}:${goodTaskDefinition.revision}`,
+            };
+
+            return {
+                ...sdmGoal,
+                data: JSON.stringify({
+                    serviceRequest: newServiceRequest,
+                    taskDefinition: goodTaskDefinition,
+                }),
+            };
+        });
+
+    };
 }

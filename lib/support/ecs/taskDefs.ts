@@ -5,14 +5,14 @@ export const ecsListTaskDefinitions = async (
   ecsService: ECS,
   ecsFamily: string,
 ): Promise<string[]> => {
-  return new Promise<string[]>( async (resolve, reject) => {
-      await ecsService.listTaskDefinitionFamilies({status: "ACTIVE"}, async (err, data) => {
+  return new Promise<string[]>((resolve, reject) => {
+      ecsService.listTaskDefinitionFamilies({status: "ACTIVE"}, (err, data) => {
           if (err) {
             throw Error(err.message);
           } else {
             // tslint:disable-next-line:no-console
             if (data.families.includes(ecsFamily)) {
-                await ecsService.listTaskDefinitions({familyPrefix: ecsFamily}, (e, d) => {
+                ecsService.listTaskDefinitions({familyPrefix: ecsFamily}, (e, d) => {
                   if (e) {
                     reject(e.message);
                   } else {

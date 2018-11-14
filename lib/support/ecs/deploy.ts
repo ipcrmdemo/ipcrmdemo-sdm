@@ -144,12 +144,12 @@ export function executeEcsDeploy(
 
         // Retrieve existing Task definitions, if we find a matching revision - use that
         //  otherwise create a new task definition
-        let goodTaskDefinition: ECS.Types.TaskDefinition;
         const ecs = new ECS();
 
-        goodTaskDefinition = [await new Promise<ECS.Types.TaskDefinition>(async (resolve, reject) => {
-            await ecsListTaskDefinitions(ecs, newTaskDef.family)
+        const finalTaskDefinition = await ecsListTaskDefinitions(ecs, newTaskDef.family)
             .then( v => {
+                let goodTaskDefinition: ECS.Types.TaskDefinition;
+
                 // tslint:disable-next-line:no-console
                 console.log("TEST 1");
                 ecsGetTaskDefinition(ecs, v.pop())
@@ -162,22 +162,23 @@ export function executeEcsDeploy(
                             ecsRegisterTask(ecs, newTaskDef)
                                 .then(value => {
                                     logger.info(`Registered new task definition for ${value.taskDefinition.family}`);
-                                    return value.taskDefinition;
+                                    goodTaskDefinition = value.taskDefinition;
                                 });
                         } else {
                             logger.info(`Re-using existing matching task definition for ${v3.taskDefinition.family}`);
-                            return v3.taskDefinition;
+                            goodTaskDefinition = v3.taskDefinition;
                         }
                         throw new Error("Shouldn't reach this point");
                     });
+
+                return goodTaskDefinition;
             })
             .catch(reason => {
                 // tslint:disable-next-line:no-console
                 console.log("TEST 1 - 3");
                 logger.error(`Something went south - ${reason.message}`);
-                reject(reason.message);
+                throw new Error(reason.message);
             });
-        })][0];
 
         // tslint:disable-next-line:no-console
         console.log("TEST 2");
@@ -187,7 +188,7 @@ export function executeEcsDeploy(
         newServiceRequest = {
             ...serviceRequest,
             serviceName: serviceRequest.serviceName ? serviceRequest.serviceName : sdmGoal.repo.name,
-            taskDefinition: `${goodTaskDefinition.family}:${goodTaskDefinition.revision}`,
+            taskDefinition: `${finalTaskDefinition.family}:${finalTaskDefinition.revision}`,
         };
 
         const deployInfo = {

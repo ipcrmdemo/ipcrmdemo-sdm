@@ -147,8 +147,8 @@ export function executeEcsDeploy(
         let goodTaskDefinition: ECS.Types.TaskDefinition;
         const ecs = new ECS();
 
-        goodTaskDefinition = await new Promise<ECS.Types.TaskDefinition>((resolve, reject) => {
-            ecsListTaskDefinitions(ecs, newTaskDef.family)
+        goodTaskDefinition = [await new Promise<ECS.Types.TaskDefinition>(async (resolve, reject) => {
+            await ecsListTaskDefinitions(ecs, newTaskDef.family)
             .then( v => {
                 // tslint:disable-next-line:no-console
                 console.log("TEST 1");
@@ -162,12 +162,13 @@ export function executeEcsDeploy(
                             ecsRegisterTask(ecs, newTaskDef)
                                 .then(value => {
                                     logger.info(`Registered new task definition for ${value.taskDefinition.family}`);
-                                    resolve(value.taskDefinition);
+                                    return value.taskDefinition;
                                 });
                         } else {
                             logger.info(`Re-using existing matching task definition for ${v3.taskDefinition.family}`);
-                            resolve(v3.taskDefinition);
+                            return v3.taskDefinition;
                         }
+                        throw new Error("Shouldn't reach this point");
                     });
             })
             .catch(reason => {
@@ -176,7 +177,7 @@ export function executeEcsDeploy(
                 logger.error(`Something went south - ${reason.message}`);
                 reject(reason.message);
             });
-        });
+        })][0];
 
         // tslint:disable-next-line:no-console
         console.log("TEST 2");

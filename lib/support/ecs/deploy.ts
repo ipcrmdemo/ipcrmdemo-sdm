@@ -17,7 +17,7 @@ import {
     Implementation,
     Deployment,
 } from "@atomist/sdm";
-import { ProjectOperationCredentials, logger, RemoteRepoRef, Project } from "@atomist/automation-client";
+import { ProjectOperationCredentials, logger, RemoteRepoRef } from "@atomist/automation-client";
 import _ = require("lodash");
 import { ECS } from "aws-sdk";
 import { ecsListTaskDefinitions, ecsGetTaskDefinition, cmpSuppliedTaskDefinition, ecsRegisterTask } from "./taskDefs";
@@ -87,11 +87,16 @@ export function executeEcsDeploy(
 
         // Create or Update a task definition
         // Check for passed taskdefinition info, and update the container field
-        let newTaskDef: ECS.Types.RegisterTaskDefinitionRequest;
+        // tslint:disable-next-line:no-var-keyword
+        let newTaskDef: ECS.Types.RegisterTaskDefinitionRequest = {
+            family: "",
+            containerDefinitions: [],
+        };
+
         if (!taskRegistration) {
 
             // Check if there is an in-project configuration
-            const dockerFile  = configuration.sdm.projectLoader.doWithProject(
+            const dockerFile = await configuration.sdm.projectLoader.doWithProject(
                 {credentials, id, readOnly: !image.cwd}, async p => {
                     if (p.hasFile("Dockerfile")) {
                         const d = await p.getFile("Dockerfile");
@@ -134,30 +139,47 @@ export function executeEcsDeploy(
             });
         }
 
+        // tslint:disable-next-line:no-console
+        console.log(`NEWTASKDEF:\n${JSON.stringify(newTaskDef)}`);
+
         // Retrieve existing Task definitions, if we find a matching revision - use that
         //  otherwise create a new task definition
         let goodTaskDefinition: ECS.Types.TaskDefinition;
         const ecs = new ECS();
 
-        ecsListTaskDefinitions(ecs, newTaskDef.family)
+        goodTaskDefinition = await new Promise<ECS.Types.TaskDefinition>((resolve, reject) => {
+            ecsListTaskDefinitions(ecs, newTaskDef.family)
             .then( v => {
+                // tslint:disable-next-line:no-console
+                console.log("TEST 1");
                 ecsGetTaskDefinition(ecs, v.pop())
                     .then( v3 => {
+                        // tslint:disable-next-line:no-console
+                        console.log("TEST 1 - 2");
                         // Does the latest task definition match the one supplied?
                         //  If not, create a new rev
                         if (!cmpSuppliedTaskDefinition(newTaskDef, v3.taskDefinition)) {
                             ecsRegisterTask(ecs, newTaskDef)
                                 .then(value => {
-                                    goodTaskDefinition = value.taskDefinition;
+                                    logger.info(`Registered new task definition for ${value.taskDefinition.family}`);
+                                    resolve(value.taskDefinition);
                                 });
                         } else {
-                            goodTaskDefinition = v3.taskDefinition;
+                            logger.info(`Re-using existing matching task definition for ${v3.taskDefinition.family}`);
+                            resolve(v3.taskDefinition);
                         }
                     });
             })
             .catch(reason => {
-                throw Error(reason.message);
+                // tslint:disable-next-line:no-console
+                console.log("TEST 1 - 3");
+                logger.error(`Something went south - ${reason.message}`);
+                reject(reason.message);
             });
+        });
+
+        // tslint:disable-next-line:no-console
+        console.log("TEST 2");
 
         // Update Service Request with up to date task definition
         let newServiceRequest: ECS.Types.CreateServiceRequest;
@@ -189,7 +211,6 @@ export function executeEcsDeploy(
         }));
 
         return _.head(results);
-
     };
 }
 

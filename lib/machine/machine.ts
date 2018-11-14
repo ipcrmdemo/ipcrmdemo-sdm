@@ -37,7 +37,6 @@ import {
     DisplayDeployEnablement,
     EnableDeploy,
     goalState,
-    gitHubGoalStatus,
     Version,
 } from "@atomist/sdm-core";
 import {
@@ -265,7 +264,6 @@ export function machine(
         //     pushImpactGoal: pushImpact,
         // }),
         goalState(),
-        gitHubGoalStatus(),
         changelogSupport(),
         IssueSupport,
         fingerprintSupport(

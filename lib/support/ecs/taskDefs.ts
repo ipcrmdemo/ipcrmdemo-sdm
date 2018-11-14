@@ -30,7 +30,7 @@ export const ecsGetTaskDefinition = async (
   ecsService: ECS,
   ecsTaskDef: string,
   ): Promise<ECS.Types.DescribeTaskDefinitionResponse> => {
-    return new Promise<ECS.Types.DescribeTaskDefinitionResponse>( async (resolve, reject) => {
+    return new Promise<ECS.Types.DescribeTaskDefinitionResponse>(async (resolve, reject) => {
       // If there was definitions, lets get the last one to compare with
       const tdfVersion = ecsTaskDef.split(":")[6];
       const tdfFamily = ecsTaskDef.split(":")[5].split("/")[1];

@@ -146,39 +146,30 @@ export function executeEcsDeploy(
         //  otherwise create a new task definition
         const ecs = new ECS();
 
-        const finalTaskDefinition = await ecsListTaskDefinitions(ecs, newTaskDef.family)
-            .then( v => {
-                let goodTaskDefinition: ECS.Types.TaskDefinition;
+        // Pull latest def info
+        let goodTaskDefinition: ECS.Types.TaskDefinition;
+        const taskDefs = await ecsListTaskDefinitions(ecs, newTaskDef.family);
+        // tslint:disable-next-line:no-console
+        console.log(`NEWTASKDEF:\n${JSON.stringify(newTaskDef)}`);
 
-                // tslint:disable-next-line:no-console
-                console.log("TEST 1");
-                ecsGetTaskDefinition(ecs, v.pop())
-                    .then( v3 => {
-                        // tslint:disable-next-line:no-console
-                        console.log("TEST 1 - 2");
-                        // Does the latest task definition match the one supplied?
-                        //  If not, create a new rev
-                        if (!cmpSuppliedTaskDefinition(newTaskDef, v3.taskDefinition)) {
-                            ecsRegisterTask(ecs, newTaskDef)
-                                .then(value => {
-                                    logger.info(`Registered new task definition for ${value.taskDefinition.family}`);
-                                    goodTaskDefinition = value.taskDefinition;
-                                });
-                        } else {
-                            logger.info(`Re-using existing matching task definition for ${v3.taskDefinition.family}`);
-                            goodTaskDefinition = v3.taskDefinition;
-                        }
-                        throw new Error("Shouldn't reach this point");
-                    });
+        const latestRev = taskDefs ? await ecsGetTaskDefinition(ecs, taskDefs.pop()) : undefined;
 
-                return goodTaskDefinition;
-            })
-            .catch(reason => {
-                // tslint:disable-next-line:no-console
-                console.log("TEST 1 - 3");
-                logger.error(`Something went south - ${reason.message}`);
-                throw new Error(reason.message);
-            });
+        // Compare latest def to new def
+        // - if they differ create a new revision
+        // - if they don't use the existing rev
+        if (!cmpSuppliedTaskDefinition(latestRev, newTaskDef)) {
+            await ecsRegisterTask(ecs, newTaskDef)
+                .then(value => {
+                    logger.info(`Registered new task definition for ${value.taskDefinition.family}`);
+                    goodTaskDefinition = value.taskDefinition;
+                })
+                .catch(reason => {
+                    // tslint:disable-next-line:no-console
+                    console.log("TEST 1 - 2.1");
+                    logger.error(`Something went south - ${reason.message}`);
+                    throw new Error(reason.message);
+                });
+        }
 
         // tslint:disable-next-line:no-console
         console.log("TEST 2");
@@ -188,7 +179,7 @@ export function executeEcsDeploy(
         newServiceRequest = {
             ...serviceRequest,
             serviceName: serviceRequest.serviceName ? serviceRequest.serviceName : sdmGoal.repo.name,
-            taskDefinition: `${finalTaskDefinition.family}:${finalTaskDefinition.revision}`,
+            taskDefinition: `${goodTaskDefinition.family}:${goodTaskDefinition.revision}`,
         };
 
         const deployInfo = {

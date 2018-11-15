@@ -10,7 +10,7 @@ const params = {
         "sleep",
         "360",
         ],
-        cpu: 12,
+        cpu: 14,
         essential: true,
         image: "busybox",
         memory: 10,
@@ -25,11 +25,11 @@ const params = {
 const ecs = new ECS();
 
 // Get a listing of active ARNs for the supplied task def family
-const ecsListTaskDefinitions = async (
+const ecsListTaskDefinitions = (
   ecsService: ECS,
   ecsFamily: string,
 ): Promise<string[]> => {
-  return new Promise<string[]>( async (resolve, reject) => {
+  return new Promise<string[]>(async (resolve, reject) => {
       await ecsService.listTaskDefinitionFamilies({status: "ACTIVE"}, async (err, data) => {
           if (err) {
             throw Error(err.message);
@@ -50,7 +50,7 @@ const ecsListTaskDefinitions = async (
 };
 
 // Supply one of the entries from ecsListTaskDefinitions and get returned the json definition
-const ecsGetTaskDefinition = async (
+const ecsGetTaskDefinition = (
   ecsService: ECS,
   ecsTaskDef: string,
   ): Promise<ECS.Types.DescribeTaskDefinitionResponse> => {
@@ -75,12 +75,11 @@ const ecsGetTaskDefinition = async (
 export const ecsRegisterTask = async (
   ecsService: ECS,
   ecsParams: ECS.Types.RegisterTaskDefinitionRequest): Promise<ECS.Types.RegisterTaskDefinitionResponse> => {
-    return new Promise<ECS.Types.RegisterTaskDefinitionResponse>((resolve, reject) => {
-      ecsService.registerTaskDefinition(params, async (err, data) => {
+    return new Promise<ECS.Types.RegisterTaskDefinitionResponse>(async (resolve, reject) => {
+      await ecsService.registerTaskDefinition(params, (err, data) => {
         if (err) {
           reject(err.message);
         }
-
         resolve(data);
       });
     });
@@ -113,30 +112,63 @@ const cmpSuppliedTaskDefinition = (obj1, obj2): boolean => {
 };
 
 // List available task definitions for the given family
-ecsListTaskDefinitions(ecs, "sleep360")
-  .then( v => {
-    ecsGetTaskDefinition(ecs, v.pop())
-      .then( v3 => {
+function testit(): Promise<ECS.Types.TaskDefinition> {
+   return new Promise<ECS.Types.TaskDefinition>(async (res, rej) => {
+      await ecsListTaskDefinitions(ecs, "sleep360")
+        .then( async v => {
+          // tslint:disable-next-line:no-debugger
+          debugger;
+          await ecsGetTaskDefinition(ecs, v.pop())
+            .then( async v3 => {
+              // tslint:disable-next-line:no-debugger
+              debugger;
 
-        // tslint:disable-next-line:no-console
-        // Does the latest task definition match the one supplied?
-        //  If not, create a new rev
-        if (!cmpSuppliedTaskDefinition(params, v3.taskDefinition)) {
-            ecsRegisterTask(ecs, params)
-              .then(value => {
-                // tslint:disable-next-line:no-console
-                console.log(value);
-              });
+              // tslint:disable-next-line:no-console
+              // Does the latest task definition match the one supplied?
+              //  If not, create a new rev
+              if (!cmpSuppliedTaskDefinition(params, v3.taskDefinition)) {
+                  // tslint:disable-next-line:no-debugger
+                  debugger;
+                  await ecsRegisterTask(ecs, params)
+                    .then(value => {
+                      res(value.taskDefinition);
+                    })
+                    .catch(reason => {
+                      // tslint:disable-next-line:no-console
+                      console.log(reason);
+                      rej(reason);
+                    });
+              } else {
+              // tslint:disable-next-line:no-debugger
+                debugger;
+                res(v3.taskDefinition);
+              }
 
-        } else {
+            })
+            .catch(reason => {
+              // tslint:disable-next-line:no-console
+              console.log(reason);
+              rej(reason);
+            });
+        })
+        .catch(reason => {
+          // tslint:disable-next-line:no-console
+          console.log(reason);
+          rej(reason);
+        });
+   });
+}
 
-                // tslint:disable-next-line:no-console
-          console.log(v3.taskDefinition);
-        }
+// tslint:disable-next-line:no-debugger
+debugger;
 
-      });
-  })
-  .catch(reason => {
-    throw Error(reason.message);
-  });
+async function moo(): Promise<void> {
+  const value = await testit();
+  // tslint:disable-next-line:no-console
+  console.log(value);
+}
 
+moo();
+
+// tslint:disable-next-line:no-console
+console.log("HERE TOO");

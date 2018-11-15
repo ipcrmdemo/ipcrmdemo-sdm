@@ -77,6 +77,9 @@ export class EcsDeploy extends FulfillableGoalWithRegistrations<EcsDeployRegistr
 async function createEcsTask(
     ecs: ECS,
     newTaskDef: ECS.Types.RegisterTaskDefinitionRequest): Promise<ECS.Types.TaskDefinition> {
+
+    // // tslint:disable-next-line:no-debugger
+    // debugger;
     return ecsRegisterTask(ecs, newTaskDef)
         .then(value => {
             logger.info(`Registered new task definition for ${value.taskDefinition.family}`);
@@ -158,15 +161,26 @@ export class EcsDeployer implements Deployer<EcsDeploymentInfo, EcsDeployment> {
         // Run Deployment
         const ecs = new ECS();
         return [await new Promise<EcsDeployment>((resolve, reject) => {
-            ecs.createService(params, (err, data) => {
+
+            ecs.listServices({cluster: params.cluster}, (err, data) => {
                 if (err) {
-                    // tslint:disable-next-line:no-console
                     logger.error(err.stack);
                     reject(`Error: ${err.message}`);
                 } else {
                     // tslint:disable-next-line:no-console
-                    console.log(data); // successful response
+                    console.log("FOOBAR: " + data.serviceArns);
+                }
+            });
 
+            // ecs.updateService(params, (err, data) => {
+
+            // };
+
+            ecs.createService(params, (err, data) => {
+                if (err) {
+                    logger.error(err.stack);
+                    reject(`Error: ${err.message}`);
+                } else {
                     // TODO: Pull out endpoint
                     resolve({
                         endpoint: "test",
@@ -245,6 +259,11 @@ function ecsDataCallback(ecsDeploy: EcsDeploy,
                         exposeCommands.map((c: any) => c.args).join(", "));
                 } else if (exposeCommands.length === 1) {
                     newTaskDef.family = imageString;
+                    newTaskDef.requiresCompatibilities = [ "FARGATE"];
+                    newTaskDef.networkMode = "awsvpc";
+                    newTaskDef.cpu = "256",
+                    newTaskDef.memory = "0.5GB",
+
                     newTaskDef.containerDefinitions = [
                         {
                             name: imageString,
@@ -253,7 +272,6 @@ function ecsDataCallback(ecsDeploy: EcsDeploy,
                                 containerPort: exposeCommands[0].args[0],
                                 hostPort: exposeCommands[0].args[0],
                             }],
-
                         },
                     ];
                 }
@@ -263,6 +281,8 @@ function ecsDataCallback(ecsDeploy: EcsDeploy,
                     if (imageString === k.name) {
                         k.image = sdmGoal.push.after.image.imageName;
                     }
+                    k.memory = k.hasOwnProperty("memory") && k.memory ? k.memory : 1024;
+                    k.cpu = k.hasOwnProperty("cpu") && k.cpu ? k.cpu : 256;
                 });
             }
 
@@ -276,18 +296,33 @@ function ecsDataCallback(ecsDeploy: EcsDeploy,
             // tslint:disable-next-line:no-console
             console.log(`NEWTASKDEF:\n${JSON.stringify(newTaskDef)}`);
 
+            // tslint:disable-next-line:no-debugger
+            debugger;
             const taskDefs = await ecsListTaskDefinitions(ecs, newTaskDef.family);
 
             // tslint:disable-next-line:no-console
             console.log(`NEWTASKDEF:\n${JSON.stringify(newTaskDef)}`);
 
-            const latestRev = taskDefs ? await ecsGetTaskDefinition(ecs, taskDefs.pop()) : undefined;
+            // tslint:disable-next-line:no-debugger
+            debugger;
+            let latestRev;
+            await ecsGetTaskDefinition(ecs, taskDefs.pop())
+                .then(v => {
+                    latestRev = v;
+                })
+                .catch(() => {
+                    logger.debug(`No task definitions found for ${newTaskDef.family}`);
+                });
 
             // Compare latest def to new def
             // - if they differ create a new revision
             // - if they don't use the existing rev
-            if (!cmpSuppliedTaskDefinition(latestRev, newTaskDef)) {
+            if (latestRev && !cmpSuppliedTaskDefinition(latestRev, newTaskDef)) {
                 goodTaskDefinition = await createEcsTask(ecs, newTaskDef);
+            } else if (!latestRev) {
+                goodTaskDefinition = await createEcsTask(ecs, newTaskDef);
+            } else {
+                goodTaskDefinition = latestRev;
             }
 
             // tslint:disable-next-line:no-console

@@ -226,7 +226,7 @@ export function machine(
                         assignPublicIp: "ENABLED",
                     },
                 },
-            }
+            },
         });
 
     // const cfDeploymentStaging = new CloudFoundryDeploy({

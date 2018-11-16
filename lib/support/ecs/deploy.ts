@@ -86,8 +86,6 @@ async function createEcsTask(
             return value.taskDefinition;
         })
         .catch(reason => {
-            // tslint:disable-next-line:no-console
-            console.log("TEST 1 - 2.1");
             logger.error(`Something went south - ${reason.message}`);
             throw new Error(reason.message);
         });
@@ -169,7 +167,6 @@ export class EcsDeployer implements Deployer<EcsDeploymentInfo, EcsDeployment> {
                 } else {
                     let updateOrCreate = 0;
                     // tslint:disable-next-line:no-console
-                    console.log("FOOBAR: " + data.serviceArns);
                     data.serviceArns.forEach(s => {
                         // arn:aws:ecs:us-east-1:247672886355:service/ecs-test-1-production
                         const service = s.split(":").pop().split("/").pop();
@@ -179,11 +176,11 @@ export class EcsDeployer implements Deployer<EcsDeploymentInfo, EcsDeployment> {
                     });
                     if (updateOrCreate !== 0) {
                         // If we are updating, we need to build an UpdateServiceRequest from the data
-                        //  we got in params
+                        //  we got in params (which is a CreateServiceRequest, not update)
                         const updateService: ECS.Types.UpdateServiceRequest = {
-                            service: params.serviceName,
-                            taskDefinition: params.taskDefinition,
-                            forceNewDeployment: true,
+                            service: params.serviceName,                // Required
+                            taskDefinition: params.taskDefinition,      // Required
+                            forceNewDeployment: true,                   // Required
                             cluster: params.hasOwnProperty("cluster") && params.cluster ? params.cluster : undefined,
                             desiredCount: params.hasOwnProperty("desiredCount")
                                 && params.desiredCount ? params.desiredCount : undefined,
@@ -197,12 +194,13 @@ export class EcsDeployer implements Deployer<EcsDeploymentInfo, EcsDeployment> {
                                 && params.healthCheckGracePeriodSeconds
                                     ? params.healthCheckGracePeriodSeconds : undefined,
                         };
-                        ecs.updateService(updateService, (e, d) => {
+                        ecs.updateService(updateService, async (e, d) => {
                             if (e) {
                                 logger.error(e.stack);
                                 reject(`Error: ${e.message}`);
                             } else {
                                 // TODO: Pull out endpoint
+                                await getEndPointInfo(d,updateService);
                                 resolve({
                                     endpoint: "test",
                                     clusterName: d.service.clusterArn,
@@ -229,6 +227,24 @@ export class EcsDeployer implements Deployer<EcsDeploymentInfo, EcsDeployment> {
                 }
             });
         })];
+    }
+
+    public async getEndpointData(
+        definiition: ECS.Types.UpdateServiceRequest | ECS.Types.CreateServiceRequest,
+        data: ECS.Types.UpdateServiceResponse | ECS.Types.CreateServiceResponse,
+        ): Promise<string[]> {
+            return new Promise<string[]>((resolve, reject) => {
+                const ecs = new ECS();
+                ecs.listTasks({
+                    cluster: definiition.cluster,
+                    family: definiition.taskDefinition,
+                    serviceName: data.service.serviceName,
+                })
+                ecs.describeContainerInstances
+                data.service.taskDefinition
+
+
+            });
     }
 
     public async undeploy(): Promise<void> {
@@ -269,15 +285,14 @@ function ecsDataCallback(ecsDeploy: EcsDeploy,
 
             // Create or Update a task definition
             // Check for passed taskdefinition info, and update the container field
-            // tslint:disable-next-line:no-var-keyword
             let newTaskDef: ECS.Types.RegisterTaskDefinitionRequest = {
                 family: "",
                 containerDefinitions: [],
             };
 
+            // If our registration doesn't include a task definition - generate a generic one
             if (!registration.taskDefinition) {
-
-                // Check if there is an in-project configuration
+                // TODO: Check if there is an in-project configuration
                 let dockerFile;
                 if (p.hasFile("Dockerfile")) {
                             const d = await p.getFile("Dockerfile");
@@ -298,6 +313,7 @@ function ecsDataCallback(ecsDeploy: EcsDeploy,
                         exposeCommands.map((c: any) => c.args).join(", "));
                 } else if (exposeCommands.length === 1) {
                     newTaskDef.family = imageString;
+                    // TODO: Expose the defaults below in client.config.json
                     newTaskDef.requiresCompatibilities = [ "FARGATE"];
                     newTaskDef.networkMode = "awsvpc";
                     newTaskDef.cpu = "256",
@@ -320,6 +336,7 @@ function ecsDataCallback(ecsDeploy: EcsDeploy,
                     if (imageString === k.name) {
                         k.image = sdmGoal.push.after.image.imageName;
                     }
+                    // TODO: Expose the defaults below in client.config.json
                     k.memory = k.hasOwnProperty("memory") && k.memory ? k.memory : 1024;
                     k.cpu = k.hasOwnProperty("cpu") && k.cpu ? k.cpu : 256;
                 });
@@ -329,21 +346,9 @@ function ecsDataCallback(ecsDeploy: EcsDeploy,
             //  otherwise create a new task definition
             const ecs = new ECS();
 
-            // Pull latest def info
+            // Pull latest def info & compare it to the latest
             let goodTaskDefinition: ECS.Types.TaskDefinition;
-
-            // tslint:disable-next-line:no-console
-            console.log(`NEWTASKDEF:\n${JSON.stringify(newTaskDef)}`);
-
-            // tslint:disable-next-line:no-debugger
-            debugger;
             const taskDefs = await ecsListTaskDefinitions(ecs, newTaskDef.family);
-
-            // tslint:disable-next-line:no-console
-            console.log(`NEWTASKDEF:\n${JSON.stringify(newTaskDef)}`);
-
-            // tslint:disable-next-line:no-debugger
-            debugger;
             let latestRev;
             await ecsGetTaskDefinition(ecs, taskDefs.pop())
                 .then(v => {
@@ -363,9 +368,6 @@ function ecsDataCallback(ecsDeploy: EcsDeploy,
             } else {
                 goodTaskDefinition = latestRev;
             }
-
-            // tslint:disable-next-line:no-console
-            console.log("TEST 2");
 
             // Update Service Request with up to date task definition
             let newServiceRequest: ECS.Types.CreateServiceRequest;

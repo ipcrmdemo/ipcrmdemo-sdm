@@ -215,10 +215,9 @@ export function machine(
             pushTest: HasDockerfile,
             serviceRequest: {
                 serviceName: "ecs-test-1-production",
-                taskDefinition: "tutorial:1",
                 launchType: "FARGATE",
                 cluster: "tutorial",
-                desiredCount: 1,
+                desiredCount: 3,
                 networkConfiguration: {
                     awsvpcConfiguration: {
                         subnets: ["subnet-02ddf34bfe7f6c19a", "subnet-0c5bfb43a631bee45"],

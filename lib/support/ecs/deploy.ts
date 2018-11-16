@@ -160,33 +160,72 @@ export class EcsDeployer implements Deployer<EcsDeploymentInfo, EcsDeployment> {
 
         // Run Deployment
         const ecs = new ECS();
-        return [await new Promise<EcsDeployment>((resolve, reject) => {
+        return [await new Promise<EcsDeployment>(async (resolve, reject) => {
 
             ecs.listServices({cluster: params.cluster}, (err, data) => {
                 if (err) {
                     logger.error(err.stack);
                     reject(`Error: ${err.message}`);
                 } else {
+                    let updateOrCreate = 0;
                     // tslint:disable-next-line:no-console
                     console.log("FOOBAR: " + data.serviceArns);
-                }
-            });
-
-            // ecs.updateService(params, (err, data) => {
-
-            // };
-
-            ecs.createService(params, (err, data) => {
-                if (err) {
-                    logger.error(err.stack);
-                    reject(`Error: ${err.message}`);
-                } else {
-                    // TODO: Pull out endpoint
-                    resolve({
-                        endpoint: "test",
-                        clusterName: esi.cluster,
-                        projectName: esi.name,
+                    data.serviceArns.forEach(s => {
+                        // arn:aws:ecs:us-east-1:247672886355:service/ecs-test-1-production
+                        const service = s.split(":").pop().split("/").pop();
+                        if (service === params.serviceName) {
+                            updateOrCreate += 1;
+                        }
                     });
+                    if (updateOrCreate !== 0) {
+                        // If we are updating, we need to build an UpdateServiceRequest from the data
+                        //  we got in params
+                        const updateService: ECS.Types.UpdateServiceRequest = {
+                            service: params.serviceName,
+                            taskDefinition: params.taskDefinition,
+                            forceNewDeployment: true,
+                            cluster: params.hasOwnProperty("cluster") && params.cluster ? params.cluster : undefined,
+                            desiredCount: params.hasOwnProperty("desiredCount")
+                                && params.desiredCount ? params.desiredCount : undefined,
+                            deploymentConfiguration: params.hasOwnProperty("deploymentConfiguration")
+                                && params.deploymentConfiguration ? params.deploymentConfiguration : undefined,
+                            networkConfiguration: params.hasOwnProperty("networkConfiguration")
+                                && params.networkConfiguration ? params.networkConfiguration : undefined,
+                            platformVersion: params.hasOwnProperty("platformVersion")
+                                && params.platformVersion ? params.platformVersion : undefined,
+                            healthCheckGracePeriodSeconds: params.hasOwnProperty("healthCheckGracePeriodSeconds")
+                                && params.healthCheckGracePeriodSeconds
+                                    ? params.healthCheckGracePeriodSeconds : undefined,
+                        };
+                        ecs.updateService(updateService, (e, d) => {
+                            if (e) {
+                                logger.error(e.stack);
+                                reject(`Error: ${e.message}`);
+                            } else {
+                                // TODO: Pull out endpoint
+                                resolve({
+                                    endpoint: "test",
+                                    clusterName: d.service.clusterArn,
+                                    projectName: esi.name,
+                                });
+                            }
+                        });
+                    } else {
+                        // New service, just create
+                        ecs.createService(params, (err1, d1) => {
+                            if (err1) {
+                                logger.error(err1.stack);
+                                reject(`Error: ${err1.message}`);
+                            } else {
+                                // TODO: Pull out endpoint
+                                resolve({
+                                    endpoint: "test",
+                                    clusterName: d1.service.clusterArn,
+                                    projectName: esi.name,
+                                });
+                            }
+                        });
+                    }
                 }
             });
         })];

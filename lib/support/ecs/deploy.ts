@@ -22,7 +22,7 @@ import {
 } from "@atomist/sdm";
 import { ProjectOperationCredentials, logger, RemoteRepoRef } from "@atomist/automation-client";
 import _ = require("lodash");
-import { ECS } from "aws-sdk";
+import { ECS, EC2 } from "aws-sdk";
 import { ecsListTaskDefinitions, ecsGetTaskDefinition, cmpSuppliedTaskDefinition, ecsRegisterTask } from "./taskDefs";
 
 const EcsGoalDefinition: GoalDefinition = {
@@ -122,6 +122,7 @@ export function executeEcsDeploy(): ExecuteGoal {
         );
 
         const results = await Promise.all(deployments.map(deployment => {
+            // TODO: raise appropriate return code
             // tslint:disable-next-line:no-object-literal-type-assertion
             return {
                 code: 0,
@@ -160,7 +161,7 @@ export class EcsDeployer implements Deployer<EcsDeploymentInfo, EcsDeployment> {
         const ecs = new ECS();
         return [await new Promise<EcsDeployment>(async (resolve, reject) => {
 
-            ecs.listServices({cluster: params.cluster}, (err, data) => {
+            await ecs.listServices({cluster: params.cluster}, async (err, data) => {
                 if (err) {
                     logger.error(err.stack);
                     reject(`Error: ${err.message}`);
@@ -194,33 +195,68 @@ export class EcsDeployer implements Deployer<EcsDeploymentInfo, EcsDeployment> {
                                 && params.healthCheckGracePeriodSeconds
                                     ? params.healthCheckGracePeriodSeconds : undefined,
                         };
-                        ecs.updateService(updateService, async (e, d) => {
+                        await ecs.updateService(updateService, async (e, d) => {
                             if (e) {
                                 logger.error(e.stack);
                                 reject(`Error: ${e.message}`);
                             } else {
-                                // TODO: Pull out endpoint
-                                await getEndPointInfo(d,updateService);
-                                resolve({
-                                    endpoint: "test",
-                                    clusterName: d.service.clusterArn,
-                                    projectName: esi.name,
+                                // Wait for service to come-up/converge
+                                await ecs.waitFor("servicesStable",
+                                {
+                                    services: [updateService.service],
+                                    cluster: updateService.cluster,
+                                }, (serror, sdata) => {
+                                    if (err) {
+                                        logger.debug(err.message, err.stack);
+                                        reject(err.message);
+                                    }
                                 });
+
+                                // Collect endpoint data
+                                await this.getEndpointData(params, d)
+                                    .then( res => {
+                                        resolve({
+                                            endpoint: res.join(","),
+                                            clusterName: d.service.clusterArn,
+                                            projectName: esi.name,
+                                        });
+                                    })
+                                    .catch(reason => {
+                                        reject(reason);
+                                    });
                             }
                         });
                     } else {
                         // New service, just create
-                        ecs.createService(params, (err1, d1) => {
+                        await ecs.createService(params, async (err1, d1) => {
                             if (err1) {
                                 logger.error(err1.stack);
                                 reject(`Error: ${err1.message}`);
                             } else {
-                                // TODO: Pull out endpoint
-                                resolve({
-                                    endpoint: "test",
-                                    clusterName: d1.service.clusterArn,
-                                    projectName: esi.name,
+                                // Wait for service to come-up/converge
+                                await ecs.waitFor("servicesStable",
+                                {
+                                    services: [params.serviceName],
+                                    cluster: params.cluster,
+                                }, (serror, sdata) => {
+                                    if (err) {
+                                        logger.debug(err.message, err.stack);
+                                        throw new Error(err.message);
+                                    }
                                 });
+
+                                // Collect endpoint data
+                                await this.getEndpointData(params, d1)
+                                    .then( res => {
+                                        resolve({
+                                            endpoint: res.join(","),
+                                            clusterName: d1.service.clusterArn,
+                                            projectName: esi.name,
+                                        });
+                                    })
+                                    .catch(reason => {
+                                        throw new Error(reason);
+                                    });
                             }
                         });
                     }
@@ -230,20 +266,65 @@ export class EcsDeployer implements Deployer<EcsDeploymentInfo, EcsDeployment> {
     }
 
     public async getEndpointData(
-        definiition: ECS.Types.UpdateServiceRequest | ECS.Types.CreateServiceRequest,
+        definition: ECS.Types.UpdateServiceRequest | ECS.Types.CreateServiceRequest,
         data: ECS.Types.UpdateServiceResponse | ECS.Types.CreateServiceResponse,
         ): Promise<string[]> {
-            return new Promise<string[]>((resolve, reject) => {
+            return new Promise<string[]>( async (resolve, reject) => {
                 const ecs = new ECS();
-                ecs.listTasks({
-                    cluster: definiition.cluster,
-                    family: definiition.taskDefinition,
+                const ec2 = new EC2();
+                await ecs.listTasks({
                     serviceName: data.service.serviceName,
-                })
-                ecs.describeContainerInstances
-                data.service.taskDefinition
+                    cluster: definition.cluster,
+                }, async (err, arns) => {
+                    if (err) {
+                        logger.debug(err.message);
+                        reject(err.message);
+                    }
+                    let taskDef: ECS.Types.TaskDefinition;
+                    await ecs.describeTaskDefinition({
+                        taskDefinition: data.service.taskDefinition,
+                    }, (terr, tdata) => {
+                        if (terr) {
+                            logger.debug(terr.message, terr.stack);
+                            throw new Error(terr.message);
+                        } else {
+                            taskDef = tdata.taskDefinition;
+                        }
+                    });
+                    await ecs.describeTasks({
+                        tasks: arns.taskArns,
+                        cluster: definition.cluster,
+                    }, async (e, d) => {
+                        if (e) { reject(e.message); }
 
+                        // For each task - get the containers
+                        await d.tasks.forEach( async t => {
+                            // Get the EIN for this interface
+                            const ein = d.tasks[0].attachments[0].details[1].value;
+                            await ec2.describeNetworkInterfaces({
+                                NetworkInterfaceIds: [ ein ],
+                            }, async (ierr, idata) => {
+                                if (ierr) {
+                                    logger.debug(err.message, err.stack);
+                                    throw new Error(ierr.message);
+                                } else {
+                                    if (idata.NetworkInterfaces[0].Association.PublicIp) {
+                                        const publicIp = idata.NetworkInterfaces[0].Association.PublicIp;
+                                        // For each container, push endpoint
+                                        resolve(
+                                            taskDef.containerDefinitions.map( c => {
+                                                const proto = c.portMappings[0].protocol;
+                                                const port = c.portMappings[0].hostPort;
+                                                return `${proto}://${publicIp}:${port}`;
+                                            }),
+                                        );
+                                    }
+                                }
+                            });
+                        });
 
+                    });
+                });
             });
     }
 
@@ -322,10 +403,19 @@ function ecsDataCallback(ecsDeploy: EcsDeploy,
                     newTaskDef.containerDefinitions = [
                         {
                             name: imageString,
+                            healthCheck: {
+                                command: [
+                                    "CMD-SHELL",
+                                    `wget -O /dev/null http://localhost:${exposeCommands[0].args[0]} || exit 1`,
+                                ],
+                                startPeriod: 30,
+                            },
                             image: sdmGoal.push.after.image.imageName,
                             portMappings: [{
                                 containerPort: exposeCommands[0].args[0],
                                 hostPort: exposeCommands[0].args[0],
+                                // TODO: Expose default protocol in settings
+                                protocol: "http",
                             }],
                         },
                     ];

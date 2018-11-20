@@ -60,16 +60,18 @@ export async function ecsGetTaskDefinition(
 // Create a new service definition
 export async function ecsRegisterTask(
   ecsService: ECS,
-  ecsParams: ECS.Types.RegisterTaskDefinitionRequest): Promise<ECS.Types.RegisterTaskDefinitionResponse> {
-    return new Promise<ECS.Types.RegisterTaskDefinitionResponse>((resolve, reject) => {
-      ecsService.registerTaskDefinition(ecsParams, async (err, data) => {
-        if (err) {
-          logger.debug(err.message);
-          reject(err.message);
-        }
+  ecsParams: ECS.Types.RegisterTaskDefinitionRequest): Promise<ECS.Types.TaskDefinition> {
+    return new Promise<ECS.Types.TaskDefinition>((resolve, reject) => {
 
-        resolve(data);
-      });
+      const register = ecsService.registerTaskDefinition(ecsParams).promise();
+      register
+        .then(data => {
+         resolve(data.taskDefinition);
+        })
+        .catch(reason => {
+          logger.debug(reason.message);
+          reject(reason.message);
+        });
     });
 }
 

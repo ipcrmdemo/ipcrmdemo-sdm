@@ -74,23 +74,6 @@ export class EcsDeploy extends FulfillableGoalWithRegistrations<EcsDeployRegistr
     }
 }
 
-async function createEcsTask(
-    ecs: ECS,
-    newTaskDef: ECS.Types.RegisterTaskDefinitionRequest): Promise<ECS.Types.TaskDefinition> {
-
-    // // tslint:disable-next-line:no-debugger
-    // debugger;
-    return ecsRegisterTask(ecs, newTaskDef)
-        .then(value => {
-            logger.info(`Registered new task definition for ${value.taskDefinition.family}`);
-            return value.taskDefinition;
-        })
-        .catch(reason => {
-            logger.error(`Something went south - ${reason.message}`);
-            throw new Error(reason.message);
-        });
-}
-
 // Execute an ECS deploy
 //  *IF there is a task partion task definition, inject
 export function executeEcsDeploy(): ExecuteGoal {
@@ -161,106 +144,77 @@ export class EcsDeployer implements Deployer<EcsDeploymentInfo, EcsDeployment> {
         const ecs = new ECS();
         return [await new Promise<EcsDeployment>(async (resolve, reject) => {
 
-            await ecs.listServices({cluster: params.cluster}, async (err, data) => {
-                if (err) {
-                    logger.error(err.stack);
-                    reject(`Error: ${err.message}`);
-                } else {
-                    let updateOrCreate = 0;
-                    // tslint:disable-next-line:no-console
-                    data.serviceArns.forEach(s => {
-                        // arn:aws:ecs:us-east-1:247672886355:service/ecs-test-1-production
-                        const service = s.split(":").pop().split("/").pop();
-                        if (service === params.serviceName) {
-                            updateOrCreate += 1;
-                        }
-                    });
-                    if (updateOrCreate !== 0) {
-                        // If we are updating, we need to build an UpdateServiceRequest from the data
-                        //  we got in params (which is a CreateServiceRequest, not update)
-                        const updateService: ECS.Types.UpdateServiceRequest = {
-                            service: params.serviceName,                // Required
-                            taskDefinition: params.taskDefinition,      // Required
-                            forceNewDeployment: true,                   // Required
-                            cluster: params.hasOwnProperty("cluster") && params.cluster ? params.cluster : undefined,
-                            desiredCount: params.hasOwnProperty("desiredCount")
-                                && params.desiredCount ? params.desiredCount : undefined,
-                            deploymentConfiguration: params.hasOwnProperty("deploymentConfiguration")
-                                && params.deploymentConfiguration ? params.deploymentConfiguration : undefined,
-                            networkConfiguration: params.hasOwnProperty("networkConfiguration")
-                                && params.networkConfiguration ? params.networkConfiguration : undefined,
-                            platformVersion: params.hasOwnProperty("platformVersion")
-                                && params.platformVersion ? params.platformVersion : undefined,
-                            healthCheckGracePeriodSeconds: params.hasOwnProperty("healthCheckGracePeriodSeconds")
-                                && params.healthCheckGracePeriodSeconds
-                                    ? params.healthCheckGracePeriodSeconds : undefined,
-                        };
-                        await ecs.updateService(updateService, async (e, d) => {
-                            if (e) {
-                                logger.error(e.stack);
-                                reject(`Error: ${e.message}`);
-                            } else {
-                                // Wait for service to come-up/converge
-                                await ecs.waitFor("servicesStable",
-                                {
-                                    services: [updateService.service],
-                                    cluster: updateService.cluster,
-                                }, (serror, sdata) => {
-                                    if (err) {
-                                        logger.debug(err.message, err.stack);
-                                        reject(err.message);
-                                    }
-                                });
-
-                                // Collect endpoint data
-                                await this.getEndpointData(params, d)
-                                    .then( res => {
-                                        resolve({
-                                            endpoint: res.join(","),
-                                            clusterName: d.service.clusterArn,
-                                            projectName: esi.name,
-                                        });
-                                    })
-                                    .catch(reason => {
-                                        reject(reason);
-                                    });
-                            }
-                        });
-                    } else {
-                        // New service, just create
-                        await ecs.createService(params, async (err1, d1) => {
-                            if (err1) {
-                                logger.error(err1.stack);
-                                reject(`Error: ${err1.message}`);
-                            } else {
-                                // Wait for service to come-up/converge
-                                await ecs.waitFor("servicesStable",
-                                {
-                                    services: [params.serviceName],
-                                    cluster: params.cluster,
-                                }, (serror, sdata) => {
-                                    if (err) {
-                                        logger.debug(err.message, err.stack);
-                                        throw new Error(err.message);
-                                    }
-                                });
-
-                                // Collect endpoint data
-                                await this.getEndpointData(params, d1)
-                                    .then( res => {
-                                        resolve({
-                                            endpoint: res.join(","),
-                                            clusterName: d1.service.clusterArn,
-                                            projectName: esi.name,
-                                        });
-                                    })
-                                    .catch(reason => {
-                                        throw new Error(reason);
-                                    });
-                            }
-                        });
+            await ecs.listServices({cluster: params.cluster}).promise()
+            .then( async data => {
+                let updateOrCreate = 0;
+                data.serviceArns.forEach(s => {
+                    // arn:aws:ecs:us-east-1:247672886355:service/ecs-test-1-production
+                    const service = s.split(":").pop().split("/").pop();
+                    if (service === params.serviceName) {
+                        updateOrCreate += 1;
                     }
+                });
+                if (updateOrCreate !== 0) {
+                    // If we are updating, we need to build an UpdateServiceRequest from the data
+                    //  we got in params (which is a CreateServiceRequest, not update)
+                    const updateService: ECS.Types.UpdateServiceRequest = {
+                        service: params.serviceName,                // Required
+                        taskDefinition: params.taskDefinition,      // Required
+                        forceNewDeployment: true,                   // Required
+                        cluster: params.hasOwnProperty("cluster") && params.cluster ? params.cluster : undefined,
+                        desiredCount: params.hasOwnProperty("desiredCount")
+                            && params.desiredCount ? params.desiredCount : undefined,
+                        deploymentConfiguration: params.hasOwnProperty("deploymentConfiguration")
+                            && params.deploymentConfiguration ? params.deploymentConfiguration : undefined,
+                        networkConfiguration: params.hasOwnProperty("networkConfiguration")
+                            && params.networkConfiguration ? params.networkConfiguration : undefined,
+                        platformVersion: params.hasOwnProperty("platformVersion")
+                            && params.platformVersion ? params.platformVersion : undefined,
+                        healthCheckGracePeriodSeconds: params.hasOwnProperty("healthCheckGracePeriodSeconds")
+                            && params.healthCheckGracePeriodSeconds
+                                ? params.healthCheckGracePeriodSeconds : undefined,
+                    };
+
+                    // Update service with new definition
+                    await ecs.updateService(updateService).promise()
+                    .then( async d => {
+                        // Wait for service to come-up/converge
+                        await ecs.waitFor("servicesStable",
+                            { services: [updateService.service], cluster: updateService.cluster }).promise()
+                                .then( async () => {
+                                    await this.getEndpointData(params, d)
+                                        .then( res => {
+                                            resolve({
+                                                endpoint: res.join(","),
+                                                clusterName: d.service.clusterArn,
+                                                projectName: esi.name,
+                                            });
+                                        });
+                                });
+                    });
+                } else {
+                    // New Service, just create
+                    await ecs.createService(params).promise()
+                    .then( async d1 => {
+                            await ecs.waitFor("servicesStable",
+                                { cluster: params.cluster, services: [ params.serviceName] }).promise()
+                                    .then( async () => {
+                                        await this.getEndpointData(params, d1)
+                                            .then( res => {
+                                                resolve({
+                                                    endpoint: res.join(","),
+                                                    clusterName: d1.service.clusterArn,
+                                                    projectName: esi.name,
+                                                });
+                                            });
+                                    });
+
+                    });
+
                 }
+            })
+            .catch( reason => {
+                reject(reason);
             });
         })];
     }
@@ -269,61 +223,63 @@ export class EcsDeployer implements Deployer<EcsDeploymentInfo, EcsDeployment> {
         definition: ECS.Types.UpdateServiceRequest | ECS.Types.CreateServiceRequest,
         data: ECS.Types.UpdateServiceResponse | ECS.Types.CreateServiceResponse,
         ): Promise<string[]> {
-            return new Promise<string[]>( async (resolve, reject) => {
-                const ecs = new ECS();
-                const ec2 = new EC2();
-                await ecs.listTasks({
-                    serviceName: data.service.serviceName,
-                    cluster: definition.cluster,
-                }, async (err, arns) => {
-                    if (err) {
-                        logger.debug(err.message);
-                        reject(err.message);
-                    }
+        return new Promise<string[]>( async (resolve, reject) => {
+            const ecs = new ECS();
+            const ec2 = new EC2();
+
+            // List all tasks in this cluster that match our servicename
+            await ecs.listTasks(
+                { serviceName: data.service.serviceName, cluster: definition.cluster }).promise()
+                .then( async arns => {
                     let taskDef: ECS.Types.TaskDefinition;
-                    await ecs.describeTaskDefinition({
-                        taskDefinition: data.service.taskDefinition,
-                    }, (terr, tdata) => {
-                        if (terr) {
-                            logger.debug(terr.message, terr.stack);
-                            throw new Error(terr.message);
-                        } else {
+
+                    // Get all task definitions
+                    await ecs.describeTaskDefinition(
+                        { taskDefinition: data.service.taskDefinition }).promise()
+                        .then( async tdata => {
+
+                            // Get all the tasks that we found above
                             taskDef = tdata.taskDefinition;
-                        }
-                    });
-                    await ecs.describeTasks({
-                        tasks: arns.taskArns,
-                        cluster: definition.cluster,
-                    }, async (e, d) => {
-                        if (e) { reject(e.message); }
+                            await ecs.describeTasks(
+                                { tasks: arns.taskArns, cluster: definition.cluster }).promise()
+                                .then( async d => {
 
-                        // For each task - get the containers
-                        await d.tasks.forEach( async t => {
-                            // Get the EIN for this interface
-                            const ein = d.tasks[0].attachments[0].details[1].value;
-                            await ec2.describeNetworkInterfaces({
-                                NetworkInterfaceIds: [ ein ],
-                            }, async (ierr, idata) => {
-                                if (ierr) {
-                                    logger.debug(err.message, err.stack);
-                                    throw new Error(ierr.message);
-                                } else {
-                                    if (idata.NetworkInterfaces[0].Association.PublicIp) {
-                                        const publicIp = idata.NetworkInterfaces[0].Association.PublicIp;
-                                        // For each container, push endpoint
-                                        resolve(
-                                            taskDef.containerDefinitions.map( c => {
-                                                const proto = c.portMappings[0].protocol;
-                                                const port = c.portMappings[0].hostPort;
-                                                return `${proto}://${publicIp}:${port}`;
-                                            }),
-                                        );
-                                    }
-                                }
+                                    // For each tasks, pull out the network interface EIN
+                                    await d.tasks.forEach( async t => {
+                                        // Get the EIN for this interface
+                                        const ein = d.tasks[0].attachments[0].details[1].value;
+
+                                        // Lookup the network interface by EIN
+                                        await ec2.describeNetworkInterfaces(
+                                            { NetworkInterfaceIds: [ ein ]}).promise()
+                                            .then( idata => {
+
+                                                // If there is a public IP assigned, pull out the data
+                                                if (idata.NetworkInterfaces[0].Association.PublicIp) {
+                                                    const publicIp = idata.NetworkInterfaces[0].Association.PublicIp;
+                                                    // For each container, build the endpoint URL
+                                                    // Return the resulting map of urls
+                                                    resolve(
+                                                        taskDef.containerDefinitions.map( c => {
+                                                            const proto = c.portMappings[0].protocol;
+                                                            const port = c.portMappings[0].hostPort;
+                                                            return `${proto}://${publicIp}:${port}`;
+                                                        }),
+                                                    );
+                                                } else {
+                                                    // If there are no public IPs set, just return a null list since
+                                                    // we can't build the URLs
+                                                    // TODO: Check for LB info
+                                                    resolve([]);
+                                                }
+                                            });
+                                    });
+                                });
                             });
-                        });
-
-                    });
+                        })
+                // If it fails, return the reason
+                .catch( reason => {
+                    reject(reason);
                 });
             });
     }
@@ -452,12 +408,15 @@ function ecsDataCallback(ecsDeploy: EcsDeploy,
             // - if they differ create a new revision
             // - if they don't use the existing rev
             if (latestRev && !cmpSuppliedTaskDefinition(latestRev, newTaskDef)) {
-                goodTaskDefinition = await createEcsTask(ecs, newTaskDef);
+                goodTaskDefinition = await ecsRegisterTask(ecs, newTaskDef);
             } else if (!latestRev) {
-                goodTaskDefinition = await createEcsTask(ecs, newTaskDef);
+                goodTaskDefinition = await ecsRegisterTask(ecs, newTaskDef);
             } else {
                 goodTaskDefinition = latestRev;
             }
+
+            // IF there is a local definition (ie in-project configuration) override the values found here
+            // TODO
 
             // Update Service Request with up to date task definition
             let newServiceRequest: ECS.Types.CreateServiceRequest;

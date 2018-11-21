@@ -86,7 +86,7 @@ import {
     ReduceMemorySize,
 } from "../transform/smallMemory";
 import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintainer";
-import { EcsDeploy } from "../support/ecs/deploy";
+import { EcsDeploy } from "@ipcrmdemo/sdm-pack-ecs";
 
 export const fingerprint = new Fingerprint();
 

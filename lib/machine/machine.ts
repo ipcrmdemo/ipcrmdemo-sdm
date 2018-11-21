@@ -23,8 +23,6 @@ import {
     PushImpact,
     SoftwareDeliveryMachine,
     SoftwareDeliveryMachineConfiguration,
-    ParametersObject,
-    CodeTransform,
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
@@ -48,8 +46,17 @@ import {
     ReduceMemorySize,
 } from "../transform/smallMemory";
 import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintainer";
-import { GitProject, logger, safeExec } from "@atomist/automation-client";
-import * as fs from "fs";
+import {
+    GitProject,
+    safeExec,
+    Parameters,
+    Parameter,
+    MappedParameter,
+    MappedParameters,
+    GitHubRepoRef,
+    Secret,
+    Secrets,
+} from "@atomist/automation-client";
 
 export const fingerprint = new Fingerprint();
 
@@ -110,37 +117,61 @@ export function machine(
            .setGoals(GlobalGoals),
      );
 
+    sdm.addCommand<DropkickProjectCreationParameters>({
+        name: "dropkick",
+        intent: "dropkick",
+        paramsMaker: DropkickProjectCreationParameters,
+        listener: async cli => {
+            const project = GitHubRepoRef.from({
+                owner: cli.parameters.githubRepoOwner,
+                repo: cli.parameters.githubRepo,
+            });
+
+            configuration.sdm.projectLoader.doWithProject({
+                credentials: { token: cli.parameters.githubToken },
+                id: project,
+                readOnly: true,
+            }, async p => {
+                const cwd = (p as GitProject).baseDir;
+                const result = await safeExec("ls", ["-l"], { cwd });
+                cli.addressChannels(`
+
+                Result: ${result.stdout}
+                AWS: ${cli.parameters.aws}
+                Postgres: ${cli.parameters.postgress}
+                `);
+            });
+        },
+    });
+
     return sdm;
 }
 
-export const DropkickTransform: CodeTransform<DropkickProjectCreationParameters> = async (p, parms) => {
-    logger.debug("Running dropkick generation, repo " + parms.parameters.aws);
-    const cwd = (p as GitProject).baseDir;
-    const result = await safeExec("ls", ["-l"], { cwd });
-    fs.writeFile(`${cwd}/outfile`, await result.stdout, err => {
-            if (err) {
-                logger.debug(err.message);
-            }
-        });
-//    }
-    return p;
-};
+@Parameters()
+export class DropkickProjectCreationParameters {
+    @Parameter({
+        displayName: "AWS",
+        validInput: "yes, no",
+        pattern: /(yes|no)/,
+        required: true,
+    })
+    public aws: string;
 
-export interface DropkickProjectCreationParameters {
-    aws: string;
-    postgress: string;
+    @Parameter({
+        displayName: "Postgres",
+        validInput: "yes, no",
+        pattern: /(yes|no)/,
+        required: true,
+    })
+    public postgress: string;
+
+    @MappedParameter(MappedParameters.GitHubOwner)
+    public githubRepoOwner: string;
+
+    @MappedParameter(MappedParameters.GitHubRepository)
+    public githubRepo: string;
+
+    @Secret(Secrets.UserToken)
+    public githubToken: string;
+
 }
-
-export const DropkickProjectCreationParameterDefinitions: ParametersObject = {
-    aws: {
-        pattern: /.*/,
-        description: "Should use aws",
-        required: true,
-    },
-
-    postgress: {
-        pattern: /.*/,
-        description: "Should use postgress",
-        required: true,
-    },
-};

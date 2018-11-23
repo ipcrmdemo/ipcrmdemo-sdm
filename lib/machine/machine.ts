@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { GitHubRepoRef } from "@atomist/automation-client";
+import { GitHubRepoRef, GitProject } from "@atomist/automation-client";
 import {
     allSatisfied,
     AutoCodeInspection,
@@ -54,11 +54,12 @@ import {
     HasDockerfile,
 } from "@atomist/sdm-pack-docker";
 import {
+    checkFingerprintTargets,
     fingerprintSupport,
     forFingerprints,
     renderDiffSnippet,
 } from "@atomist/sdm-pack-fingerprints";
-import { setNewTarget } from "@atomist/sdm-pack-fingerprints/lib/handlers/commands/pushImpactCommandHandlers";
+import * as fingerprints from "@atomist/sdm-pack-fingerprints/fingerprints";
 import {
     KubernetesDeploy,
     kubernetesSupport,
@@ -103,7 +104,7 @@ import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintai
 //     AutoCheckSonarScan,
 // } from "../support/sonarQube";
 
-export const fingerprint = new Fingerprint();
+export const FingerprintGoal = new Fingerprint();
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -241,31 +242,34 @@ export function machine(
         changelogSupport(),
         IssueSupport,
         fingerprintSupport(
-            fingerprint,
-            {
-                selector: forFingerprints(
-                    "clojure-project-deps",
-                    "maven-project-deps",
-                    "npm-project-deps"),
-                diffHandler: renderDiffSnippet,
+            FingerprintGoal,
+            async (p: GitProject) => {
+                // COMPUTE fingerprints: called on every Push
+                return fingerprints.fingerprint(p.baseDir);
+            },
+            async (p: GitProject, fp: fingerprints.FP) => {
+                // APPLY fingerprint to Project (currently only through user actions in chat)
+                return fingerprints.applyFingerprint(p.baseDir, fp);
             },
             {
-                selector: forFingerprints(
-                    "clojure-project-coordinates",
-                    "maven-project-coordinates",
-                    "npm-project-coordinates"),
-                diffHandler: async (ctx, diff) => {
-
-                    await ctx.messageClient.addressChannels(
-                        `Version update to ${diff.to.data.name}:
-                                 Change from ${diff.from.data.version} to ${diff.to.data.version}`,
-                        diff.channel);
-                    return setNewTarget(
-                        ctx,
-                        diff.to.name,
-                        diff.to.data.name,
-                        diff.to.data.version,
-                        diff.channel);
+                selector: forFingerprints("backpack-react-scripts"),
+                handler: async (ctx, diff) => {
+                    // HANDLE new fingerprint (even if it hasn't changed in this push)
+                    return checkFingerprintTargets(ctx, diff);
+                },
+            },
+            {
+                selector: forFingerprints("npm-project-deps"),
+                handler: async (ctx, diff) => {
+                    // HANDLE new fingerprint (even if it hasn't changed in this push)
+                    return checkFingerprintTargets(ctx, diff);
+                },
+            },
+            {
+                selector: forFingerprints("maven-project-deps"),
+                handler: async (ctx, diff) => {
+                    // HANDLE new fingerprint (even if it hasn't changed in this push)
+                    return checkFingerprintTargets(ctx, diff);
                 },
             },
         ),

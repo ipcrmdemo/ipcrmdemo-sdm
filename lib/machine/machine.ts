@@ -57,7 +57,6 @@ import {
     checkFingerprintTargets,
     fingerprintSupport,
     forFingerprints,
-    renderDiffSnippet,
 } from "@atomist/sdm-pack-fingerprints";
 import * as fingerprints from "@atomist/sdm-pack-fingerprints/fingerprints";
 import {
@@ -245,7 +244,7 @@ export function machine(
             FingerprintGoal,
             async (p: GitProject) => {
                 // COMPUTE fingerprints: called on every Push
-                return fingerprints.fingerprint(p.baseDir);
+                return fingerprints.depsFingerprints(p.baseDir);
             },
             async (p: GitProject, fp: fingerprints.FP) => {
                 // APPLY fingerprint to Project (currently only through user actions in chat)
@@ -306,7 +305,7 @@ export function machine(
 
     // global
     const GlobalGoals = goals("global")
-        .plan(autofix, fingerprint, codeInspection, pushImpact);
+        .plan(autofix, FingerprintGoal, codeInspection, pushImpact);
 
     // Maven
     const MavenBaseGoals = goals("maven-base")

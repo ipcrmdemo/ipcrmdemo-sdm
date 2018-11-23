@@ -86,7 +86,7 @@ import {
     ReduceMemorySize,
 } from "../transform/smallMemory";
 import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintainer";
-import { EcsDeploy } from "@ipcrmdemo/sdm-pack-ecs";
+import { EcsDeploy, ecsSupport } from "@ipcrmdemo/sdm-pack-ecs";
 
 export const fingerprint = new Fingerprint();
 
@@ -161,6 +161,7 @@ export function machine(
             autofixGoal: autofix,
             reviewListeners: [],
         }),
+        ecsSupport(),
         kubernetesSupport(),
         goalState(),
         changelogSupport(),

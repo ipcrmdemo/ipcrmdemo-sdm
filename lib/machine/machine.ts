@@ -84,6 +84,7 @@ import {
     springSupport,
     TransformSeedToCustomProject,
 } from "@atomist/sdm-pack-spring";
+import { setNewTarget } from "@atomist/sdm-pack-fingerprints/lib/handlers/commands/setLibraryGoal";
 import { changelogSupport } from "@atomist/sdm-pack-changelog";
 import { IssueSupport } from "@atomist/sdm-pack-issue";
 import {
@@ -258,6 +259,18 @@ export function machine(
                 selector: forFingerprints("backpack-react-scripts"),
                 handler: async (ctx, diff) => {
                     return checkFingerprintTargets(ctx, diff);
+                },
+            },
+            {
+                selector: forFingerprints(
+                    "npm-project-coordinates"),
+                diffHandler: async (ctx, diff) => {
+                    return setNewTarget(
+                        ctx,
+                        diff.to.name,
+                        diff.to.data.name,
+                        diff.to.data.version,
+                        diff.channel);
                 },
             },
         ),

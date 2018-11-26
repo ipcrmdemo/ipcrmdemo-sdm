@@ -242,32 +242,21 @@ export function machine(
         IssueSupport,
         fingerprintSupport(
             FingerprintGoal,
+            // runs on every push!!
             async (p: GitProject) => {
-                // COMPUTE fingerprints: called on every Push
-                return fingerprints.depsFingerprints(p.baseDir);
+                return [].concat(
+                    await fingerprints.depsFingerprints(p.baseDir),
+                ).concat(
+                    await fingerprints.logbackFingerprints(p.baseDir),
+                );
             },
+            // currently scheduled only when a user chooses to apply the fingerprint
             async (p: GitProject, fp: fingerprints.FP) => {
-                // APPLY fingerprint to Project (currently only through user actions in chat)
                 return fingerprints.applyFingerprint(p.baseDir, fp);
             },
             {
                 selector: forFingerprints("backpack-react-scripts"),
                 handler: async (ctx, diff) => {
-                    // HANDLE new fingerprint (even if it hasn't changed in this push)
-                    return checkFingerprintTargets(ctx, diff);
-                },
-            },
-            {
-                selector: forFingerprints("npm-project-deps"),
-                handler: async (ctx, diff) => {
-                    // HANDLE new fingerprint (even if it hasn't changed in this push)
-                    return checkFingerprintTargets(ctx, diff);
-                },
-            },
-            {
-                selector: forFingerprints("maven-project-deps"),
-                handler: async (ctx, diff) => {
-                    // HANDLE new fingerprint (even if it hasn't changed in this push)
                     return checkFingerprintTargets(ctx, diff);
                 },
             },

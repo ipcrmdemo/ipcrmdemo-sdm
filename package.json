@@ -31,7 +31,7 @@
     "@atomist/sdm-pack-changelog": "1.0.0-master.20181022195213",
     "@atomist/sdm-pack-cloudfoundry": "1.0.0-master.20181017201935",
     "@atomist/sdm-pack-docker": "1.0.0-RC.1",
-    "@atomist/sdm-pack-fingerprints": "1.2.0-master.20181123034444",
+    "@atomist/sdm-pack-fingerprints": "1.3.0-master.20181124015338",
     "@atomist/sdm-pack-issue": "1.0.0-RC.1",
     "@atomist/sdm-pack-k8": "1.0.0-RC.1",
     "@atomist/sdm-pack-node": "1.0.0-RC.1",

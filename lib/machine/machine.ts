@@ -238,21 +238,23 @@ export function machine(
         },
     })
         .with({
+            // TODO: Don't require name
             name: "test",
             pushTest: HasDockerfile,
-            serviceRequest: {
-                serviceName: "ecs-test-1-production",
-                launchType: "FARGATE",
-                cluster: "tutorial",
-                desiredCount: 3,
-                networkConfiguration: {
-                    awsvpcConfiguration: {
-                        subnets: ["subnet-02ddf34bfe7f6c19a", "subnet-0c5bfb43a631bee45"],
-                        securityGroups: ["sg-0959d9866b23698f2"],
-                        assignPublicIp: "ENABLED",
-                    },
-                },
-            },
+            region: "us-east-1",
+            // serviceRequest: {
+            //     serviceName: "ecs-test-1-production",
+            //     launchType: "FARGATE",
+            //     cluster: "tutorial",
+            //     desiredCount: 3,
+            //     networkConfiguration: {
+            //         awsvpcConfiguration: {
+            //             subnets: ["subnet-02ddf34bfe7f6c19a", "subnet-0c5bfb43a631bee45"],
+            //             securityGroups: ["sg-0959d9866b23698f2"],
+            //             assignPublicIp: "ENABLED",
+            //         },
+            //     },
+            // },
         });
 
     // global

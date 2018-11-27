@@ -228,34 +228,57 @@ export function machine(
 
     // ECS
     const ecsDeployStaging = new EcsDeploy({
-        displayName: "Test ECS Deploy",
-        uniqueName: "ecs-test-1",
-        environment: "production",
-        preApproval: false,
+        displayName: "Deploy to ECS",
+        uniqueName: "ecsDeployStaging",
+        environment: "staging",
+        approval: true,
         descriptions: {
-            inProcess: "Deploying to ecs `prod`",
-            completed: "deployed to ecs `prod`",
+            inProcess: "Deploying to ECS `staging`",
+            completed: "Deploy to ECS `staging`",
         },
     })
         .with({
-            // TODO: Don't require name
-            name: "test",
             pushTest: HasDockerfile,
             region: "us-east-1",
-            // serviceRequest: {
-            //     serviceName: "ecs-test-1-production",
-            //     launchType: "FARGATE",
-            //     cluster: "tutorial",
-            //     desiredCount: 3,
-            //     networkConfiguration: {
-            //         awsvpcConfiguration: {
-            //             subnets: ["subnet-02ddf34bfe7f6c19a", "subnet-0c5bfb43a631bee45"],
-            //             securityGroups: ["sg-0959d9866b23698f2"],
-            //             assignPublicIp: "ENABLED",
-            //         },
-            //     },
-            // },
         });
+
+    const ecsDeployProduction = new EcsDeploy({
+        displayName: "Deploy to ECS",
+        uniqueName: "ecsDeployProduction",
+        environment: "production",
+        descriptions: {
+            inProcess: "Deploying to ECS `prod`",
+            completed: "Deploy to ECS `prod`",
+        },
+    })
+        .with({
+            pushTest: HasDockerfile,
+            region: "us-east-1",
+            serviceRequest: {
+                cluster: "foo",
+                networkConfiguration: {
+                    awsvpcConfiguration: {
+                        subnets: ["subnet-08abbae13791f382e", "subnet-08b4920b93cdd5dca"],
+                        securityGroups: ["sg-05cc73367ac05bf50"],
+                        assignPublicIp: "ENABLED",
+                    },
+                },
+            },
+        });
+
+    // serviceRequest: {
+    //     serviceName: "ecs-test-1-production",
+    //     launchType: "FARGATE",
+    //     cluster: "tutorial",
+    //     desiredCount: 3,
+    //     networkConfiguration: {
+    //         awsvpcConfiguration: {
+    //             subnets: ["subnet-02ddf34bfe7f6c19a", "subnet-0c5bfb43a631bee45"],
+    //             securityGroups: ["sg-0959d9866b23698f2"],
+    //             assignPublicIp: "ENABLED",
+    //         },
+    //     },
+    // },
 
     // global
     const GlobalGoals = goals("global")
@@ -267,7 +290,8 @@ export function machine(
 
     const ecsDeployGoals = goals("ecs-goals")
         .plan(dockerBuild).after(mavenBuild)
-        .plan(ecsDeployStaging).after(dockerBuild);
+        .plan(ecsDeployStaging).after(dockerBuild)
+        .plan(ecsDeployProduction).after(ecsDeployStaging);
 
     // Rules
     sdm.addGoalContributions(goalContributors(

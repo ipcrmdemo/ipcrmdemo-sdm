@@ -69,6 +69,10 @@ import {
     NodeProjectVersioner,
     NpmProgressReporter,
     NpmVersionProjectListener,
+    NodeProjectCreationParametersDefinition,
+    UpdatePackageJsonIdentification,
+    UpdateReadmeTitle,
+    NpmCompileProjectListener,
 } from "@atomist/sdm-pack-node";
 import {
     IsMaven,
@@ -159,7 +163,7 @@ export function machine(
             logInterpreter: LogSuppressor,
             progressReporter: NpmProgressReporter,
             name: "node-run-build",
-            builder: nodeBuilder("npm run build"),
+            builder: nodeBuilder("npm install", "npm run build"),
             pushTest: IsNode,
         });
 
@@ -170,6 +174,7 @@ export function machine(
         })
         .withProjectListener(MvnVersion)
         .withProjectListener(MvnPackage)
+        .withProjectListener(NpmCompileProjectListener)
 
         .with({
             options: { push: true, ...sdm.configuration.sdm.dockerinfo },
@@ -272,33 +277,43 @@ export function machine(
     );
 
     // Generators
-    sdm.addGeneratorCommand<SpringProjectCreationParameters>({
-        name: "create-spring",
-        intent: "create spring",
-        description: "Create a new Java Spring Boot REST service",
-        parameters: SpringProjectCreationParameterDefinitions,
-        startingPoint: GitHubRepoRef.from({ owner: "atomist-seeds", repo: "spring-rest", branch: "master" }),
-        transform: [
-            ReplaceReadmeTitle,
-            SetAtomistTeamInApplicationYml,
-            TransformSeedToCustomProject,
-            AddFinalNameToPom,
-        ],
-    });
-
-    sdm.addGeneratorCommand<SpringProjectCreationParameters>({
-        name: "create-spring-external-build",
-        intent: "create spring jenkins build",
-        description: "Create a new Java Spring Boot REST service that builds with Jenkins",
-        parameters: SpringProjectCreationParameterDefinitions,
-        startingPoint: GitHubRepoRef.from({ owner: "ipcrmdemo", repo: "spring-rest-jenkins", branch: "master" }),
-        transform: [
-            ReplaceReadmeTitle,
-            SetAtomistTeamInApplicationYml,
-            TransformSeedToCustomProject,
-            AddFinalNameToPom,
-        ],
-    });
+    sdm
+        .addGeneratorCommand<SpringProjectCreationParameters>({
+            name: "create-spring",
+            intent: "create spring",
+            description: "Create a new Java Spring Boot REST service",
+            parameters: SpringProjectCreationParameterDefinitions,
+            startingPoint: GitHubRepoRef.from({ owner: "atomist-seeds", repo: "spring-rest", branch: "master" }),
+            transform: [
+                ReplaceReadmeTitle,
+                SetAtomistTeamInApplicationYml,
+                TransformSeedToCustomProject,
+                AddFinalNameToPom,
+            ],
+        })
+        .addGeneratorCommand<SpringProjectCreationParameters>({
+            name: "create-spring-external-build",
+            intent: "create spring jenkins build",
+            description: "Create a new Java Spring Boot REST service that builds with Jenkins",
+            parameters: SpringProjectCreationParameterDefinitions,
+            startingPoint: GitHubRepoRef.from({ owner: "ipcrmdemo", repo: "spring-rest-jenkins", branch: "master" }),
+            transform: [
+                ReplaceReadmeTitle,
+                SetAtomistTeamInApplicationYml,
+                TransformSeedToCustomProject,
+                AddFinalNameToPom,
+            ],
+        })
+        .addGeneratorCommand({
+            name: "typescript-express-generator",
+            parameters: NodeProjectCreationParametersDefinition,
+            startingPoint: new GitHubRepoRef("ipcrmdemo", "typescript-node-api"),
+            intent: "create node",
+            transform: [
+                UpdatePackageJsonIdentification,
+                UpdateReadmeTitle,
+            ],
+        });
 
     // global
     const GlobalGoals = goals("global")

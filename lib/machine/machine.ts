@@ -97,6 +97,7 @@ import {
 import { AddDockerFile } from "../transform/addDockerfile";
 import { AddFinalNameToPom } from "../transform/addFinalName";
 import { AddJenkinsfileRegistration } from "../transform/addJenkinsfile";
+import { AddLicenseFile } from "../transform/addLicense";
 import {
     FixSmallMemory,
     ReduceMemorySize,
@@ -134,7 +135,8 @@ export function machine(
 
     // Autofix
     const autofix = new Autofix()
-        .with(ReduceMemorySize);
+        .with(ReduceMemorySize)
+        .with(AddLicenseFile);
 
     // Code Inspections
     const codeInspection = new AutoCodeInspection();

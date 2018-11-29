@@ -26,8 +26,10 @@ import { PullRequest } from "@atomist/automation-client/lib/operations/edit/edit
 export const AddDockerfileTransform: CodeTransform<NoParameters> = async (p, inv) => {
     const name = _.get(inv, "parameters.target.repo") || p.name;
     if (await p.hasFile("pom.xml")) {
-        await p.addFile("Dockerfile", dockerFile(name));
+        await p.addFile("Dockerfile", dockerFile(name, "maven"));
         await p.addFile(".dockerignore", dockerIgnore(name));
+    } else if (await p.hasFile("package.json")) {
+        await p.addFile("Dockerfile", dockerFile(name, "node"));
     }
     return p;
 };
@@ -52,9 +54,9 @@ export const AddDockerfileAutofix: AutofixRegistration<NoParameters> = {
     transform: AddDockerfileTransform,
 };
 
-function dockerFile(name: string): string {
+function dockerFile(name: string, type: "maven" | "node"): string {
     // tslint:disable:max-line-length
-    return `FROM openjdk:8-alpine
+    const maven = `FROM openjdk:8-alpine
 
 RUN wget -O /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64 && \\
 chmod 755 /usr/local/bin/dumb-init
@@ -73,6 +75,32 @@ ENTRYPOINT ["/usr/local/bin/dumb-init", "java", "-XX:+UnlockExperimentalVMOption
 
 COPY target/${name}.jar ${name}.jar
 `;
+
+    const node = `FROM node:10
+
+# Create app directory
+WORKDIR /usr/src/app
+
+# Install req'd
+COPY package*.json ./
+RUN npm install --only=production
+
+# Bundle app source
+RUN mkdir dist
+COPY dist/. dist/.
+
+# Configure
+EXPOSE 3000
+CMD [ "npm", "start" ]
+    `;
+
+    if (type === "maven") {
+        return maven;
+    } else if (type === "node") {
+        return node;
+    } else {
+        throw new Error("Invalid Dockerfile type requested!");
+    }
 }
 
 function dockerIgnore(name: string): string {

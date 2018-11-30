@@ -39,7 +39,7 @@
     "@atomist/sdm-pack-issue": "1.0.0-RC.1",
     "@types/dateformat": "^1.0.1",
     "@types/lodash": "^4.14.108",
-    "@ipcrmdemo/sdm-pack-ecs": "0.1.2-master.1543283375",
+    "@ipcrmdemo/sdm-pack-ecs": "0.1.2-master.1543514075",
     "axios": "^0.18.0",
     "dateformat": "^3.0.3",
     "docker-file-parser": "^1.0.4",

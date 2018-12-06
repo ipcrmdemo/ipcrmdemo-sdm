@@ -20,12 +20,26 @@ import {
     configureSdm,
 } from "@atomist/sdm-core";
 import { machine } from "./machine/machine";
+import * as bodyParser from "body-parser";
 
 const machineOptions: ConfigureOptions = {
     requiredConfigurationValues: [],
 };
 
 export const configuration: Configuration = {
+    http: {
+        customizers: [
+            app => {
+                app.use(bodyParser.urlencoded({extended: true}));
+                app.use(bodyParser.json());
+
+                app.post("/buildevent", (req, res) => {
+                    res.send(JSON.stringify(req.body));
+                    process.stdout.write("Endpoint /buildevent hit with: " + JSON.stringify(req.body) + "\n");
+                });
+            },
+        ],
+    },
     postProcessors: [
         configureSdm(machine, machineOptions),
     ],

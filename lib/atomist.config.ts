@@ -68,8 +68,9 @@ export const configuration: Configuration = {
                                 branch,
                                 build_url: _.get(buildDetails, "buildStatusUrl"),
                                 commit: tcDetails.filter( n => _.get(n, "name") === "build.vcs.number")[0].value,
-                                // tslint:disable-next-line:max-line-length
-                                name: `Team City build of project: ${_.get(buildDetails, "projectName")}, build number ${_.get(buildDetails, "buildNumber")}`,
+                                name: "Team City - project: " +
+                                    `${_.get(buildDetails, "projectName")}, ` +
+                                    `build #${_.get(buildDetails, "buildNumber")}`,
                                 repository: {
                                     name: repo,
                                     owner_name: org,

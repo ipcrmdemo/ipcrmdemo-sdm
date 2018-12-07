@@ -36,7 +36,6 @@ export const configuration: Configuration = {
                         c.use(bodyParser.json());
 
                         c.post("/buildevent", async (req, res) => {
-                            res.send(JSON.stringify(req.body));
                             const buildDetails = _.get(req.body, "build");
 
                             interface TeamCityProperties {

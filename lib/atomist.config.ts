@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Configuration, HttpMethod, logger } from "@atomist/automation-client";
+import { Configuration, HttpMethod, logger, configurationValue } from "@atomist/automation-client";
 import {
     ConfigureOptions,
     configureSdm,
@@ -68,10 +68,8 @@ export const configuration: Configuration = {
                                 branch,
                                 build_url: _.get(buildDetails, "buildStatusUrl"),
                                 commit: tcDetails.filter( n => _.get(n, "name") === "build.vcs.number")[0].value,
-                                id: _.get(buildDetails, "buildNumber"),
-                                name: _.get(buildDetails, "projectName"),
-                                number: _.get(buildDetails, "buildNumber"),
-                                provider: "team_city",
+                                // tslint:disable-next-line:max-line-length
+                                name: `Team City build of project: ${_.get(buildDetails, "projectName")}, build number ${_.get(buildDetails, "buildNumber")}`,
                                 repository: {
                                     name: repo,
                                     owner_name: org,
@@ -82,11 +80,15 @@ export const configuration: Configuration = {
                             logger.debug(`BuildEvent Payload: ${JSON.stringify(pushResult)}`);
 
                             // tslint:disable-next-line:max-line-length
-                            const url = `https://webhook.atomist.com/atomist/build/teams/${config.workspaceIds.pop()}`;
+                            const url = `https://webhook.atomist.com/atomist/build/teams/${configurationValue<string[]>("workspaceIds")[0]}`;
                             const httpClient = config.http.client.factory.create(url);
 
                             const result = await httpClient.exchange(
-                                url, { method: HttpMethod.Post, body: JSON.stringify(pushResult) });
+                                url, {
+                                    method: HttpMethod.Post,
+                                    body: JSON.stringify(pushResult),
+                                    headers: { ["Content-Type"]: "application/json" },
+                               });
 
                             logger.debug(`BuildEvent Push result: ${JSON.stringify(result)}`);
 

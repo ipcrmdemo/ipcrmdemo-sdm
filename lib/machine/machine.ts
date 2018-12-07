@@ -23,7 +23,6 @@ import {
     goalContributors,
     goals,
     LogSuppressor,
-    not,
     onAnyPush,
     PushImpact,
     SoftwareDeliveryMachine,
@@ -42,7 +41,6 @@ import {
     Version,
 } from "@atomist/sdm-core";
 import {
-    Artifact,
     Build,
 } from "@atomist/sdm-pack-build";
 import {
@@ -75,7 +73,6 @@ import {
 import {
     IsNode,
     nodeBuilder,
-    NodeProjectVersioner,
     NpmProgressReporter,
     NpmVersionProjectListener,
 } from "@atomist/sdm-pack-node";
@@ -98,7 +95,6 @@ import { changelogSupport } from "@atomist/sdm-pack-changelog";
 import { IssueSupport } from "@atomist/sdm-pack-issue";
 import {
     hasJenkinsfile,
-    npmHasBuildScript,
 } from "../support/preChecks";
 import { AddDockerFile } from "../transform/addDockerfile";
 import { AddFinalNameToPom } from "../transform/addFinalName";
@@ -148,9 +144,6 @@ export function machine(
     // Global
     const pushImpact = new PushImpact();
 
-    // Artifact
-    const artifact = new Artifact();
-
     // Autofix
     const autofix = new Autofix()
         .with(ReduceMemorySize);
@@ -160,7 +153,6 @@ export function machine(
 
     // Versioners
     const mavenVersion = new Version().withVersioner(MavenProjectVersioner);
-    const nodeVersion = new Version().withVersioner(NodeProjectVersioner);
 
     // Builds
     const mavenBuild = new Build()
@@ -335,27 +327,13 @@ export function machine(
     const GlobalGoals = goals("global")
         .plan(autofix, codeInspection, pushImpact);
 
-    // Maven
-    const MavenBaseGoals = goals("maven-base")
-        .plan(mavenVersion, mavenBuild, artifact);
-
-    // Node
-    const NodeBaseGoals = goals("node-base")
-        .plan(nodeVersion, nodeBuild);
-
     // Rules
     sdm.addGoalContributions(goalContributors(
         onAnyPush()
             .setGoals(GlobalGoals)
             .setGoals(FingerprintingGoals),
 
-        whenPushSatisfies(IsMaven, not(hasJenkinsfile))
-            .setGoals(MavenBaseGoals),
-
-        whenPushSatisfies(IsNode, npmHasBuildScript, not(hasJenkinsfile))
-            .setGoals(NodeBaseGoals),
-
-        whenPushSatisfies(IsMaven, hasJenkinsfile)
+        whenPushSatisfies(IsMaven)
             .setGoals(goals("maven-external").plan(mavenVersion, externalBuild)),
 
         whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch)

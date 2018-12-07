@@ -83,7 +83,7 @@ export const configuration: Configuration = {
                             logger.debug(`BuildEvent Payload: ${JSON.stringify(pushResult)}`);
 
                             // tslint:disable-next-line:max-line-length
-                            const url = `https://webhook.atomist.com/atomist/build/teams/${configuration.workspaceIds[0]}`;
+                            const url = `https://webhook.atomist.com/atomist/build/teams/${config.workspaceIds.pop()}`;
                             const httpClient = config.http.client.factory.create(url);
 
                             const result = await httpClient.exchange(

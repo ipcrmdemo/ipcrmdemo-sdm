@@ -103,6 +103,7 @@ import {
     ReduceMemorySize,
 } from "../transform/smallMemory";
 import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintainer";
+import { SuggestAddingDockerfile } from "../support/suggestAddDockerfile";
 // import { sonarQubeSupport } from "@atomist/sdm-pack-sonarqube";
 // import {
 //     AutoCheckSonarScan,
@@ -126,6 +127,9 @@ export function machine(
         .addCodeTransformCommand(AddJenkinsfileRegistration)
         .addCodeTransformCommand(UpdateDockerfileMaintainer)
         .addCodeTransformCommand(FixSmallMemory);
+
+    // Channel Link Listenrers
+    sdm.addChannelLinkListener(SuggestAddingDockerfile);
 
     // Global
     const pushImpact = new PushImpact();
@@ -348,6 +352,7 @@ export function machine(
 
         whenPushSatisfies(HasDockerfile, ToDefaultBranch)
             .setGoals(k8sDeployGoals)));
+
     return sdm;
 }
 

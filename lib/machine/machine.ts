@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { GitHubRepoRef } from "@atomist/automation-client";
+import { GitHubRepoRef, editModes } from "@atomist/automation-client";
 import {
     allSatisfied,
     AutoCodeInspection,
@@ -30,13 +30,15 @@ import {
     SoftwareDeliveryMachineConfiguration,
     ToDefaultBranch,
     whenPushSatisfies,
+    GoalWithFulfillment,
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
     DisableDeploy,
     DisplayDeployEnablement,
     EnableDeploy,
-    pack,
+    gitHubGoalStatus,
+    goalState,
     Version,
 } from "@atomist/sdm-core";
 import {
@@ -55,10 +57,19 @@ import {
 } from "@atomist/sdm-pack-docker";
 import {
     fingerprintSupport,
-    forFingerprints,
-    renderDiffSnippet,
+    logbackFingerprints,
+    applyFingerprint,
+    fingerprintImpactHandler,
+    messageMaker,
 } from "@atomist/sdm-pack-fingerprints";
-import { setNewTarget } from "@atomist/sdm-pack-fingerprints/lib/handlers/commands/pushImpactCommandHandlers";
+import {
+    createNpmDepsFingerprints,
+    applyNpmDepsFingerprint,
+} from "@atomist/sdm-pack-fingerprints/lib/fingerprints/npmDeps";
+import {
+    applyDockerBaseFingerprint,
+    dockerBaseFingerprint,
+} from "@atomist/sdm-pack-fingerprints/lib/fingerprints/dockerFrom";
 import {
     KubernetesDeploy,
     kubernetesSupport,
@@ -104,6 +115,8 @@ import {
 } from "../transform/smallMemory";
 import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintainer";
 import { SuggestAddingDockerfile } from "../support/suggestAddDockerfile";
+import { checkNpmCoordinatesImpactHandler } from "@atomist/sdm-pack-fingerprints/lib/machine/FingerprintSupport";
+import { presentSetFingerprints } from "../support/showFingerprints";
 // import { sonarQubeSupport } from "@atomist/sdm-pack-sonarqube";
 // import {
 //     AutoCheckSonarScan,
@@ -123,6 +136,7 @@ export function machine(
     sdm.addCommand(EnableDeploy)
         .addCommand(DisableDeploy)
         .addCommand(DisplayDeployEnablement)
+        .addCommand(presentSetFingerprints)
         .addCodeTransformCommand(AddDockerFile)
         .addCodeTransformCommand(AddJenkinsfileRegistration)
         .addCodeTransformCommand(UpdateDockerfileMaintainer)
@@ -193,7 +207,6 @@ export function machine(
     const k8sProductionDeploy = new KubernetesDeploy({ environment: "production" });
 
     const k8sDeployGoals = goals("deploy")
-        .plan(dockerBuild).after(mavenBuild, nodeBuild, externalBuild)
         .plan(k8sStagingDeploy).after(dockerBuild)
         .plan(k8sProductionDeploy).after(k8sStagingDeploy);
 
@@ -225,6 +238,17 @@ export function machine(
         .plan(cfDeploymentStaging).after(mavenBuild)
         .plan(cfDeployment).after(cfDeploymentStaging);
 
+    const FingerPrintComplianceGoal = new GoalWithFulfillment(
+        {
+            uniqueName: "backpack-react-script-compliance",
+            displayName: "backpack-compliance",
+        },
+    ).with(
+        {
+            name: "backpack-react-waiting",
+        },
+    );
+
     // Ext Packs setup
     sdm.addExtensionPacks(
         // sonarQubeSupport({
@@ -247,38 +271,42 @@ export function machine(
         CloudFoundrySupport({
             pushImpactGoal: pushImpact,
         }),
-        pack.goalState.GoalState,
-        pack.githubGoalStatus.GitHubGoalStatus,
+        gitHubGoalStatus(),
+        goalState(),
         changelogSupport(),
         IssueSupport,
         fingerprintSupport(
             fingerprint,
-            {
-                selector: forFingerprints(
-                    "clojure-project-deps",
-                    "maven-project-deps",
-                    "npm-project-deps"),
-                diffHandler: renderDiffSnippet,
-            },
-            {
-                selector: forFingerprints(
-                    "clojure-project-coordinates",
-                    "maven-project-coordinates",
-                    "npm-project-coordinates"),
-                diffHandler: async (ctx, diff) => {
-
-                    await ctx.messageClient.addressChannels(
-                        `Version update to ${diff.to.data.name}:
-                                 Change from ${diff.from.data.version} to ${diff.to.data.version}`,
-                        diff.channel);
-                    return setNewTarget(
-                        ctx,
-                        diff.to.name,
-                        diff.to.data.name,
-                        diff.to.data.version,
-                        diff.channel);
+            [
+                {
+                    extract: p => logbackFingerprints(p.baseDir),
+                    apply: (p, fp) => applyFingerprint(p.baseDir, fp),
+                    selector: fp => fp.name === "elk-logback",
                 },
-            },
+                {
+                    extract: createNpmDepsFingerprints,
+                    apply: applyNpmDepsFingerprint,
+                    selector: fp => fp.name.startsWith("npm-project-dep"),
+                },
+                {
+                    apply: applyDockerBaseFingerprint,
+                    extract: dockerBaseFingerprint,
+                    selector: myFp => myFp.name.startsWith("docker-base-image"),
+                },
+            ],
+            checkNpmCoordinatesImpactHandler(),
+            fingerprintImpactHandler(
+                {
+                    complianceGoal: FingerPrintComplianceGoal,
+                    transformPresentation: ci => {
+                        return new editModes.PullRequest(
+                            `apply-target-fingerprint-${Date.now()}`,
+                            `Apply fingerprint ${ci.parameters.fingerprint} to project`,
+                            "Nudge generated by Atomist");
+                    },
+                    messageMaker,
+                },
+            ),
         ),
     );
 
@@ -327,7 +355,7 @@ export function machine(
 
     // Maven
     const MavenBaseGoals = goals("maven-base")
-        .plan(mavenVersion, mavenBuild, artifact);
+        .plan(mavenVersion, mavenBuild);
 
     // Node
     const NodeBaseGoals = goals("node-base")
@@ -346,6 +374,13 @@ export function machine(
 
         whenPushSatisfies(IsMaven, hasJenkinsfile)
             .setGoals(goals("maven-external").plan(mavenVersion, externalBuild)),
+
+        whenPushSatisfies(HasDockerfile)
+            .setGoals(
+                goals("docker-build")
+                    .plan(dockerBuild).after(mavenBuild, nodeBuild, externalBuild)
+                    .plan(artifact).after(dockerBuild),
+            ),
 
         whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch)
             .setGoals(pcfDeploymentGoals),

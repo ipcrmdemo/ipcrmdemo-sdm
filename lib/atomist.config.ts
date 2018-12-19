@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-import { Configuration } from "@atomist/automation-client";
+import { Configuration, logger } from "@atomist/automation-client";
 import {
     ConfigureOptions,
     configureSdm,
 } from "@atomist/sdm-core";
 import { machine } from "./machine/machine";
+import * as bodyParser from "body-parser";
 
 const machineOptions: ConfigureOptions = {
     requiredConfigurationValues: [],
@@ -27,6 +28,21 @@ const machineOptions: ConfigureOptions = {
 
 export const configuration: Configuration = {
     postProcessors: [
+            async config => {
+                config.http.customizers.push(
+                    c => {
+                        c.use(bodyParser.urlencoded({extended: true}));
+                        c.use(bodyParser.json());
+
+                        c.post("/buildevent", async (req, res) => {
+                            logger.debug(`BuildEvent Payload: ${JSON.stringify(req.body)}`);
+                        });
+
+                    },
+                );
+
+                return config;
+            },
         configureSdm(machine, machineOptions),
     ],
 };

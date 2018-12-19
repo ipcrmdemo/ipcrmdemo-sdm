@@ -31,6 +31,7 @@ import {
     ToDefaultBranch,
     whenPushSatisfies,
     GoalWithFulfillment,
+    Goals,
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
@@ -122,8 +123,6 @@ import { presentSetFingerprints } from "../support/showFingerprints";
 //     AutoCheckSonarScan,
 // } from "../support/sonarQube";
 
-export const fingerprint = new Fingerprint();
-
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
 ): SoftwareDeliveryMachine {
@@ -141,6 +140,29 @@ export function machine(
         .addCodeTransformCommand(AddJenkinsfileRegistration)
         .addCodeTransformCommand(UpdateDockerfileMaintainer)
         .addCodeTransformCommand(FixSmallMemory);
+
+    // Fingerprint Compliance
+    const fingerprintComplianceGoal = new GoalWithFulfillment(
+        {
+            uniqueName: "fingerprint-compliance-check",
+            displayName: "fingerprint-compliance-check",
+            definition: {
+                plannedDescription: "Fingerprint Goal Compliance Check",
+                canceledDescription: "Fingerprint Compliance Check Cancelled",
+                failedDescription: "Fingerprint Compliance Check Failed",
+                completedDescription: "Fingerprint Goal Compliance Check Succeeded",
+                workingDescription: "Fingerprint Compliance Check Running...",
+            },
+        },
+    ).with(
+        {
+            name: "backpack-react-waiting",
+        },
+    );
+
+    const fingerprint = new Fingerprint();
+    const FingerprintingGoals: Goals = goals("check fingerprints")
+        .plan(fingerprint, fingerprintComplianceGoal);
 
     // Channel Link Listenrers
     sdm.addChannelLinkListener(SuggestAddingDockerfile);
@@ -238,17 +260,6 @@ export function machine(
         .plan(cfDeploymentStaging).after(mavenBuild)
         .plan(cfDeployment).after(cfDeploymentStaging);
 
-    const FingerPrintComplianceGoal = new GoalWithFulfillment(
-        {
-            uniqueName: "backpack-react-script-compliance",
-            displayName: "backpack-compliance",
-        },
-    ).with(
-        {
-            name: "backpack-react-waiting",
-        },
-    );
-
     // Ext Packs setup
     sdm.addExtensionPacks(
         // sonarQubeSupport({
@@ -297,7 +308,7 @@ export function machine(
             checkNpmCoordinatesImpactHandler(),
             fingerprintImpactHandler(
                 {
-                    complianceGoal: FingerPrintComplianceGoal,
+                    complianceGoal: fingerprintComplianceGoal,
                     transformPresentation: ci => {
                         return new editModes.PullRequest(
                             `apply-target-fingerprint-${Date.now()}`,
@@ -351,15 +362,15 @@ export function machine(
 
     // global
     const GlobalGoals = goals("global")
-        .plan(autofix, fingerprint, codeInspection, pushImpact);
+        .plan(autofix, FingerprintingGoals, codeInspection, pushImpact);
 
     // Maven
     const MavenBaseGoals = goals("maven-base")
-        .plan(mavenVersion, mavenBuild);
+        .plan(mavenVersion, mavenBuild).after(GlobalGoals);
 
     // Node
     const NodeBaseGoals = goals("node-base")
-        .plan(nodeVersion, nodeBuild);
+        .plan(nodeVersion, nodeBuild).after(GlobalGoals);
 
     // Rules
     sdm.addGoalContributions(goalContributors(
@@ -373,7 +384,7 @@ export function machine(
             .setGoals(NodeBaseGoals),
 
         whenPushSatisfies(IsMaven, hasJenkinsfile)
-            .setGoals(goals("maven-external").plan(mavenVersion, externalBuild)),
+            .setGoals(goals("maven-external").plan(mavenVersion, externalBuild).after(GlobalGoals)),
 
         whenPushSatisfies(HasDockerfile)
             .setGoals(

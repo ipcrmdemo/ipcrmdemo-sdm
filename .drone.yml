@@ -1,0 +1,41 @@
+pipeline:
+  install-and-build:
+    image: node:10
+    pull: true
+    commands:
+      - npm install
+      - npm run build
+      - npm run test
+
+  ecr:
+    image: 325714046698.dkr.ecr.eu-west-1.amazonaws.com/drone-plugins/drone-ecr
+    region:
+      - eu-west-1
+    create_repository: true
+    repo: optimise-prime/skyscanner-sdm
+    storage_driver: overlay
+    dockerfile: Dockerfile
+    tag:
+      - latest
+      - 1.0.${DRONE_BUILD_NUMBER}
+    build_args:
+      - BUILD_NUMBER=1.0.${DRONE_BUILD_NUMBER}
+      - VCS_REF=${DRONE_COMMIT}
+    when:
+      branch: master
+      event:
+        exclude: pull_request
+
+  sandbox:
+    image: 325714046698.dkr.ecr.eu-west-1.amazonaws.com/drone-plugins/slingshot-service
+    pull: true
+    endpoint: https://slingshot.eu-west-1.sandbox.aws.skyscnr.com/
+    template: .slingshot-k8s.yml
+    custom_parameters:
+      min_replicas: 1
+      max_replicas: 1
+      tag: 1.0.${DRONE_BUILD_NUMBER}
+    when:
+      branch: master
+      event:
+        exclude: pull_request

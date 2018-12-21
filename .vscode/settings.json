@@ -1,0 +1,21 @@
+{
+    "files.exclude": {
+        "**/*.js": {
+            "when": "$(basename).ts"
+        },
+        "**/*.d.ts": {
+            "when": "$(basename).ts"
+        },
+        "**/*.js.map": true,
+    },
+    "mocha.requires": [
+        "ts-node/register"
+    ],
+    "mocha.files.glob": "test/**/*.test.ts",
+    "mocha.runTestsOnSave": "false",
+    "mocha.options": {
+        "compilers": {
+            "ts": "ts-node/register"
+        }
+    }
+}

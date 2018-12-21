@@ -118,6 +118,10 @@ import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintai
 import { SuggestAddingDockerfile } from "../support/suggestAddDockerfile";
 import { checkNpmCoordinatesImpactHandler } from "@atomist/sdm-pack-fingerprints/lib/machine/FingerprintSupport";
 import { presentSetFingerprints } from "../support/showFingerprints";
+import {
+  ciDockerMatchRegistration,
+  optionalFailGoalsIfCiConfigDoesntMatchRegistration,
+} from "../inspections/ciDockerMatch";
 // import { sonarQubeSupport } from "@atomist/sdm-pack-sonarqube";
 // import {
 //     AutoCheckSonarScan,
@@ -179,7 +183,9 @@ export function machine(
         .with(AddLicenseFile);
 
     // Code Inspections
-    const codeInspection = new AutoCodeInspection();
+    const codeInspection = new AutoCodeInspection()
+        .with(ciDockerMatchRegistration)
+        .withListener(optionalFailGoalsIfCiConfigDoesntMatchRegistration);
 
     // Versioners
     const mavenVersion = new Version().withVersioner(MavenProjectVersioner);

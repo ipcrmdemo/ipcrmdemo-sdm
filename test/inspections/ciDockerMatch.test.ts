@@ -35,21 +35,35 @@ pipeline:
 `;
 
 describe("ciDockerMatch", () => {
-    it("should not detect a difference", async () => {
-        const p = InMemoryProject.of(
-            {path: "Dockerfile", content: dockerFile },
-            {path: ".drone.yaml", content: goodDroneCIFile},
-        );
-        const res = await ciDockerMatch(p, undefined);
-        assert.equal(res, true);
+
+    describe("when there is matching drone and dockerfile configuraiton", () => {
+        it("projectreview should not contain comments", async () => {
+            const p = InMemoryProject.of(
+                {path: "Dockerfile", content: dockerFile },
+                {path: ".drone.yml", content: goodDroneCIFile},
+            );
+            const res = await ciDockerMatch(p, undefined);
+            assert.equal(res.comments, 0);
+        });
     });
 
-    it("should detect a difference", async () => {
-        const p = InMemoryProject.of(
-            {path: "Dockerfile", content: dockerFile },
-            {path: ".drone.yaml", content: nonMatchDroneCIFile},
-        );
-        const res = await ciDockerMatch(p, undefined);
-        assert.equal(res.result, false);
+    describe("when drone and dockerfile configuraiton do not match", () => {
+        it("differences should cause projectreview to contain comments", async () => {
+            const p = InMemoryProject.of(
+                {path: "Dockerfile", content: dockerFile },
+                {path: ".drone.yml", content: nonMatchDroneCIFile},
+            );
+            const res = await ciDockerMatch(p, undefined);
+            assert(res.comments.length > 0);
+        });
+
+        it("projectreview comments should be of severity error", async () => {
+            const p = InMemoryProject.of(
+                {path: "Dockerfile", content: dockerFile },
+                {path: ".drone.yml", content: nonMatchDroneCIFile},
+            );
+            const res = await ciDockerMatch(p, undefined);
+            assert(res.comments.filter(c => c.severity === "error").length > 0);
+        });
     });
 });

@@ -146,17 +146,10 @@ export function machine(
         {
             uniqueName: "fingerprint-compliance-check",
             displayName: "fingerprint-compliance-check",
-            definition: {
-                plannedDescription: "Fingerprint Goal Compliance Check",
-                canceledDescription: "Fingerprint Compliance Check Cancelled",
-                failedDescription: "Fingerprint Compliance Check Failed",
-                completedDescription: "Fingerprint Goal Compliance Check Succeeded",
-                workingDescription: "Fingerprint Compliance Check Running...",
-            },
         },
     ).with(
         {
-            name: "backpack-react-waiting",
+            name: "fingerprint-compliance-waiting",
         },
     );
 

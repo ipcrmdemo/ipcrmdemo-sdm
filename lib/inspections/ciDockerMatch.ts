@@ -16,8 +16,6 @@ export const ciDockerMatch: CodeInspection<CiDockerMatchResult, NoParameters> = 
         const imageDetails = [];
         if (p.hasFile("Dockerfile") && p.hasFile(".drone.yaml")) {
 
-            process.stdout.write("FOO");
-
             // Parse Dockerfile
             const imageName: string[] = await astUtils.findValues(
                 p, DockerFileParser, "Dockerfile", "//FROM/image/name");
@@ -31,12 +29,15 @@ export const ciDockerMatch: CodeInspection<CiDockerMatchResult, NoParameters> = 
             const droneImage = droneImageRaw.split(":");
             imageDetails.push({image: droneImage[0], version: droneImage[1]});
 
+            process.stdout.write(JSON.stringify(imageDetails));
+
             if (JSON.stringify(imageDetails[0]) === JSON.stringify(imageDetails[1])) {
                 res({
                     result: true,
                 });
             } else {
-                let message: string;
+                let message = "";
+                let result: CiDockerMatchResult;
                 const diffs = diff(imageDetails[0], imageDetails[1]);
                 const editDiffs = diffs.filter(d => d.kind === "E");
 
@@ -45,21 +46,24 @@ export const ciDockerMatch: CodeInspection<CiDockerMatchResult, NoParameters> = 
 
                 // For each unique path, find the diffs
                 diffPaths.forEach(dP => {
-                    const newDiffs = editDiffs.filter(d => d.path === dP);
+                    const newDiffs = editDiffs.filter(d => d.path[0] === dP);
 
                     newDiffs.forEach(nD => {
-                        const dockerFileValue = _.get(nD, "path.lhs");
-                        const droneFileValue = _.get(nD, "path.rhs");
-                        message += `\n${dP} value doesn't match! \
-                            Dockerfile value: ${dockerFileValue} vs Drone config: ${droneFileValue}`;
+                        const dockerFileValue = _.get(nD, "lhs");
+                        const droneFileValue = _.get(nD, "rhs");
+                        message += `\n${dP.charAt(0).toUpperCase() + dP.slice(1)} value doesn't match!`;
+                        message += ` Dockerfile value: ${dockerFileValue} vs Drone config: ${droneFileValue}`;
+                        process.stdout.write(JSON.stringify(nD));
                         process.stdout.write(message);
                     });
+
+                    result = {
+                        result: false,
+                        message,
+                    };
                 });
 
-                res({
-                    result: false,
-                    message,
-                });
+                res(result ? result : { result: true });
             }
 
         } else {

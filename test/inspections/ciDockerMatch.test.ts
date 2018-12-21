@@ -12,7 +12,18 @@ EXPOSE 8080
 CMD ["-jar", "fake.jar"]
 `;
 
-const droneCIFile = `
+const goodDroneCIFile = `
+pipeline:
+  install-and-build:
+    image: openjdk:8-alpine
+    pull: true
+    commands:
+      - npm install
+      - npm run build
+      - npm run test
+`;
+
+const nonMatchDroneCIFile = `
 pipeline:
   install-and-build:
     image: node:10
@@ -27,9 +38,18 @@ describe("ciDockerMatch", () => {
     it("should not detect a difference", async () => {
         const p = InMemoryProject.of(
             {path: "Dockerfile", content: dockerFile },
-            {path: ".drone.yaml", content: droneCIFile},
+            {path: ".drone.yaml", content: goodDroneCIFile},
         );
         const res = await ciDockerMatch(p, undefined);
         assert.equal(res, true);
+    });
+
+    it("should detect a difference", async () => {
+        const p = InMemoryProject.of(
+            {path: "Dockerfile", content: dockerFile },
+            {path: ".drone.yaml", content: nonMatchDroneCIFile},
+        );
+        const res = await ciDockerMatch(p, undefined);
+        assert.equal(res.result, false);
     });
 });

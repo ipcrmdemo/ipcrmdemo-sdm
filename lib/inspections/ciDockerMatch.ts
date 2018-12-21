@@ -4,7 +4,7 @@ import { DockerFileParser } from "@atomist/sdm-pack-docker";
 import * as yaml from "js-yaml";
 import * as fs from "fs";
 import { diff } from "deep-diff";
-import _ = require("@atomist/sdm/node_modules/@types/lodash");
+import _ = require("lodash");
 
 export interface CiDockerMatchResult {
     result: boolean;
@@ -13,29 +13,23 @@ export interface CiDockerMatchResult {
 
 export const ciDockerMatch: CodeInspection<CiDockerMatchResult, NoParameters> = async p => {
     return new Promise<CiDockerMatchResult>(async (res, rej) => {
-        const imageDetails: object[] = [];
+        const imageDetails = [];
         if (p.hasFile("Dockerfile") && p.hasFile(".drone.yaml")) {
 
+            process.stdout.write("FOO");
+
             // Parse Dockerfile
-            try {
-                const imageName: string[] = await astUtils.findValues(
-                    p, DockerFileParser, "Dockerfile", "//FROM/image/name");
-                const imageVersion: string[] = await astUtils.findValues(
-                    p, DockerFileParser, "Dockerfile", "//FROM/image/tag");
-                imageDetails.push({image: imageName[0], version: imageVersion[0]});
-            } catch {
-                rej("Failed to load/parse Dockerfile!");
-            }
+            const imageName: string[] = await astUtils.findValues(
+                p, DockerFileParser, "Dockerfile", "//FROM/image/name");
+            const imageVersion: string[] = await astUtils.findValues(
+                p, DockerFileParser, "Dockerfile", "//FROM/image/tag");
+            imageDetails.push({image: imageName[0], version: imageVersion[0]});
 
             // Parse Drone file
-            try {
-                const droneFileYaml = yaml.safeLoad(fs.readFileSync(".drone.yml", "utf8"));
-                const droneImageRaw = droneFileYaml.pipeline["install-and-build"].image;
-                const droneImage = droneImageRaw.split(":");
-                imageDetails.push({image: droneImage[0], version: droneImage[1]});
-            } catch {
-                rej("Failed to load/parse Drone yaml file!");
-            }
+            const droneFileYaml = yaml.safeLoad(fs.readFileSync(".drone.yml", "utf8"));
+            const droneImageRaw = droneFileYaml.pipeline["install-and-build"].image;
+            const droneImage = droneImageRaw.split(":");
+            imageDetails.push({image: droneImage[0], version: droneImage[1]});
 
             if (JSON.stringify(imageDetails[0]) === JSON.stringify(imageDetails[1])) {
                 res({
@@ -58,6 +52,7 @@ export const ciDockerMatch: CodeInspection<CiDockerMatchResult, NoParameters> = 
                         const droneFileValue = _.get(nD, "path.rhs");
                         message += `\n${dP} value doesn't match! \
                             Dockerfile value: ${dockerFileValue} vs Drone config: ${droneFileValue}`;
+                        process.stdout.write(message);
                     });
                 });
 

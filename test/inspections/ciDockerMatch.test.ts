@@ -1,6 +1,7 @@
 import { InMemoryProject } from "@atomist/automation-client";
 import assert = require("power-assert");
 import { ciDockerMatch } from "../../lib/inspections/ciDockerMatch"; 
+
 const dockerFile = `
 FROM openjdk:8-alpine
 chmod 755 /usr/local/bin/dumb-init

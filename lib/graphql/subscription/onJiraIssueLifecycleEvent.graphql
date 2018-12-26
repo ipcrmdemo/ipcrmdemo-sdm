@@ -1,0 +1,16 @@
+subscription OnJiraIssueLifecycleEvent {
+  JiraIssueLifecycleEvent {
+      key
+      link
+      project
+      summary
+      description
+      author {
+          name
+          emailAddress
+          displayName
+          timeZone
+      }
+      state
+  }
+}

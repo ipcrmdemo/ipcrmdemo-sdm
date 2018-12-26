@@ -1,0 +1,468 @@
+{
+  "timestamp": 1545623992797,
+  "webhookEvent": "jira:issue_updated",
+  "issue_event_type_name": "issue_commented",
+  "user": {
+    "self": "http://localhost:8080/rest/api/2/user?username=matt",
+    "name": "matt",
+    "key": "matt",
+    "emailAddress": "matt@atomist.com",
+    "avatarUrls": {
+      "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+      "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+      "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+      "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+    },
+    "displayName": "matt@atomist.com",
+    "active": true,
+    "timeZone": "America/New_York"
+  },
+  "issue": {
+    "id": "10009",
+    "self": "http://localhost:8080/rest/api/2/issue/10009",
+    "key": "TES-10",
+    "fields": {
+      "issuetype": {
+        "self": "http://localhost:8080/rest/api/2/issuetype/10002",
+        "id": "10002",
+        "description": "Created by Jira Software - do not edit or delete. Issue type for a user story.",
+        "iconUrl": "http://localhost:8080/images/icons/issuetypes/story.svg",
+        "name": "Story",
+        "subtask": false
+      },
+      "components": [],
+      "timespent": null,
+      "timeoriginalestimate": null,
+      "description": null,
+      "project": {
+        "self": "http://localhost:8080/rest/api/2/project/10000",
+        "id": "10000",
+        "key": "TES",
+        "name": "testscrum",
+        "projectTypeKey": "software",
+        "avatarUrls": {
+          "48x48": "http://localhost:8080/secure/projectavatar?avatarId=10324",
+          "24x24": "http://localhost:8080/secure/projectavatar?size=small&avatarId=10324",
+          "16x16": "http://localhost:8080/secure/projectavatar?size=xsmall&avatarId=10324",
+          "32x32": "http://localhost:8080/secure/projectavatar?size=medium&avatarId=10324"
+        }
+      },
+      "fixVersions": [
+        {
+          "self": "http://localhost:8080/rest/api/2/version/10001",
+          "id": "10001",
+          "name": "Version 2.0",
+          "archived": false,
+          "released": false,
+          "releaseDate": "2018-12-25"
+        }
+      ],
+      "aggregatetimespent": null,
+      "resolution": null,
+      "timetracking": {},
+      "customfield_10005": "0|i0001z:",
+      "customfield_10006": 5,
+      "attachment": [],
+      "aggregatetimeestimate": null,
+      "resolutiondate": null,
+      "workratio": -1,
+      "summary": "As a developer, I can update story and task status with drag and drop (click the triangle at far left of this story to show sub-tasks)",
+      "lastViewed": "2018-12-23T22:52:45.962-0500",
+      "watches": {
+        "self": "http://localhost:8080/rest/api/2/issue/TES-10/watchers",
+        "watchCount": 1,
+        "isWatching": true
+      },
+      "creator": {
+        "self": "http://localhost:8080/rest/api/2/user?username=matt",
+        "name": "matt",
+        "key": "matt",
+        "emailAddress": "matt@atomist.com",
+        "avatarUrls": {
+          "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+          "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+          "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+          "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+        },
+        "displayName": "matt@atomist.com",
+        "active": true,
+        "timeZone": "America/New_York"
+      },
+      "subtasks": [
+        {
+          "id": "10010",
+          "key": "TES-11",
+          "self": "http://localhost:8080/rest/api/2/issue/10010",
+          "fields": {
+            "summary": "Update task status by dragging and dropping from column to column >> Try dragging this task to \"Done\"",
+            "status": {
+              "self": "http://localhost:8080/rest/api/2/status/3",
+              "description": "This issue is being actively worked on at the moment by the assignee.",
+              "iconUrl": "http://localhost:8080/images/icons/statuses/inprogress.png",
+              "name": "In Progress",
+              "id": "3",
+              "statusCategory": {
+                "self": "http://localhost:8080/rest/api/2/statuscategory/4",
+                "id": 4,
+                "key": "indeterminate",
+                "colorName": "yellow",
+                "name": "In Progress"
+              }
+            },
+            "priority": {
+              "self": "http://localhost:8080/rest/api/2/priority/3",
+              "iconUrl": "http://localhost:8080/images/icons/priorities/medium.svg",
+              "name": "Medium",
+              "id": "3"
+            },
+            "issuetype": {
+              "self": "http://localhost:8080/rest/api/2/issuetype/10000",
+              "id": "10000",
+              "description": "The sub-task of the issue",
+              "iconUrl": "http://localhost:8080/images/icons/issuetypes/subtask_alternate.png",
+              "name": "Sub-task",
+              "subtask": true
+            }
+          }
+        },
+        {
+          "id": "10011",
+          "key": "TES-12",
+          "self": "http://localhost:8080/rest/api/2/issue/10011",
+          "fields": {
+            "summary": "When the last task is done, the story can be automatically closed >> Drag this task to \"Done\" too",
+            "status": {
+              "self": "http://localhost:8080/rest/api/2/status/3",
+              "description": "This issue is being actively worked on at the moment by the assignee.",
+              "iconUrl": "http://localhost:8080/images/icons/statuses/inprogress.png",
+              "name": "In Progress",
+              "id": "3",
+              "statusCategory": {
+                "self": "http://localhost:8080/rest/api/2/statuscategory/4",
+                "id": 4,
+                "key": "indeterminate",
+                "colorName": "yellow",
+                "name": "In Progress"
+              }
+            },
+            "priority": {
+              "self": "http://localhost:8080/rest/api/2/priority/3",
+              "iconUrl": "http://localhost:8080/images/icons/priorities/medium.svg",
+              "name": "Medium",
+              "id": "3"
+            },
+            "issuetype": {
+              "self": "http://localhost:8080/rest/api/2/issuetype/10000",
+              "id": "10000",
+              "description": "The sub-task of the issue",
+              "iconUrl": "http://localhost:8080/images/icons/issuetypes/subtask_alternate.png",
+              "name": "Sub-task",
+              "subtask": true
+            }
+          }
+        }
+      ],
+      "created": "2018-12-11T11:13:48.409-0500",
+      "reporter": {
+        "self": "http://localhost:8080/rest/api/2/user?username=matt",
+        "name": "matt",
+        "key": "matt",
+        "emailAddress": "matt@atomist.com",
+        "avatarUrls": {
+          "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+          "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+          "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+          "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+        },
+        "displayName": "matt@atomist.com",
+        "active": true,
+        "timeZone": "America/New_York"
+      },
+      "customfield_10000": null,
+      "aggregateprogress": { "progress": 0, "total": 0 },
+      "priority": {
+        "self": "http://localhost:8080/rest/api/2/priority/3",
+        "iconUrl": "http://localhost:8080/images/icons/priorities/medium.svg",
+        "name": "Medium",
+        "id": "3"
+      },
+      "customfield_10100": "{summaryBean=com.atlassian.jira.plugin.devstatus.rest.SummaryBean@4879dcd0[summary={pullrequest=com.atlassian.jira.plugin.devstatus.rest.SummaryItemBean@316be957[overall=PullRequestOverallBean{stateCount=0, state='OPEN', details=PullRequestOverallDetails{openCount=0, mergedCount=0, declinedCount=0}},byInstanceType={}], build=com.atlassian.jira.plugin.devstatus.rest.SummaryItemBean@126224bc[overall=com.atlassian.jira.plugin.devstatus.summary.beans.BuildOverallBean@7cad56f6[failedBuildCount=0,successfulBuildCount=0,unknownBuildCount=0,count=0,lastUpdated=<null>,lastUpdatedTimestamp=<null>],byInstanceType={}], review=com.atlassian.jira.plugin.devstatus.rest.SummaryItemBean@6b3459e7[overall=com.atlassian.jira.plugin.devstatus.summary.beans.ReviewsOverallBean@20290fb3[stateCount=0,state=<null>,dueDate=<null>,overDue=false,count=0,lastUpdated=<null>,lastUpdatedTimestamp=<null>],byInstanceType={}], deployment-environment=com.atlassian.jira.plugin.devstatus.rest.SummaryItemBean@236d88ce[overall=com.atlassian.jira.plugin.devstatus.summary.beans.DeploymentOverallBean@35e170b3[topEnvironments=[],showProjects=false,successfulCount=0,count=0,lastUpdated=<null>,lastUpdatedTimestamp=<null>],byInstanceType={}], repository=com.atlassian.jira.plugin.devstatus.rest.SummaryItemBean@7c53fc89[overall=com.atlassian.jira.plugin.devstatus.summary.beans.CommitOverallBean@146f2027[count=0,lastUpdated=<null>,lastUpdatedTimestamp=<null>],byInstanceType={}], branch=com.atlassian.jira.plugin.devstatus.rest.SummaryItemBean@5b0be19c[overall=com.atlassian.jira.plugin.devstatus.summary.beans.BranchOverallBean@65d176a6[count=0,lastUpdated=<null>,lastUpdatedTimestamp=<null>],byInstanceType={}]},errors=[],configErrors=[]], devSummaryJson={\"cachedValue\":{\"errors\":[],\"configErrors\":[],\"summary\":{\"pullrequest\":{\"overall\":{\"count\":0,\"lastUpdated\":null,\"stateCount\":0,\"state\":\"OPEN\",\"details\":{\"openCount\":0,\"mergedCount\":0,\"declinedCount\":0,\"total\":0},\"open\":true},\"byInstanceType\":{}},\"build\":{\"overall\":{\"count\":0,\"lastUpdated\":null,\"failedBuildCount\":0,\"successfulBuildCount\":0,\"unknownBuildCount\":0},\"byInstanceType\":{}},\"review\":{\"overall\":{\"count\":0,\"lastUpdated\":null,\"stateCount\":0,\"state\":null,\"dueDate\":null,\"overDue\":false,\"completed\":false},\"byInstanceType\":{}},\"deployment-environment\":{\"overall\":{\"count\":0,\"lastUpdated\":null,\"topEnvironments\":[],\"showProjects\":false,\"successfulCount\":0},\"byInstanceType\":{}},\"repository\":{\"overall\":{\"count\":0,\"lastUpdated\":null},\"byInstanceType\":{}},\"branch\":{\"overall\":{\"count\":0,\"lastUpdated\":null},\"byInstanceType\":{}}}},\"isStale\":false}}",
+      "labels": [],
+      "customfield_10004": [
+        "com.atlassian.greenhopper.service.sprint.Sprint@28c69c06[id=1,rapidViewId=1,state=ACTIVE,name=Sample Sprint 2,startDate=2018-12-11T11:13:48.918-05:00,endDate=2018-12-25T11:33:48.918-05:00,completeDate=<null>,sequence=1,goal=<null>]"
+      ],
+      "environment": null,
+      "timeestimate": null,
+      "aggregatetimeoriginalestimate": null,
+      "versions": [],
+      "duedate": null,
+      "progress": { "progress": 0, "total": 0 },
+      "comment": {
+        "comments": [
+          {
+            "self": "http://localhost:8080/rest/api/2/issue/10009/comment/10001",
+            "id": "10001",
+            "author": {
+              "self": "http://localhost:8080/rest/api/2/user?username=matt",
+              "name": "matt",
+              "key": "matt",
+              "emailAddress": "matt@atomist.com",
+              "avatarUrls": {
+                "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+                "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+                "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+                "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+              },
+              "displayName": "matt@atomist.com",
+              "active": true,
+              "timeZone": "America/New_York"
+            },
+            "body": "Joined Sample Sprint 2 7 days 9 hours 10 minutes ago",
+            "updateAuthor": {
+              "self": "http://localhost:8080/rest/api/2/user?username=matt",
+              "name": "matt",
+              "key": "matt",
+              "emailAddress": "matt@atomist.com",
+              "avatarUrls": {
+                "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+                "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+                "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+                "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+              },
+              "displayName": "matt@atomist.com",
+              "active": true,
+              "timeZone": "America/New_York"
+            },
+            "created": "2018-12-11T11:13:48.409-0500",
+            "updated": "2018-12-11T11:13:48.409-0500"
+          },
+          {
+            "self": "http://localhost:8080/rest/api/2/issue/10009/comment/10100",
+            "id": "10100",
+            "author": {
+              "self": "http://localhost:8080/rest/api/2/user?username=matt",
+              "name": "matt",
+              "key": "matt",
+              "emailAddress": "matt@atomist.com",
+              "avatarUrls": {
+                "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+                "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+                "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+                "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+              },
+              "displayName": "matt@atomist.com",
+              "active": true,
+              "timeZone": "America/New_York"
+            },
+            "body": "fsf",
+            "updateAuthor": {
+              "self": "http://localhost:8080/rest/api/2/user?username=matt",
+              "name": "matt",
+              "key": "matt",
+              "emailAddress": "matt@atomist.com",
+              "avatarUrls": {
+                "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+                "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+                "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+                "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+              },
+              "displayName": "matt@atomist.com",
+              "active": true,
+              "timeZone": "America/New_York"
+            },
+            "created": "2018-12-23T22:47:32.964-0500",
+            "updated": "2018-12-23T22:47:32.964-0500"
+          },
+          {
+            "self": "http://localhost:8080/rest/api/2/issue/10009/comment/10101",
+            "id": "10101",
+            "author": {
+              "self": "http://localhost:8080/rest/api/2/user?username=matt",
+              "name": "matt",
+              "key": "matt",
+              "emailAddress": "matt@atomist.com",
+              "avatarUrls": {
+                "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+                "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+                "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+                "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+              },
+              "displayName": "matt@atomist.com",
+              "active": true,
+              "timeZone": "America/New_York"
+            },
+            "body": "new comment",
+            "updateAuthor": {
+              "self": "http://localhost:8080/rest/api/2/user?username=matt",
+              "name": "matt",
+              "key": "matt",
+              "emailAddress": "matt@atomist.com",
+              "avatarUrls": {
+                "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+                "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+                "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+                "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+              },
+              "displayName": "matt@atomist.com",
+              "active": true,
+              "timeZone": "America/New_York"
+            },
+            "created": "2018-12-23T22:50:27.237-0500",
+            "updated": "2018-12-23T22:50:27.237-0500"
+          },
+          {
+            "self": "http://localhost:8080/rest/api/2/issue/10009/comment/10102",
+            "id": "10102",
+            "author": {
+              "self": "http://localhost:8080/rest/api/2/user?username=matt",
+              "name": "matt",
+              "key": "matt",
+              "emailAddress": "matt@atomist.com",
+              "avatarUrls": {
+                "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+                "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+                "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+                "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+              },
+              "displayName": "matt@atomist.com",
+              "active": true,
+              "timeZone": "America/New_York"
+            },
+            "body": "dfsfasdfsf",
+            "updateAuthor": {
+              "self": "http://localhost:8080/rest/api/2/user?username=matt",
+              "name": "matt",
+              "key": "matt",
+              "emailAddress": "matt@atomist.com",
+              "avatarUrls": {
+                "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+                "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+                "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+                "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+              },
+              "displayName": "matt@atomist.com",
+              "active": true,
+              "timeZone": "America/New_York"
+            },
+            "created": "2018-12-23T22:52:45.899-0500",
+            "updated": "2018-12-23T22:52:45.899-0500"
+          },
+          {
+            "self": "http://localhost:8080/rest/api/2/issue/10009/comment/10103",
+            "id": "10103",
+            "author": {
+              "self": "http://localhost:8080/rest/api/2/user?username=matt",
+              "name": "matt",
+              "key": "matt",
+              "emailAddress": "matt@atomist.com",
+              "avatarUrls": {
+                "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+                "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+                "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+                "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+              },
+              "displayName": "matt@atomist.com",
+              "active": true,
+              "timeZone": "America/New_York"
+            },
+            "body": "Example Comment update",
+            "updateAuthor": {
+              "self": "http://localhost:8080/rest/api/2/user?username=matt",
+              "name": "matt",
+              "key": "matt",
+              "emailAddress": "matt@atomist.com",
+              "avatarUrls": {
+                "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+                "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+                "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+                "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+              },
+              "displayName": "matt@atomist.com",
+              "active": true,
+              "timeZone": "America/New_York"
+            },
+            "created": "2018-12-23T22:59:52.789-0500",
+            "updated": "2018-12-23T22:59:52.789-0500"
+          }
+        ],
+        "maxResults": 5,
+        "total": 5,
+        "startAt": 0
+      },
+      "issuelinks": [],
+      "votes": {
+        "self": "http://localhost:8080/rest/api/2/issue/TES-10/votes",
+        "votes": 0,
+        "hasVoted": false
+      },
+      "worklog": { "startAt": 0, "maxResults": 20, "total": 0, "worklogs": [] },
+      "assignee": {
+        "self": "http://localhost:8080/rest/api/2/user?username=matt",
+        "name": "matt",
+        "key": "matt",
+        "emailAddress": "matt@atomist.com",
+        "avatarUrls": {
+          "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+          "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+          "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+          "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+        },
+        "displayName": "matt@atomist.com",
+        "active": true,
+        "timeZone": "America/New_York"
+      },
+      "updated": "2018-12-23T22:52:45.899-0500",
+      "status": {
+        "self": "http://localhost:8080/rest/api/2/status/3",
+        "description": "This issue is being actively worked on at the moment by the assignee.",
+        "iconUrl": "http://localhost:8080/images/icons/statuses/inprogress.png",
+        "name": "In Progress",
+        "id": "3",
+        "statusCategory": {
+          "self": "http://localhost:8080/rest/api/2/statuscategory/4",
+          "id": 4,
+          "key": "indeterminate",
+          "colorName": "yellow",
+          "name": "In Progress"
+        }
+      }
+    }
+  },
+  "comment": {
+    "self": "http://localhost:8080/rest/api/2/issue/10009/comment/10103",
+    "id": "10103",
+    "author": {
+      "self": "http://localhost:8080/rest/api/2/user?username=matt",
+      "name": "matt",
+      "key": "matt",
+      "emailAddress": "matt@atomist.com",
+      "avatarUrls": {
+        "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+        "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+        "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+        "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+      },
+      "displayName": "matt@atomist.com",
+      "active": true,
+      "timeZone": "America/New_York"
+    },
+    "body": "Example Comment update",
+    "updateAuthor": {
+      "self": "http://localhost:8080/rest/api/2/user?username=matt",
+      "name": "matt",
+      "key": "matt",
+      "emailAddress": "matt@atomist.com",
+      "avatarUrls": {
+        "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+        "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+        "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+        "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+      },
+      "displayName": "matt@atomist.com",
+      "active": true,
+      "timeZone": "America/New_York"
+    },
+    "created": "2018-12-23T22:59:52.789-0500",
+    "updated": "2018-12-23T22:59:52.789-0500"
+  }
+}

@@ -1,0 +1,23 @@
+type JiraIssueLifecycleEvent @rootType {
+    key: String
+    link: String
+    project: String
+    summary: String
+    description: String
+    author: JiraIssueLifecycleEventAuthor
+    state: JiraIssueLifecycleEventState
+    ts: Int
+}
+type JiraIssueLifecycleEventAuthor {
+    self: String
+    name: String
+    key: String
+    emailAddress: String
+    displayName: String
+    active: Boolean
+    timeZone: String
+}
+enum JiraIssueLifecycleEventState {
+    CREATED
+    DELETED
+}

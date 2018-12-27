@@ -6,7 +6,7 @@ import {
 
 function onJiraIssueLifecycleEventHandler(): OnEvent<types.OnJiraIssueLifecycleEvent.Subscription> {
     return async (e, ctx) => {
-        logger.debug(`JIRA: Event recieved, ${JSON.stringify(e.data.JiraIssueLifecycleEvent)}`);
+        logger.debug(`JIRA Lifecycle Event recieved, ${JSON.stringify(e.data.JiraIssueLifecycleEvent)}`);
         return Success;
     };
 }

@@ -1,0 +1,24 @@
+{
+  "key": "TEST-26",
+  "link": "http://localhost:8080/rest/api/2/issue/10025",
+  "project": "test",
+  "summary": "test it now",
+  "description": "dsadfas",
+  "author": {
+    "self": "http://localhost:8080/rest/api/2/user?username=matt",
+    "name": "matt",
+    "key": "matt",
+    "emailAddress": "matt@atomist.com",
+    "avatarUrls": {
+      "48x48": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=48",
+      "24x24": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=24",
+      "16x16": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=16",
+      "32x32": "https://www.gravatar.com/avatar/f7b0d9b7c56887262d17fc53e2d3da2e?d=mm&s=32"
+    },
+    "displayName": "matt@atomist.com",
+    "active": true,
+    "timeZone": "America/New_York"
+  },
+  "state": "CREATED",
+  "ts": 1545870634528
+}

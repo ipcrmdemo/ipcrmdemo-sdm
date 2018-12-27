@@ -18,7 +18,6 @@ import { GitHubRepoRef, GraphQL } from "@atomist/automation-client";
 import {
     AutoCodeInspection,
     Autofix,
-    Fingerprint,
     goalContributors,
     goals,
     onAnyPush,
@@ -59,12 +58,8 @@ import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintai
 import { SuggestAddingDockerfile } from "../support/suggestAddDockerfile";
 import { presentSetFingerprints } from "../support/showFingerprints";
 import { onJiraIssueLifecycleEvent } from "../event/onJiraIssueLifecycleEvent";
-// import { sonarQubeSupport } from "@atomist/sdm-pack-sonarqube";
-// import {
-//     AutoCheckSonarScan,
-// } from "../support/sonarQube";
-
-export const fingerprint = new Fingerprint();
+import { onJiraIssueChangelogEvent } from "../event/onJiraIssueChangelogEvent";
+import { onJiraIssueCommmentEvent } from "../event/onJiraIssueCommentEvent";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -75,7 +70,12 @@ export function machine(
     );
 
     sdm.addIngester(GraphQL.ingester("jiraIssueLifecycleEvent"));
+    sdm.addIngester(GraphQL.ingester("jiraIssueChangelogEvent"));
+    sdm.addIngester(GraphQL.ingester("jiraIssueCommentEvent"));
+
     sdm.addEvent(onJiraIssueLifecycleEvent());
+    sdm.addEvent(onJiraIssueChangelogEvent());
+    sdm.addEvent(onJiraIssueCommmentEvent());
 
     // Bot Commands
     sdm.addCommand(EnableDeploy)
@@ -160,7 +160,7 @@ export function machine(
 
     // global
     const GlobalGoals = goals("global")
-        .plan(autofix, fingerprint, codeInspection, pushImpact);
+        .plan(autofix, codeInspection, pushImpact);
 
     // Rules
     sdm.addGoalContributions(goalContributors(

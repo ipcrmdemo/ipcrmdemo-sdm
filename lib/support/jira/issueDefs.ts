@@ -238,7 +238,7 @@ interface Issue {
     fields: Fields;
 }
 
-interface ChangelogItem {
+export interface ChangelogItem {
     field: string;
     fieldtype: string;
     from: string;

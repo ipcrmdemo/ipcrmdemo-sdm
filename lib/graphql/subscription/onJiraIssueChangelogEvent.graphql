@@ -1,0 +1,25 @@
+subscription OnJiraIssueChangelogEvent {
+    JiraIssueChangelogEvent {
+        key
+        link
+        project
+        summary
+        author {
+          name
+          emailAddress
+          displayName
+          timeZone
+        }
+        changelog {
+            id
+            items {
+                field
+                from
+                fromString
+                to
+                toString
+            }
+        }
+        ts
+    }
+}

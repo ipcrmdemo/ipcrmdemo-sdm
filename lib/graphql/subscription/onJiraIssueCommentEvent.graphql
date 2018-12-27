@@ -1,0 +1,16 @@
+subscription OnJiraIssueCommentEvent {
+    JiraIssueCommentEvent {
+        link
+        key
+        project
+        summary
+        body
+        author {
+          name
+          emailAddress
+          displayName
+          timeZone
+        }
+        ts
+    }
+}

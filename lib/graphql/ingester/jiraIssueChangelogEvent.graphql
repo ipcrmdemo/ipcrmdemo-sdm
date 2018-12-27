@@ -1,0 +1,29 @@
+type JiraIssueChangelogEvent @rootType {
+   key: String
+   link: String
+   project: String
+   summary: String
+   author: JiraIssueChangelogEventAuthor
+   changelog: JiraIssueChangelog
+   ts: Int
+}
+type JiraIssueChangelogEventAuthor {
+    self: String
+    name: String
+    key: String
+    emailAddress: String
+    displayName: String
+    active: Boolean
+    timeZone: String
+}
+type JiraIssueChangelog {
+    id: String
+    items: [JiraIssueChangelogItem]
+}
+type JiraIssueChangelogItem {
+    field: String
+    from: Int
+    fromString: String
+    to: Int
+    toString: String
+}

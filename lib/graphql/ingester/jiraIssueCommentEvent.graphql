@@ -1,0 +1,18 @@
+type JiraIssueCommentEvent @rootType {
+    link: String
+    key: String
+    project: String
+    summary: String
+    body: String
+    author: JiraIssueCommentEventAuthor
+    ts: Int
+}
+type JiraIssueCommentEventAuthor {
+    self: String
+    name: String
+    key: String
+    emailAddress: String
+    displayName: String
+    active: Boolean
+    timeZone: String
+}

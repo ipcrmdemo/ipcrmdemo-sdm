@@ -20,7 +20,7 @@ import {
     configureSdm,
 } from "@atomist/sdm-core";
 import { machine } from "./machine/machine";
-import { jiraWebHookProcessor } from "../lib/support/jira/hookHandler";
+import { jiraWebHookProcessor } from "../lib/support/jira/preProcessor";
 
 const machineOptions: ConfigureOptions = {
     requiredConfigurationValues: [],

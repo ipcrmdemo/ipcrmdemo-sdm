@@ -4,11 +4,10 @@ import {
     ParametersInvocation,
     StringCapturingProgressLog,
     PushImpactResponse,
+    spawnLog,
 } from "@atomist/sdm";
 import {
     isLocalProject,
-    spawnAndWatch,
-    asSpawnCommand,
     NoParameters,
     configurationValue,
 } from "@atomist/automation-client";
@@ -38,12 +37,13 @@ const runScan = async (project): Promise<string> => {
     }
 
     const log = new StringCapturingProgressLog();
-    await spawnAndWatch(
-        asSpawnCommand(command.join(" ")),
+    await spawnLog(
+        command.join(" "),
+        [],
         {
+            log,
             cwd: project.baseDir,
         },
-        log,
     );
     return log.log;
 

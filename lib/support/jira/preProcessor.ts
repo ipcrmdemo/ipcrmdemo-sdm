@@ -84,7 +84,7 @@ export const jiraWebHookProcessor = async (config: Configuration) => {
             c.use(bodyParser.json());
 
             c.post("/jiraevent", async (req, res) => {
-                jiraWebHookExtractEventData(req.body, config);
+                await jiraWebHookExtractEventData(req.body, config);
             });
         },
     );

@@ -1,7 +1,6 @@
 import { ChannelLinkListener } from "@atomist/sdm";
 import { buttonForCommand, logger } from "@atomist/automation-client";
 import { Attachment, SlackMessage } from "@atomist/slack-messages";
-import { AddDockerFile } from "../transform/addDockerfile";
 
 export const SuggestAddingDockerfile: ChannelLinkListener = async inv => {
     if (!inv.project.fileExistsSync("pom.xml") && !inv.project.fileExistsSync("package.json")) {
@@ -17,7 +16,7 @@ export const SuggestAddingDockerfile: ChannelLinkListener = async inv => {
         text: "Add a Dockerfile to your new repo?",
         fallback: "Add a Dockerfile to your new repo?",
         actions: [buttonForCommand({ text: "Add Dockerfile" },
-            AddDockerFile,
+            "AddDockerFile",
             { "targets.owner": inv.id.owner, "targets.repo": inv.id.repo },
         ),
         ],

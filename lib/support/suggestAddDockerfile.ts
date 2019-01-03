@@ -1,4 +1,4 @@
-import { ChannelLinkListener } from "@atomist/sdm";
+import { ChannelLinkListener  } from "@atomist/sdm";
 import { buttonForCommand, logger } from "@atomist/automation-client";
 import { Attachment, SlackMessage } from "@atomist/slack-messages";
 

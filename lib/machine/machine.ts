@@ -117,7 +117,7 @@ import {
     ReduceMemorySize,
 } from "../transform/smallMemory";
 import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintainer";
-import { SuggestAddingDockerfile } from "../support/suggestAddDockerfile";
+// import { SuggestAddingDockerfile } from "../support/suggestAddDockerfile";
 import {
   checkNpmCoordinatesImpactHandler,
   checkCljCoordinatesImpactHandler,
@@ -159,7 +159,7 @@ export function machine(
         .plan(fingerprint, fingerprintComplianceGoal);
 
     // Channel Link Listenrers
-    sdm.addChannelLinkListener(SuggestAddingDockerfile);
+    // sdm.addChannelLinkListener(SuggestAddingDockerfile);
 
     // Global
     const pushImpact = new PushImpact();

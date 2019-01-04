@@ -117,12 +117,11 @@ import {
     ReduceMemorySize,
 } from "../transform/smallMemory";
 import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintainer";
-// import { SuggestAddingDockerfile } from "../support/suggestAddDockerfile";
+import { SuggestAddingDockerfile } from "../support/suggestAddDockerfile";
 import {
   checkNpmCoordinatesImpactHandler,
   checkCljCoordinatesImpactHandler,
 } from "@atomist/sdm-pack-fingerprints/lib/machine/FingerprintSupport";
-import { sonarQubeSupport } from "@atomist/sdm-pack-sonarqube";
 import { AutoMergeMethod, AutoMergeMode } from "@atomist/automation-client/lib/operations/edit/editModes";
 
 export function machine(
@@ -159,7 +158,7 @@ export function machine(
         .plan(fingerprint, fingerprintComplianceGoal);
 
     // Channel Link Listenrers
-    // sdm.addChannelLinkListener(SuggestAddingDockerfile);
+    sdm.addChannelLinkListener(SuggestAddingDockerfile);
 
     // Global
     const pushImpact = new PushImpact();
@@ -256,10 +255,6 @@ export function machine(
 
     // Ext Packs setup
     sdm.addExtensionPacks(
-        sonarQubeSupport({
-            ...sdm.configuration.sdm.sonar,
-            inspectGoal: codeInspection,
-        }),
         springSupport({
             review: {
                 springStyle: true,

@@ -15,6 +15,7 @@
  */
 
 import { GitHubRepoRef, editModes } from "@atomist/automation-client";
+// import { sonarQubeSupport, SonarScan } from "@atomist/sdm-pack-sonarqube";
 import {
     allSatisfied,
     AutoCodeInspection,
@@ -31,7 +32,6 @@ import {
     ToDefaultBranch,
     whenPushSatisfies,
     GoalWithFulfillment,
-    Goals,
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
@@ -87,6 +87,7 @@ import {
     UpdatePackageJsonIdentification,
     UpdateReadmeTitle,
     NpmCompileProjectListener,
+    NodeModulesProjectListener,
 } from "@atomist/sdm-pack-node";
 import {
     IsMaven,
@@ -107,6 +108,7 @@ import { IssueSupport } from "@atomist/sdm-pack-issue";
 import {
     hasJenkinsfile,
     npmHasBuildScript,
+    isFirstCommit,
 } from "../support/preChecks";
 import { AddDockerFile } from "../transform/addDockerfile";
 import { AddFinalNameToPom } from "../transform/addFinalName";
@@ -154,8 +156,6 @@ export function machine(
     );
 
     const fingerprint = new Fingerprint();
-    const FingerprintingGoals: Goals = goals("check fingerprints")
-        .plan(fingerprint, fingerprintComplianceGoal);
 
     // Channel Link Listenrers
     sdm.addChannelLinkListener(SuggestAddingDockerfile);
@@ -209,12 +209,13 @@ export function machine(
         })
         .withProjectListener(MvnVersion)
         .withProjectListener(MvnPackage)
-        .withProjectListener(NpmCompileProjectListener)
 
         .with({
             options: { push: true, ...sdm.configuration.sdm.dockerinfo },
             pushTest: allSatisfied(IsNode, HasDockerfile),
         })
+        .withProjectListener(NodeModulesProjectListener)
+        .withProjectListener(NpmCompileProjectListener)
         .withProjectListener(NpmVersionProjectListener);
 
     // Kubernetes Deploys
@@ -249,6 +250,8 @@ export function machine(
     )
         .with({ environment: "staging", strategy: CloudFoundryDeploymentStrategy.API });
 
+    // const SonarScanGoal = new SonarScan();
+
     const pcfDeploymentGoals = goals("cfdeploy")
         .plan(cfDeploymentStaging).after(mavenBuild)
         .plan(cfDeployment).after(cfDeploymentStaging);
@@ -275,6 +278,7 @@ export function machine(
         goalState(),
         changelogSupport(),
         IssueSupport,
+        // sonarQubeSupport(SonarScanGoal),
         fingerprintSupport(
             fingerprint,
             [
@@ -371,20 +375,28 @@ export function machine(
 
     // global
     const GlobalGoals = goals("global")
-        .plan(autofix, FingerprintingGoals, codeInspection, pushImpact);
+        .plan(autofix, fingerprint)
+        .plan(codeInspection, pushImpact).after(autofix);
+
+    // Compliance Goals
+    const ComplianceGoals = goals("compliance-goals")
+        .plan(fingerprintComplianceGoal).after(GlobalGoals);
 
     // Maven
     const MavenBaseGoals = goals("maven-base")
-        .plan(mavenVersion, mavenBuild).after(GlobalGoals);
+        .plan(mavenVersion, mavenBuild).after(ComplianceGoals);
 
     // Node
     const NodeBaseGoals = goals("node-base")
-        .plan(nodeVersion, nodeBuild).after(GlobalGoals);
+        .plan(nodeVersion, nodeBuild).after(ComplianceGoals);
 
     // Rules
     sdm.addGoalContributions(goalContributors(
         onAnyPush()
             .setGoals(GlobalGoals),
+
+        whenPushSatisfies(not(isFirstCommit))
+            .setGoals(ComplianceGoals),
 
         whenPushSatisfies(IsMaven, not(hasJenkinsfile))
             .setGoals(MavenBaseGoals),

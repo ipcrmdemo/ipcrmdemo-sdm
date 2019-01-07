@@ -28,6 +28,7 @@
     "@atomist/sdm-core": "^1.2.0-master.20181213212357",
     "@atomist/clj-editors": "0.5.7",
     "@atomist/sdm-pack-build": "1.0.4-master.20181217220011",
+    "@atomist/sdm-pack-sonarqube": "1.0.2-ipcrm-sonar-agent.20190104232343",
     "@atomist/sdm-pack-changelog": "1.0.2-master.20181210135742",
     "@atomist/sdm-pack-cloudfoundry": "1.0.2",
     "@atomist/sdm-pack-docker": "1.0.3-parse.20181212031606",

@@ -1,4 +1,10 @@
-import { PredicatePushTest, predicatePushTest } from "@atomist/sdm";
+import {
+  PredicatePushTest,
+  predicatePushTest,
+  spawnLog,
+  StringCapturingProgressLog,
+} from "@atomist/sdm";
+import { logger, GitProject } from "@atomist/automation-client";
 
 export const isMaster: PredicatePushTest = predicatePushTest(
     "isMaster",
@@ -11,6 +17,30 @@ export const hasJenkinsfile: PredicatePushTest = predicatePushTest(
     "hasJenkinsfile",
     async p => {
         return p.hasFile("Jenkinsfile");
+    },
+);
+
+export const isFirstCommit: PredicatePushTest = predicatePushTest(
+    "isFirstCommit",
+    async p => {
+        const project = p as GitProject;
+        const log = new StringCapturingProgressLog();
+        const result = await spawnLog(
+            "git",
+            ["--no-pager", "diff", "HEAD~1"],
+            {
+                log,
+                cwd: project.baseDir,
+            },
+        );
+
+        if (result.code === 0) {
+            logger.debug(`isFirstCommit: resolved to false! Result: ${JSON.stringify(result, undefined, 2)}`);
+            return false;
+        } else {
+            logger.debug(`isFirstCommit: resolved to true! Result: ${JSON.stringify(result, undefined, 2)}`);
+            return true;
+        }
     },
 );
 

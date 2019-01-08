@@ -381,6 +381,7 @@ export function machine(
     // Compliance Goals
     const ComplianceGoals = goals("compliance-goals")
         .plan(fingerprintComplianceGoal).after(GlobalGoals);
+        // .plan(fingerprintComplianceGoal, SonarScanGoal).after(GlobalGoals);
 
     // Maven
     const MavenBaseGoals = goals("maven-base")

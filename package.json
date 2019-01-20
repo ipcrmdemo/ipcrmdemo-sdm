@@ -23,9 +23,9 @@
   "main": "./index.js",
   "types": "./index.d.ts",
   "dependencies": {
-    "@atomist/automation-client": "^1.2.0-master.20181221193708",
-    "@atomist/sdm": "^1.3.0-master.20190119145642",
-    "@atomist/sdm-core": "^1.3.0-master.20190120160958",
+    "@atomist/automation-client": "1.3.0-master.20190118002357",
+    "@atomist/sdm": "1.3.0-master.20190120184307",
+    "@atomist/sdm-core": "1.3.0-master.20190120160958",
     "@atomist/clj-editors": "0.5.7",
     "@atomist/sdm-pack-build": "1.0.4-master.20181217220011",
     "@atomist/sdm-pack-sonarqube": "1.0.2-ipcrm-sonar-agent.20190104232343",

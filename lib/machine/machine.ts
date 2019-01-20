@@ -325,7 +325,7 @@ export function machine(
             fingerprintImpactHandler(
                 {
                     complianceGoal: fingerprintComplianceGoal,
-                    transformPresentation: (ci) => {
+                    transformPresentation: ci => {
                         return new editModes.PullRequest(
                             `apply-target-fingerprint-${Date.now()}`,
                             `Apply fingerprint ${ci.parameters.title} to project`,
@@ -344,8 +344,7 @@ export function machine(
     );
 
     // Generators
-    sdm
-        .addGeneratorCommand<SpringProjectCreationParameters>({
+    sdm.addGeneratorCommand<SpringProjectCreationParameters>({
             name: "create-spring",
             intent: "create spring",
             description: "Create a new Java Spring Boot REST service",
@@ -357,8 +356,8 @@ export function machine(
                 TransformSeedToCustomProject,
                 AddFinalNameToPom,
             ],
-        })
-        .addGeneratorCommand<SpringProjectCreationParameters>({
+        });
+    sdm.addGeneratorCommand<SpringProjectCreationParameters>({
             name: "create-spring-external-build",
             intent: "create spring jenkins build",
             description: "Create a new Java Spring Boot REST service that builds with Jenkins",
@@ -370,8 +369,8 @@ export function machine(
                 TransformSeedToCustomProject,
                 AddFinalNameToPom,
             ],
-        })
-        .addGeneratorCommand({
+        });
+    sdm.addGeneratorCommand({
             name: "typescript-express-generator",
             parameters: NodeProjectCreationParametersDefinition,
             startingPoint: new GitHubRepoRef("ipcrmdemo", "typescript-node-api"),

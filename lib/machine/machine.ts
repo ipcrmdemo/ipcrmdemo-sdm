@@ -104,7 +104,7 @@ import {
     TransformSeedToCustomProject,
 } from "@atomist/sdm-pack-spring";
 import { changelogSupport } from "@atomist/sdm-pack-changelog";
-import { IssueSupport } from "@atomist/sdm-pack-issue";
+import { issueSupport } from "@atomist/sdm-pack-issue";
 import {
     hasJenkinsfile,
     npmHasBuildScript,
@@ -286,7 +286,7 @@ export function machine(
         gitHubGoalStatus(),
         goalState(),
         changelogSupport(),
-        IssueSupport,
+        issueSupport(),
         // sonarQubeSupport(SonarScanGoal),
         fingerprintSupport(
             fingerprint,

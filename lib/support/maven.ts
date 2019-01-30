@@ -14,22 +14,16 @@
  * limitations under the License.
  */
 
-import {
-    spawnAndWatch,
-    SuccessIsReturn0ErrorFinder,
-} from "@atomist/automation-client";
-import { PrepareForGoalExecution } from "@atomist/sdm";
+import { PrepareForGoalExecution, spawnLog } from "@atomist/sdm";
 
 export const MavenPackage: PrepareForGoalExecution = async (p, r) => {
-    const result = await spawnAndWatch({
-            command: "mvn",
-            args: ["package", "-DskipTests=true", `-Dartifact.name=${r.id.repo}`],
-        }, {
-            cwd: p.baseDir,
-        },
-        r.progressLog,
-        {
-            errorFinder: SuccessIsReturn0ErrorFinder,
-        });
+    const result = await spawnLog(
+      "mvn",
+      ["package", "-DskipTests=true", `-Dartifact.name=${r.id.repo}`],
+      {
+          log: r.progressLog,
+          cwd: p.baseDir,
+      },
+    );
     return result;
 };

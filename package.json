@@ -82,9 +82,10 @@
     "git:info": "atm-git-info",
     "gql:gen": "atm-gql-gen",
     "lint": "tslint --format verbose --project . --exclude \"node_modules/**\" --exclude \"**/*.d.ts\" \"**/*.ts\"",
+    "tslint": "tslint --format verbose --project . --exclude \"node_modules/**\" --exclude \"**/*.d.ts\" \"**/*.ts\"",
     "lint:fix": "npm run lint -- --fix",
     "start": "atm-start",
-    "test": "nyc mocha --require espower-typescript/guess --require source-map-support/register \"test/**/*.test.ts\"",
+    "test": "mocha --require espower-typescript/guess --require source-map-support/register \"test/**/*.test.ts\"",
     "test:one": "mocha --require espower-typescript/guess \"test/**/${TEST:-*.test.ts}\"",
     "typedoc": "npm run doc"
   },

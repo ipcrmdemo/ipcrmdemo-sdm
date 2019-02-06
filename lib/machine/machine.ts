@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-import { editModes, GitHubRepoRef } from "@atomist/automation-client";
 // import { sonarQubeSupport, SonarScan } from "@atomist/sdm-pack-sonarqube";
+import { editModes, GitHubRepoRef } from "@atomist/automation-client";
 import {
-    allSatisfied,
     AutoCodeInspection,
     Autofix,
     Fingerprint,
     goalContributors,
     goals,
-    LogSuppressor,
     not,
     onAnyPush,
     PushImpact,
@@ -31,7 +29,6 @@ import {
     SoftwareDeliveryMachineConfiguration,
     ToDefaultBranch,
     whenPushSatisfies,
-    GoalWithFulfillment,
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
@@ -40,20 +37,15 @@ import {
     EnableDeploy,
     gitHubGoalStatus,
     goalState,
-    Version,
 } from "@atomist/sdm-core";
 import {
     Artifact,
-    Build,
 } from "@atomist/sdm-pack-build";
 import {
-    CloudFoundryDeploy,
-    CloudFoundryDeploymentStrategy,
     CloudFoundrySupport,
     HasCloudFoundryManifest,
 } from "@atomist/sdm-pack-cloudfoundry";
 import {
-    DockerBuild,
     HasDockerfile,
 } from "@atomist/sdm-pack-docker";
 import {
@@ -74,28 +66,16 @@ import {
     dockerBaseFingerprint,
 } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/dockerFrom";
 import {
-    KubernetesDeploy,
     kubernetesSupport,
 } from "@atomist/sdm-pack-k8";
 import {
     IsNode,
-    nodeBuilder,
-    NodeProjectVersioner,
-    NpmProgressReporter,
-    NpmVersionProjectListener,
-    NpmCompileProjectListener,
-    NodeModulesProjectListener,
     NodeProjectCreationParametersDefinition,
     UpdatePackageJsonIdentification,
     UpdateReadmeTitle,
 } from "@atomist/sdm-pack-node";
 import {
     IsMaven,
-    mavenBuilder,
-    MavenDefaultOptions,
-    MavenProjectVersioner,
-    MvnPackage,
-    MvnVersion,
     springSupport,
     SpringProjectCreationParameters,
     SpringProjectCreationParameterDefinitions,
@@ -125,6 +105,16 @@ import {
 } from "@atomist/sdm-pack-fingerprints/lib/machine/FingerprintSupport";
 import { AutoMergeMethod, AutoMergeMode } from "@atomist/automation-client/lib/operations/edit/editModes";
 import { AddFinalNameToPom } from "../transform/addFinalName";
+import {
+  addImplementation,
+  cfDeployment,
+  cfDeploymentStaging,
+  dockerBuild, externalBuild, fingerprintComplianceGoal, k8sProductionDeploy, k8sStagingDeploy,
+  mavenBuild,
+  mavenVersion,
+  nodeBuild,
+  nodeVersion,
+} from "./goals";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -133,6 +123,8 @@ export function machine(
     const sdm: SoftwareDeliveryMachine = createSoftwareDeliveryMachine(
         { name: "Organization ipcrmdemo sdm", configuration },
     );
+
+    addImplementation(sdm);
 
     // Bot Commands
     sdm.addCommand(EnableDeploy)
@@ -143,129 +135,25 @@ export function machine(
         .addCodeTransformCommand(UpdateDockerfileMaintainer)
         .addCodeTransformCommand(FixSmallMemory);
 
-    // Fingerprint Compliance
-    const fingerprintComplianceGoal = new GoalWithFulfillment(
-        {
-            uniqueName: "fingerprint-compliance-check",
-            displayName: "fingerprint-compliance-check",
-        },
-    ).with(
-        {
-            name: "fingerprint-compliance-waiting",
-        },
-    );
-
-    const fingerprint = new Fingerprint();
-
-    // Channel Link Listenrers
+    // Channel Link Listeners
     sdm.addChannelLinkListener(SuggestAddingDockerfile);
 
-    // Global
+    /**
+     * Generic Goals
+     */
+    const fingerprint = new Fingerprint();
     const pushImpact = new PushImpact();
-
-    // Artifact
     const artifact = new Artifact();
+    const codeInspection = new AutoCodeInspection();
 
     // Autofix
     const autofix = new Autofix()
         .with(ReduceMemorySize)
         .with(AddLicenseFile);
 
-    // Code Inspections
-    const codeInspection = new AutoCodeInspection();
-
-    // Versioners
-    const mavenVersion = new Version().withVersioner(MavenProjectVersioner);
-    const nodeVersion = new Version().withVersioner(NodeProjectVersioner);
-
-    // Builds
-    const mavenBuild = new Build()
-        .with({
-            ...MavenDefaultOptions,
-            name: "maven-run-build",
-            builder: mavenBuilder([{ name: "maven-run-build" }]),
-            pushTest: MavenDefaultOptions.pushTest,
-        });
-
-    const externalBuild = new Build()
-        .with({
-            externalTool: "jenkins",
-            pushTest: hasJenkinsfile,
-        });
-
-    const nodeBuild = new Build()
-        .with({
-            logInterpreter: LogSuppressor,
-            progressReporter: NpmProgressReporter,
-            name: "node-run-build",
-            builder: nodeBuilder(
-                {
-                    command: "npm",
-                    args: ["install"],
-                },
-                {
-                    command: "npm",
-                    args: ["run", "build"],
-                },
-            ),
-            pushTest: IsNode,
-        });
-
-    const dockerBuild = new DockerBuild()
-        .with({
-            options: { push: true, ...sdm.configuration.sdm.dockerinfo },
-            pushTest: allSatisfied(IsMaven, HasDockerfile),
-        })
-        .withProjectListener(MvnVersion)
-        .withProjectListener(MvnPackage)
-
-        .with({
-            options: { push: true, ...sdm.configuration.sdm.dockerinfo },
-            pushTest: allSatisfied(IsNode, HasDockerfile),
-        })
-        .withProjectListener(NodeModulesProjectListener)
-        .withProjectListener(NpmCompileProjectListener)
-        .withProjectListener(NpmVersionProjectListener);
-
-    // Kubernetes Deploys
-    const k8sStagingDeploy = new KubernetesDeploy({ environment: "testing", approval: true });
-    const k8sProductionDeploy = new KubernetesDeploy({ environment: "production" });
-
-    const k8sDeployGoals = goals("deploy")
-        .plan(k8sStagingDeploy).after(dockerBuild)
-        .plan(k8sProductionDeploy).after(k8sStagingDeploy);
-
-    // CF Deployment
-    const cfDeployment = new CloudFoundryDeploy({
-        displayName: "Deploy to CF `production`",
-        environment: "production",
-        preApproval: true,
-        descriptions: {
-            inProcess: "Deploying to Cloud Foundry `production`",
-            completed: "Deployed to Cloud Foundry `production`",
-        },
-    })
-        .with({ environment: "production", strategy: CloudFoundryDeploymentStrategy.API });
-
-    const cfDeploymentStaging = new CloudFoundryDeploy({
-            displayName: "Deploy to CF `testing`",
-            environment: "testing",
-            preApproval: true,
-            descriptions: {
-                inProcess: "Deploying to Cloud Foundry `testing`",
-                completed: "Deployed to Cloud Foundry `testing`",
-            },
-        },
-    )
-        .with({ environment: "staging", strategy: CloudFoundryDeploymentStrategy.API });
-
-    // const SonarScanGoal = new SonarScan();
-
-    const pcfDeploymentGoals = goals("cfdeploy")
-        .plan(cfDeploymentStaging).after(mavenBuild)
-        .plan(cfDeployment).after(cfDeploymentStaging);
-
-    // Ext Packs setup
+    /**
+     * Ext Pack setup
+     */
     sdm.addExtensionPacks(
         springSupport({
             review: {
@@ -343,7 +231,9 @@ export function machine(
         ),
     );
 
-    // Generators
+    /**
+     * Generators
+     */
     sdm.addGeneratorCommand<SpringProjectCreationParameters>({
             name: "create-spring",
             intent: "create spring",
@@ -381,7 +271,9 @@ export function machine(
             ],
         });
 
-    // global
+    /**
+     * Goals Definition
+     */
     const GlobalGoals = goals("global")
         .plan(autofix, fingerprint)
         .plan(codeInspection, pushImpact).after(autofix);
@@ -399,7 +291,19 @@ export function machine(
     const NodeBaseGoals = goals("node-base")
         .plan(nodeVersion, nodeBuild).after(ComplianceGoals);
 
-    // Rules
+    // K8s
+    const k8sDeployGoals = goals("deploy")
+      .plan(k8sStagingDeploy).after(dockerBuild)
+      .plan(k8sProductionDeploy).after(k8sStagingDeploy);
+
+    // CF Deployment
+    const pcfDeploymentGoals = goals("cfdeploy")
+      .plan(cfDeploymentStaging).after(mavenBuild)
+      .plan(cfDeployment).after(cfDeploymentStaging);
+
+    /**
+     * Configure Push rules
+     */
     sdm.addGoalContributions(goalContributors(
         onAnyPush()
             .setGoals(GlobalGoals),

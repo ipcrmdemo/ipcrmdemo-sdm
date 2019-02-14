@@ -21,6 +21,7 @@ import { Version } from "@atomist/sdm-core";
 import { Build } from "@atomist/sdm-pack-build";
 import { KubernetesDeploy } from "@atomist/sdm-pack-k8";
 import { hasJenkinsfile } from "../support/preChecks";
+import * as fs from "fs";
 
 /**
  * Goals
@@ -82,7 +83,11 @@ export const cfDeploymentStaging = new CloudFoundryDeploy({
 export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliveryMachine {
   dockerBuild
     .with({
-        options: { push: true, ...sdm.configuration.sdm.dockerinfo },
+        options: {
+          builder: fs.existsSync("/kaniko/executor") ? "kaniko" : "docker",
+          push: true,
+          ...sdm.configuration.sdm.dockerinfo,
+        },
         pushTest: allSatisfied(IsMaven, HasDockerfile),
       })
         .withProjectListener(MvnVersion)

@@ -39,7 +39,7 @@ import {
     goalState,
 } from "@atomist/sdm-core";
 import {
-    Artifact,
+  Artifact, buildAwareCodeTransforms
 } from "@atomist/sdm-pack-build";
 import {
     CloudFoundrySupport,
@@ -166,6 +166,10 @@ export function machine(
             inspectGoal: codeInspection,
             autofixGoal: autofix,
             reviewListeners: [],
+        }),
+        buildAwareCodeTransforms({
+          buildGoal: nodeBuild,
+          issueCreation: {},
         }),
         kubernetesSupport(),
         CloudFoundrySupport({

@@ -22,6 +22,7 @@ import {
 } from "@atomist/sdm";
 import * as _ from "lodash";
 import { PullRequest } from "@atomist/automation-client/lib/operations/edit/editModes";
+import { BuildAwareMarker } from "@atomist/sdm-pack-build";
 
 export const AddDockerfileTransform: CodeTransform<NoParameters> = async (p, inv) => {
     const name = _.get(inv, "parameters.target.repo") || p.name;
@@ -44,9 +45,9 @@ export const AddDockerFile: CodeTransformRegistration = {
         `add-dockerfile-${Date.now()}`,
         "Add a dockerfile",
         `Adding a dockerfile to enable build/deployment in container format.
-    ${AtomistGeneratedMarker}`,
+    ${AtomistGeneratedMarker} ${BuildAwareMarker}`,
         `Add Dockerfile
-${AddDockerfileMarker}`),
+${AddDockerfileMarker} ${BuildAwareMarker}`),
 };
 
 export const AddDockerfileAutofix: AutofixRegistration<NoParameters> = {

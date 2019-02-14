@@ -13,19 +13,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Configuration } from "@atomist/automation-client";
 import {
+  BitBucketServerRepoRef,
+  Configuration,
+  configurationValue,
+  ProjectOperationCredentials, RemoteRepoRef,
+  Value,
+} from "@atomist/automation-client";
+import {
+  ConfigurationBasedBasicCredentialsResolver,
   ConfigureOptions,
   configureSdm,
 } from "@atomist/sdm-core";
 import { machine } from "./lib/machine/machine";
+import { BitBucketRepoCreationParameters } from "@atomist/sdm";
+import { BasicAuthCredentials } from "@atomist/automation-client/lib/operations/common/BasicAuthCredentials";
 
 const machineOptions: ConfigureOptions = {
   requiredConfigurationValues: [],
 };
 
 export const configuration: Configuration = {
+  sdm: {
+    credentialsResolver: new ConfigurationBasedBasicCredentialsResolver(),
+  },
   postProcessors: [
     configureSdm(machine, machineOptions),
   ],
 };
+
+export function bitBucketCredentials(): BasicAuthCredentials {
+  return {
+    username: configurationValue<string>("sdm.git.user"),
+    password: configurationValue<string>("sdm.git.password"),
+  };
+}
+
+export class FixedRepoCreationParameters extends BitBucketRepoCreationParameters {
+  @Value("sdm.git.url")
+  public apiUrl: string;
+
+  get credentials(): ProjectOperationCredentials {
+    return bitBucketCredentials();
+  }
+
+  get repoRef(): RemoteRepoRef {
+    return new BitBucketServerRepoRef(
+      this.apiUrl,
+      this.owner, this.repo,
+      true);
+  }
+}

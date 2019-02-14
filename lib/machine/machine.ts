@@ -17,18 +17,18 @@
 // import { sonarQubeSupport, SonarScan } from "@atomist/sdm-pack-sonarqube";
 import { editModes, GitHubRepoRef } from "@atomist/automation-client";
 import {
-    AutoCodeInspection,
-    Autofix,
-    Fingerprint,
-    goalContributors,
-    goals,
-    not,
-    onAnyPush,
-    PushImpact,
-    SoftwareDeliveryMachine,
-    SoftwareDeliveryMachineConfiguration,
-    ToDefaultBranch,
-    whenPushSatisfies,
+  AutoCodeInspection,
+  Autofix, BitBucketRepoCreationParameters,
+  Fingerprint,
+  goalContributors,
+  goals,
+  not,
+  onAnyPush,
+  PushImpact,
+  SoftwareDeliveryMachine,
+  SoftwareDeliveryMachineConfiguration,
+  ToDefaultBranch,
+  whenPushSatisfies
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
@@ -115,6 +115,7 @@ import {
   nodeBuild,
   nodeVersion,
 } from "./goals";
+import { FixedRepoCreationParameters } from "../../index";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -250,6 +251,7 @@ export function machine(
                 TransformSeedToCustomProject,
                 AddFinalNameToPom,
             ],
+            fallbackTarget: () => new FixedRepoCreationParameters(),
         });
     sdm.addGeneratorCommand<SpringProjectCreationParameters>({
             name: "create-spring-external-build",
@@ -263,6 +265,7 @@ export function machine(
                 TransformSeedToCustomProject,
                 AddFinalNameToPom,
             ],
+            fallbackTarget: () => new FixedRepoCreationParameters(),
         });
     sdm.addGeneratorCommand({
             name: "typescript-express-generator",
@@ -273,6 +276,7 @@ export function machine(
                 UpdatePackageJsonIdentification,
                 UpdateReadmeTitle,
             ],
+            fallbackTarget: () => new FixedRepoCreationParameters(),
         });
 
     /**

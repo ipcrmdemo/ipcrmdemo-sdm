@@ -23,6 +23,7 @@ import {
 import * as _ from "lodash";
 import { PullRequest } from "@atomist/automation-client/lib/operations/edit/editModes";
 import { BuildAwareMarker } from "@atomist/sdm-pack-build";
+import { ConfigurationBasedBasicCredentialsResolver } from "@atomist/sdm-core";
 
 export const AddDockerfileTransform: CodeTransform<NoParameters> = async (p, inv) => {
     const name = _.get(inv, "parameters.target.repo") || p.name;
@@ -41,6 +42,7 @@ export const AddDockerFile: CodeTransformRegistration = {
     transform: AddDockerfileTransform,
     name: "AddDockerFileTransform",
     intent: "Add Dockerfile",
+    paramsMaker: ConfigurationBasedBasicCredentialsResolver,
     transformPresentation: () => new PullRequest(
         `add-dockerfile-${Date.now()}`,
         "Add a dockerfile",

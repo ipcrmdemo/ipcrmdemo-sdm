@@ -16,64 +16,72 @@
 
 // import { sonarQubeSupport, SonarScan } from "@atomist/sdm-pack-sonarqube";
 import {
-  editModes,
-  GitHubRepoRef,
-  Issue, logger,
-  ProjectOperationCredentials,
-  RemoteRepoRef
+    editModes,
+    GitHubRepoRef,
+    Issue,
+    logger,
+    ProjectOperationCredentials,
+    RemoteRepoRef,
 } from "@atomist/automation-client";
 import {
-  AutoCodeInspection,
-  Autofix,
-  Fingerprint,
-  goalContributors,
-  goals, IssueRouter,
-  not,
-  onAnyPush,
-  PushImpact,
-  SoftwareDeliveryMachine,
-  SoftwareDeliveryMachineConfiguration,
-  ToDefaultBranch,
-  whenPushSatisfies
+    AutoMergeMethod,
+    AutoMergeMode,
+} from "@atomist/automation-client/lib/operations/edit/editModes";
+import {
+    AutoCodeInspection,
+    Autofix,
+    Fingerprint,
+    goalContributors,
+    goals,
+    IssueRouter,
+    not,
+    onAnyPush,
+    PushImpact,
+    SoftwareDeliveryMachine,
+    SoftwareDeliveryMachineConfiguration,
+    ToDefaultBranch,
+    whenPushSatisfies,
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
     DisableDeploy,
     DisplayDeployEnablement,
     EnableDeploy,
-    gitHubGoalStatus,
     goalState,
 } from "@atomist/sdm-core";
 import {
-  Artifact, buildAwareCodeTransforms
+    Artifact,
+    buildAwareCodeTransforms,
 } from "@atomist/sdm-pack-build";
+import { changelogSupport } from "@atomist/sdm-pack-changelog";
 import {
     CloudFoundrySupport,
     HasCloudFoundryManifest,
 } from "@atomist/sdm-pack-cloudfoundry";
+import { HasDockerfile } from "@atomist/sdm-pack-docker";
 import {
-    HasDockerfile,
-} from "@atomist/sdm-pack-docker";
-import {
-    fingerprintSupport,
-    fingerprintImpactHandler,
-    messageMaker,
-    backpackFingerprint,
     applyBackpackFingerprint,
+    backpackFingerprint,
+    fingerprintImpactHandler,
+    fingerprintSupport,
+    messageMaker,
     sha256,
 } from "@atomist/sdm-pack-fingerprints";
-import {
-    createNpmDepsFingerprints,
-    applyNpmDepsFingerprint,
-    diffNpmDepsFingerprints,
-} from "@atomist/sdm-pack-fingerprints/lib/fingerprints/npmDeps";
 import {
     applyDockerBaseFingerprint,
     dockerBaseFingerprint,
 } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/dockerFrom";
 import {
-    kubernetesSupport,
-} from "@atomist/sdm-pack-k8";
+    applyNpmDepsFingerprint,
+    createNpmDepsFingerprints,
+    diffNpmDepsFingerprints,
+} from "@atomist/sdm-pack-fingerprints/lib/fingerprints/npmDeps";
+import {
+    checkCljCoordinatesImpactHandler,
+    checkNpmCoordinatesImpactHandler,
+} from "@atomist/sdm-pack-fingerprints/lib/machine/FingerprintSupport";
+import { issueSupport } from "@atomist/sdm-pack-issue";
+import { kubernetesSupport } from "@atomist/sdm-pack-k8";
 import {
     IsNode,
     NodeProjectCreationParametersDefinition,
@@ -82,21 +90,22 @@ import {
 } from "@atomist/sdm-pack-node";
 import {
     IsMaven,
-    springSupport,
-    SpringProjectCreationParameters,
-    SpringProjectCreationParameterDefinitions,
     ReplaceReadmeTitle,
     SetAtomistTeamInApplicationYml,
+    SpringProjectCreationParameterDefinitions,
+    SpringProjectCreationParameters,
+    springSupport,
     TransformSeedToCustomProject,
 } from "@atomist/sdm-pack-spring";
-import { changelogSupport } from "@atomist/sdm-pack-changelog";
-import { issueSupport } from "@atomist/sdm-pack-issue";
+import { FixedRepoCreationParameters } from "../../index";
 import {
     hasJenkinsfile,
-    npmHasBuildScript,
     isFirstCommit,
+    npmHasBuildScript,
 } from "../support/preChecks";
+import { SuggestAddingDockerfile } from "../support/suggestAddDockerfile";
 import { AddDockerFile } from "../transform/addDockerfile";
+import { AddFinalNameToPom } from "../transform/addFinalName";
 import { AddJenkinsfileRegistration } from "../transform/addJenkinsfile";
 import { AddLicenseFile } from "../transform/addLicense";
 import {
@@ -104,24 +113,20 @@ import {
     ReduceMemorySize,
 } from "../transform/smallMemory";
 import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintainer";
-import { SuggestAddingDockerfile } from "../support/suggestAddDockerfile";
 import {
-  checkNpmCoordinatesImpactHandler,
-  checkCljCoordinatesImpactHandler,
-} from "@atomist/sdm-pack-fingerprints/lib/machine/FingerprintSupport";
-import { AutoMergeMethod, AutoMergeMode } from "@atomist/automation-client/lib/operations/edit/editModes";
-import { AddFinalNameToPom } from "../transform/addFinalName";
-import {
-  addImplementation,
-  cfDeployment,
-  cfDeploymentStaging,
-  dockerBuild, externalBuild, fingerprintComplianceGoal, k8sProductionDeploy, k8sStagingDeploy,
-  mavenBuild,
-  mavenVersion,
-  nodeBuild,
-  nodeVersion,
+    addImplementation,
+    cfDeployment,
+    cfDeploymentStaging,
+    dockerBuild,
+    externalBuild,
+    fingerprintComplianceGoal,
+    k8sProductionDeploy,
+    k8sStagingDeploy,
+    mavenBuild,
+    mavenVersion,
+    nodeBuild,
+    nodeVersion,
 } from "./goals";
-import { FixedRepoCreationParameters } from "../../index";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -159,12 +164,12 @@ export function machine(
         .with(AddLicenseFile);
 
     class MattsIssueRouter implements IssueRouter {
-      public async raiseIssue(
-        credentials: ProjectOperationCredentials,
-        id: RemoteRepoRef,
-        issue: Issue): Promise<void> {
-        logger.info(`Run logic here!`);
-      }
+        public async raiseIssue(
+            credentials: ProjectOperationCredentials,
+            id: RemoteRepoRef,
+            issue: Issue): Promise<void> {
+            logger.info(`Run logic here!`);
+        }
     }
 
     /**
@@ -184,16 +189,15 @@ export function machine(
             reviewListeners: [],
         }),
         buildAwareCodeTransforms({
-          buildGoal: nodeBuild,
-          issueCreation: {
-            issueRouter: new MattsIssueRouter(),
-          },
+            buildGoal: nodeBuild,
+            issueCreation: {
+                issueRouter: new MattsIssueRouter(),
+            },
         }),
         kubernetesSupport(),
         CloudFoundrySupport({
             pushImpactGoal: pushImpact,
         }),
-        gitHubGoalStatus(),
         goalState(),
         changelogSupport(),
         issueSupport(),
@@ -218,13 +222,15 @@ export function machine(
                     selector: fp => fp.name === "backpack-react-scripts",
                 },
                 {
-                    extract: async () => { return {
-                        name: `matt-fake-test`,
-                        abbreviation: `mft`,
-                        version: "0.0.1",
-                        data: "OK",
-                        value: "OK",
-                        sha: sha256("OK")};
+                    extract: async () => {
+                        return {
+                            name: `matt-fake-test`,
+                            abbreviation: `mft`,
+                            version: "0.0.1",
+                            data: "OK",
+                            value: "OK",
+                            sha: sha256("OK"),
+                        };
                     },
                     apply: async () => true,
                     selector: fp => fp.name !== undefined,
@@ -257,44 +263,44 @@ export function machine(
      * Generators
      */
     sdm.addGeneratorCommand<SpringProjectCreationParameters>({
-            name: "create-spring",
-            intent: "create spring",
-            description: "Create a new Java Spring Boot REST service",
-            parameters: SpringProjectCreationParameterDefinitions,
-            startingPoint: GitHubRepoRef.from({ owner: "atomist-seeds", repo: "spring-rest", branch: "master" }),
-            transform: [
-                ReplaceReadmeTitle,
-                SetAtomistTeamInApplicationYml,
-                TransformSeedToCustomProject,
-                AddFinalNameToPom,
-            ],
-            fallbackTarget: () => new FixedRepoCreationParameters(),
-        });
+        name: "create-spring",
+        intent: "create spring",
+        description: "Create a new Java Spring Boot REST service",
+        parameters: SpringProjectCreationParameterDefinitions,
+        startingPoint: GitHubRepoRef.from({ owner: "atomist-seeds", repo: "spring-rest", branch: "master" }),
+        transform: [
+            ReplaceReadmeTitle,
+            SetAtomistTeamInApplicationYml,
+            TransformSeedToCustomProject,
+            AddFinalNameToPom,
+        ],
+        fallbackTarget: () => new FixedRepoCreationParameters(),
+    });
     sdm.addGeneratorCommand<SpringProjectCreationParameters>({
-            name: "create-spring-external-build",
-            intent: "create spring jenkins build",
-            description: "Create a new Java Spring Boot REST service that builds with Jenkins",
-            parameters: SpringProjectCreationParameterDefinitions,
-            startingPoint: GitHubRepoRef.from({ owner: "ipcrmdemo", repo: "spring-rest-jenkins", branch: "master" }),
-            transform: [
-                ReplaceReadmeTitle,
-                SetAtomistTeamInApplicationYml,
-                TransformSeedToCustomProject,
-                AddFinalNameToPom,
-            ],
-            fallbackTarget: () => new FixedRepoCreationParameters(),
-        });
+        name: "create-spring-external-build",
+        intent: "create spring jenkins build",
+        description: "Create a new Java Spring Boot REST service that builds with Jenkins",
+        parameters: SpringProjectCreationParameterDefinitions,
+        startingPoint: GitHubRepoRef.from({ owner: "ipcrmdemo", repo: "spring-rest-jenkins", branch: "master" }),
+        transform: [
+            ReplaceReadmeTitle,
+            SetAtomistTeamInApplicationYml,
+            TransformSeedToCustomProject,
+            AddFinalNameToPom,
+        ],
+        fallbackTarget: () => new FixedRepoCreationParameters(),
+    });
     sdm.addGeneratorCommand({
-            name: "typescript-express-generator",
-            parameters: NodeProjectCreationParametersDefinition,
-            startingPoint: new GitHubRepoRef("ipcrmdemo", "typescript-node-api"),
-            intent: "create node",
-            transform: [
-                UpdatePackageJsonIdentification,
-                UpdateReadmeTitle,
-            ],
-            fallbackTarget: () => new FixedRepoCreationParameters(),
-        });
+        name: "typescript-express-generator",
+        parameters: NodeProjectCreationParametersDefinition,
+        startingPoint: new GitHubRepoRef("ipcrmdemo", "typescript-node-api"),
+        intent: "create node",
+        transform: [
+            UpdatePackageJsonIdentification,
+            UpdateReadmeTitle,
+        ],
+        fallbackTarget: () => new FixedRepoCreationParameters(),
+    });
 
     /**
      * Goals Definition
@@ -304,9 +310,9 @@ export function machine(
         .plan(codeInspection, pushImpact).after(autofix);
 
     // Compliance Goals
-    const ComplianceGoals = goals("compliance-goals")
-        // .plan(fingerprintComplianceGoal).after(GlobalGoals);
-        // .plan(fingerprintComplianceGoal, SonarScanGoal).after(GlobalGoals);
+    const ComplianceGoals = goals("compliance-goals");
+    // .plan(fingerprintComplianceGoal).after(GlobalGoals);
+    // .plan(fingerprintComplianceGoal, SonarScanGoal).after(GlobalGoals);
 
     // Maven
     const MavenBaseGoals = goals("maven-base")
@@ -318,13 +324,13 @@ export function machine(
 
     // K8s
     const k8sDeployGoals = goals("deploy")
-      .plan(k8sStagingDeploy).after(dockerBuild)
-      .plan(k8sProductionDeploy).after(k8sStagingDeploy);
+        .plan(k8sStagingDeploy).after(dockerBuild)
+        .plan(k8sProductionDeploy).after(k8sStagingDeploy);
 
     // CF Deployment
     const pcfDeploymentGoals = goals("cfdeploy")
-      .plan(cfDeploymentStaging).after(mavenBuild)
-      .plan(cfDeployment).after(cfDeploymentStaging);
+        .plan(cfDeploymentStaging).after(mavenBuild)
+        .plan(cfDeployment).after(cfDeploymentStaging);
 
     /**
      * Configure Push rules
@@ -361,11 +367,11 @@ export function machine(
     return sdm;
 }
 
-    // sdm.addCommand<{ name: string }>({
-    //     name: "hello",
-    //     intent: "hello",
-    //     parameters: {
-    //         name: { description: "Your name" },
-    //     },
-    //     listener: async cli => cli.addressChannels(`Hello ${cli.parameters.name}`),
-    // });
+// sdm.addCommand<{ name: string }>({
+//     name: "hello",
+//     intent: "hello",
+//     parameters: {
+//         name: { description: "Your name" },
+//     },
+//     listener: async cli => cli.addressChannels(`Hello ${cli.parameters.name}`),
+// });

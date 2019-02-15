@@ -15,15 +15,16 @@
  */
 
 import { NoParameters } from "@atomist/automation-client";
+import { PullRequest } from "@atomist/automation-client/lib/operations/edit/editModes";
 import {
     AutofixRegistration,
     BitBucketRepoTargets,
     CodeTransform,
     CodeTransformRegistration,
+    formatDate,
 } from "@atomist/sdm";
+import { makeBuildAware } from "@atomist/sdm-pack-build";
 import * as _ from "lodash";
-import { PullRequest } from "@atomist/automation-client/lib/operations/edit/editModes";
-import { BuildAwareMarker } from "@atomist/sdm-pack-build";
 
 export const AddDockerfileTransform: CodeTransform<NoParameters> = async (p, inv) => {
     const name = _.get(inv, "parameters.target.repo") || p.name;
@@ -36,21 +37,21 @@ export const AddDockerfileTransform: CodeTransform<NoParameters> = async (p, inv
     return p;
 };
 const AtomistGeneratedMarker = "[atomist:generated]";
-const AddDockerfileMarker = "[atomist:add-dockerfile-manifest]";
+const AddDockerfileMarker = "[atomist:add-dockerfile]";
 
-export const AddDockerFile: CodeTransformRegistration = {
+export const AddDockerFile: CodeTransformRegistration = makeBuildAware({
     transform: AddDockerfileTransform,
     name: "AddDockerFileTransform",
     intent: "Add Dockerfile",
     targets: BitBucketRepoTargets,
     transformPresentation: () => new PullRequest(
-        `add-dockerfile-${Date.now()}`,
-        "Add a dockerfile",
-        `Adding a dockerfile to enable build/deployment in container format.
-    ${AtomistGeneratedMarker} ${BuildAwareMarker}`,
+        `add-dockerfile-${formatDate()}`,
+        "Add a Dockerfile",
+        `Adding a Dockerfile to enable build/deployment in container format.
+    ${AtomistGeneratedMarker}`,
         `Add Dockerfile
-${AddDockerfileMarker} ${BuildAwareMarker}`),
-};
+${AddDockerfileMarker}`),
+});
 
 export const AddDockerfileAutofix: AutofixRegistration<NoParameters> = {
     name: "Dockerfile",

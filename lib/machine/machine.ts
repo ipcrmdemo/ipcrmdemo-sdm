@@ -15,13 +15,19 @@
  */
 
 // import { sonarQubeSupport, SonarScan } from "@atomist/sdm-pack-sonarqube";
-import { editModes, GitHubRepoRef } from "@atomist/automation-client";
+import {
+  editModes,
+  GitHubRepoRef,
+  Issue, logger,
+  ProjectOperationCredentials,
+  RemoteRepoRef
+} from "@atomist/automation-client";
 import {
   AutoCodeInspection,
-  Autofix, BitBucketRepoCreationParameters,
+  Autofix,
   Fingerprint,
   goalContributors,
-  goals,
+  goals, IssueRouter,
   not,
   onAnyPush,
   PushImpact,
@@ -152,6 +158,15 @@ export function machine(
         .with(ReduceMemorySize)
         .with(AddLicenseFile);
 
+    class MattsIssueRouter implements IssueRouter {
+      public async raiseIssue(
+        credentials: ProjectOperationCredentials,
+        id: RemoteRepoRef,
+        issue: Issue): Promise<void> {
+        logger.info(`Run logic here!`);
+      }
+    }
+
     /**
      * Ext Pack setup
      */
@@ -170,7 +185,9 @@ export function machine(
         }),
         buildAwareCodeTransforms({
           buildGoal: nodeBuild,
-          issueCreation: {},
+          issueCreation: {
+            issueRouter: new MattsIssueRouter(),
+          },
         }),
         kubernetesSupport(),
         CloudFoundrySupport({
@@ -288,16 +305,16 @@ export function machine(
 
     // Compliance Goals
     const ComplianceGoals = goals("compliance-goals")
-        .plan(fingerprintComplianceGoal).after(GlobalGoals);
+        // .plan(fingerprintComplianceGoal).after(GlobalGoals);
         // .plan(fingerprintComplianceGoal, SonarScanGoal).after(GlobalGoals);
 
     // Maven
     const MavenBaseGoals = goals("maven-base")
-        .plan(mavenVersion, mavenBuild).after(ComplianceGoals);
+        .plan(mavenVersion, mavenBuild);
 
     // Node
     const NodeBaseGoals = goals("node-base")
-        .plan(nodeVersion, nodeBuild).after(ComplianceGoals);
+        .plan(nodeVersion, nodeBuild);
 
     // K8s
     const k8sDeployGoals = goals("deploy")

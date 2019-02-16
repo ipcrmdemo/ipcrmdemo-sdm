@@ -29,25 +29,25 @@ import {
 } from "@atomist/automation-client/lib/operations/edit/editModes";
 import {
     AutoCodeInspection,
-    Autofix,
+    Autofix, Cancel,
     Fingerprint,
     goalContributors,
     goals,
     IssueRouter,
     not,
-    onAnyPush,
-    PushImpact,
+    onAnyPush, ParametersObject,
+    PushImpact, Queue,
     SoftwareDeliveryMachine,
     SoftwareDeliveryMachineConfiguration,
     ToDefaultBranch,
-    whenPushSatisfies,
+    whenPushSatisfies
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
     DisableDeploy,
     DisplayDeployEnablement,
     EnableDeploy,
-    goalState,
+    goalState, isConfiguredInEnv
 } from "@atomist/sdm-core";
 import {
     Artifact,
@@ -127,6 +127,9 @@ import {
     nodeBuild,
     nodeVersion,
 } from "./goals";
+import { DockerGoalScheduler } from "../support/dockerScheduler";
+import * as path from "path";
+import * as os from "os";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -135,6 +138,17 @@ export function machine(
     const sdm: SoftwareDeliveryMachine = createSoftwareDeliveryMachine(
         { name: "Organization ipcrmdemo sdm", configuration },
     );
+
+    if (isConfiguredInEnv("docker", "docker-all")) {
+        configuration.sdm.goalScheduler = [new DockerGoalScheduler()];
+        configuration.sdm.docker = {
+            job: {
+                isolateAll: true,
+                image: "ipcrm/ipcrmdemo-sdm:latest",
+                args: ["-v", `${path.join(os.homedir(), ".atomist")}:/root/.atomist`, "--rm"],
+            },
+        };
+    }
 
     addImplementation(sdm);
 
@@ -259,14 +273,37 @@ export function machine(
         ),
     );
 
+    interface MyParameters extends SpringProjectCreationParameters {
+        foo: string;
+        color: string;
+    }
+
+    const MyParametersDefinition: ParametersObject<MyParameters> = {
+        ...SpringProjectCreationParameterDefinitions,
+        foo: {
+            required: true,
+        },
+        color: {
+            order: 1,
+            required: true,
+            type: {
+                kind: "single",
+                options: [
+                    { value: "red", description: "Red" },
+                    { value: "blue", description: "Blue" }
+                ],
+            },
+        },
+    };
+
     /**
      * Generators
      */
-    sdm.addGeneratorCommand<SpringProjectCreationParameters>({
+    sdm.addGeneratorCommand<MyParameters>({
         name: "create-spring",
         intent: "create spring",
         description: "Create a new Java Spring Boot REST service",
-        parameters: SpringProjectCreationParameterDefinitions,
+        parameters: MyParametersDefinition,
         startingPoint: GitHubRepoRef.from({ owner: "atomist-seeds", repo: "spring-rest", branch: "master" }),
         transform: [
             ReplaceReadmeTitle,
@@ -276,6 +313,7 @@ export function machine(
         ],
         fallbackTarget: () => new FixedRepoCreationParameters(),
     });
+
     sdm.addGeneratorCommand<SpringProjectCreationParameters>({
         name: "create-spring-external-build",
         intent: "create spring jenkins build",
@@ -302,11 +340,13 @@ export function machine(
         fallbackTarget: () => new FixedRepoCreationParameters(),
     });
 
+    const queueGoal = new Queue({concurrent: 2, fetch: 10});
+
     /**
      * Goals Definition
      */
     const GlobalGoals = goals("global")
-        .plan(autofix, fingerprint)
+        .plan(autofix, fingerprint).after(queueGoal)
         .plan(codeInspection, pushImpact).after(autofix);
 
     // Compliance Goals
@@ -332,10 +372,25 @@ export function machine(
         .plan(cfDeploymentStaging).after(mavenBuild)
         .plan(cfDeployment).after(cfDeploymentStaging);
 
+    const cancel = new Cancel({
+        goals: [
+          GlobalGoals,
+          ComplianceGoals,
+          MavenBaseGoals,
+          NodeBaseGoals,
+        ],
+    });
+
+    const controlGoals = goals("controls")
+      .plan(cancel);
+
     /**
      * Configure Push rules
      */
     sdm.addGoalContributions(goalContributors(
+        onAnyPush()
+            .setGoals(controlGoals),
+
         onAnyPush()
             .setGoals(GlobalGoals),
 
@@ -363,6 +418,23 @@ export function machine(
 
         whenPushSatisfies(HasDockerfile, ToDefaultBranch)
             .setGoals(k8sDeployGoals)));
+
+    sdm.addCommand<{ color: string }>({
+        name: "hello",
+        intent: "hello",
+        parameters: {
+            color: {
+                type: {
+                    kind: "single",
+                    options: [
+                        { value: "red", description: "Red" },
+                        { value: "blue", description: "Blue" },
+                    ],
+                },
+            },
+        },
+        listener: async cli => cli.addressChannels(`Hello ${cli.parameters.color}`),
+    });
 
     return sdm;
 }

@@ -1,0 +1,6 @@
+type ScRequest @rootType {
+    reqId: String! @compositeId
+    screenName: String!
+    status: String
+    details: String
+}

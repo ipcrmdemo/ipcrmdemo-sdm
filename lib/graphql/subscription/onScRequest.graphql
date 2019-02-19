@@ -1,0 +1,8 @@
+subscription OnScRequest {
+    ScRequest {
+        details
+        reqId
+        screenName
+        status
+    }
+}

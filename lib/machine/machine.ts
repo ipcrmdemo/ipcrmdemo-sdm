@@ -17,11 +17,11 @@
 // import { sonarQubeSupport, SonarScan } from "@atomist/sdm-pack-sonarqube";
 import {
     editModes,
-    GitHubRepoRef,
+    GitHubRepoRef, GraphQL,
     Issue,
     logger,
     ProjectOperationCredentials,
-    RemoteRepoRef,
+    RemoteRepoRef
 } from "@atomist/automation-client";
 import {
     AutoMergeMethod,
@@ -130,6 +130,8 @@ import {
 import { DockerGoalScheduler } from "../support/dockerScheduler";
 import * as path from "path";
 import * as os from "os";
+import { onScRequestEvent } from "../events/onScRequest";
+import { requestNewEmail } from "../support/requestEmail";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -151,11 +153,14 @@ export function machine(
     }
 
     addImplementation(sdm);
+    sdm.addIngester(GraphQL.ingester({ name: "scRequest" }));
+    sdm.addEvent(onScRequestEvent());
 
     // Bot Commands
     sdm.addCommand(EnableDeploy)
         .addCommand(DisableDeploy)
         .addCommand(DisplayDeployEnablement)
+        .addCommand(requestNewEmail)
         .addCodeTransformCommand(AddDockerFile)
         .addCodeTransformCommand(AddJenkinsfileRegistration)
         .addCodeTransformCommand(UpdateDockerfileMaintainer)

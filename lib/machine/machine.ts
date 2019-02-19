@@ -115,6 +115,7 @@ import {
   nodeBuild,
   nodeVersion,
 } from "./goals";
+import { addRandomCommand } from "../support/randomCommand";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -337,6 +338,7 @@ export function machine(
         whenPushSatisfies(HasDockerfile, ToDefaultBranch)
             .setGoals(k8sDeployGoals)));
 
+    addRandomCommand(sdm);
     return sdm;
 }
 

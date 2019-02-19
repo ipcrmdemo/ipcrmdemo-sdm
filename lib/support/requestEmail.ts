@@ -1,13 +1,19 @@
 import { CommandHandlerRegistration, CommandListenerInvocation, slackSuccessMessage } from "@atomist/sdm";
 import {
+  BaseParameter,
   configurationValue,
   HandlerResult, HttpClientFactory, HttpMethod, logger,
   MappedParameter,
   MappedParameters,
   Parameter,
-  Parameters,
+  Parameters
 } from "@atomist/automation-client";
 import { codeBlock } from "@atomist/slack-messages";
+
+const validation: BaseParameter = {
+  type: "string",
+  required: true,
+};
 
 @Parameters()
 export class RequestEmailParams {
@@ -16,8 +22,7 @@ export class RequestEmailParams {
 
   @Parameter({
     description: `Desired New Email address`,
-    type: "string",
-    required: true,
+    ...validation,
   })
   public emailAddress: string;
 }
@@ -38,31 +43,31 @@ export async function requestNewEmailHandler(
         method: HttpMethod.Post,
         headers: {
           "Accept": "application/json",
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
         options: {
           body: JSON.stringify({
             sysparm_quantity: 1,
             variables: {
               new_email: cli.parameters.emailAddress,
-              atomist_screen_name: cli.parameters.screenName,
-            },
+              atomist_screen_name: cli.parameters.screenName
+            }
           }),
           auth: {
             username: snow.user,
-            password: snow.password,
-          },
-        },
-      },
+            password: snow.password
+          }
+        }
+      }
     )
       .then(async result => {
         await cli.addressChannels(slackSuccessMessage(
           `SNOW Request`,
-          `Successfully created new request, ${codeBlock(JSON.stringify(result.body, undefined, 2))}`,
+          `Successfully created new request, ${codeBlock(JSON.stringify(result.body, undefined, 2))}`
         ));
         resolve({
           code: 0,
-          message: JSON.stringify(result.body, undefined, 2),
+          message: JSON.stringify(result.body, undefined, 2)
         });
       })
       .catch(e => {
@@ -70,7 +75,7 @@ export async function requestNewEmailHandler(
         logger.error(error);
         reject({
           code: 1,
-          message: error,
+          message: error
         });
       });
   });
@@ -80,5 +85,5 @@ export const requestNewEmail: CommandHandlerRegistration<RequestEmailParams> = {
   name: "requestNewEmail",
   paramsMaker: RequestEmailParams,
   intent: "request email",
-  listener: requestNewEmailHandler,
-}
+  listener: requestNewEmailHandler
+};

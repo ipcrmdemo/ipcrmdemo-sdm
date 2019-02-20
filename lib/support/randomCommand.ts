@@ -1,6 +1,5 @@
 import { SoftwareDeliveryMachine } from "@atomist/sdm";
-import { Parameter, Parameters, SmartParameters } from "@atomist/automation-client";
-import assert = require("power-assert");
+import { Parameter, Parameters } from "@atomist/automation-client";
 
 export function addRandomCommand(sdm: SoftwareDeliveryMachine): SoftwareDeliveryMachine {
     @Parameters()
@@ -9,25 +8,18 @@ export function addRandomCommand(sdm: SoftwareDeliveryMachine): SoftwareDelivery
         public name: string;
     }
 
-    @Parameters()
-    class RndCmd extends RandomCommand implements SmartParameters {
-        constructor() {
-            super();
-        }
-
-        public bindAndValidate(): void {
-            const name = this.name as string;
-            assert(false, "Must set name properly");
-            this.name = name;
-        }
-
-    }
-
-    sdm.addCommand<RndCmd>({
-        name: "hello",
-        intent: "hello",
-        paramsMaker: RndCmd,
-        listener: async cli => cli.addressChannels(`Hello ${cli.parameters.name}`),
+    sdm.addCommand({
+        name: "rnd cmd",
+        intent: "rnd cmd",
+        listener: async cli => {
+            const newparam = await cli.promptFor<RandomCommand>({
+                name: {
+                    displayName: "Name",
+                    required: true,
+                },
+            });
+            await cli.addressChannels(`Hello ${newparam.name}`);
+        },
     });
 
     return sdm;

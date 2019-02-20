@@ -1,4 +1,4 @@
-import { CommandHandlerRegistration, CommandListenerInvocation, slackSuccessMessage } from "@atomist/sdm";
+import { CommandHandlerRegistration, CommandListenerInvocation} from "@atomist/sdm";
 import {
   BaseParameter,
   configurationValue,
@@ -6,9 +6,9 @@ import {
   MappedParameter,
   MappedParameters,
   Parameter,
-  Parameters
+  Parameters,
 } from "@atomist/automation-client";
-import { codeBlock } from "@atomist/slack-messages";
+import { createReqSlackMessage } from "../events/onScRequest";
 
 const validation: BaseParameter = {
   type: "string",
@@ -26,7 +26,7 @@ export class RequestEmailParams {
   })
   public emailAddress: string;
 }
-interface SnowOptions {
+export interface SnowOptions {
   url: string;
   user: string;
   password: string;
@@ -45,29 +45,43 @@ export async function requestNewEmailHandler(
           "Accept": "application/json",
           "Content-Type": "application/json"
         },
+        body: {
+            new_email: cli.parameters.emailAddress,
+            atomist_screen_name: cli.parameters.screenName,
+        },
         options: {
-          body: JSON.stringify({
-            sysparm_quantity: 1,
-            variables: {
-              new_email: cli.parameters.emailAddress,
-              atomist_screen_name: cli.parameters.screenName
-            }
-          }),
           auth: {
             username: snow.user,
-            password: snow.password
-          }
-        }
-      }
+            password: snow.password,
+          },
+        },
+      },
     )
       .then(async result => {
-        await cli.addressChannels(slackSuccessMessage(
-          `SNOW Request`,
-          `Successfully created new request, ${codeBlock(JSON.stringify(result.body, undefined, 2))}`
-        ));
+        interface ScResult {
+          request_number: string;
+          request_id: string;
+        }
+        interface ScResultBody {
+          result: ScResult;
+        }
+        const scData = result.body as ScResultBody;
+
+        await cli.addressChannels(
+          createReqSlackMessage(
+            scData.result.request_number,
+            `1`,
+            cli.parameters.screenName,
+          ),
+          {
+            id: `service-now-req/${scData.result.request_number}`,
+            ttl: 60 * 60 * 1000, // update this message for up to one hour; after that, post anew
+          },
+        );
+
         resolve({
           code: 0,
-          message: JSON.stringify(result.body, undefined, 2)
+          message: JSON.stringify(result.body, undefined, 2),
         });
       })
       .catch(e => {
@@ -75,7 +89,7 @@ export async function requestNewEmailHandler(
         logger.error(error);
         reject({
           code: 1,
-          message: error
+          message: error,
         });
       });
   });
@@ -85,5 +99,6 @@ export const requestNewEmail: CommandHandlerRegistration<RequestEmailParams> = {
   name: "requestNewEmail",
   paramsMaker: RequestEmailParams,
   intent: "request email",
-  listener: requestNewEmailHandler
+  listener: requestNewEmailHandler,
+  autoSubmit: true,
 };

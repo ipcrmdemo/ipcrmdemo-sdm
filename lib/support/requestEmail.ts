@@ -2,11 +2,10 @@ import { CommandHandlerRegistration, CommandListenerInvocation} from "@atomist/s
 import {
   BaseParameter,
   configurationValue,
-  HandlerResult, HttpClientFactory, HttpMethod, logger,
-  MappedParameter,
+  HandlerResult, HttpClientFactory, HttpMethod, logger, MappedParameter,
   MappedParameters,
   Parameter,
-  Parameters,
+  Parameters
 } from "@atomist/automation-client";
 import { createReqSlackMessage } from "../events/onScRequest";
 
@@ -15,14 +14,40 @@ const validation: BaseParameter = {
   required: true,
 };
 
+const trueFalse: BaseParameter = {
+  ...validation,
+  type: {
+    kind: "single",
+    options: [
+      { value: "true", description: "Yes" },
+      { value: "false", description: "No" },
+    ],
+  },
+}
+
 @Parameters()
 export class RequestEmailParams {
-  @MappedParameter(MappedParameters.SlackUserName)
+  @MappedParameter(MappedParameters.SlackUserName, true)
   public screenName: string;
 
   @Parameter({
+      type: {
+        kind: "single",
+        options: [
+          { value: "red", description: "Red" },
+          { value: "blue", description: "Blue" },
+        ],
+      },
+      group: {
+        name: "FOO",
+        description: "FOO",
+      },
+  })
+  public thing: string;
+
+  @Parameter({
     description: `Desired New Email address`,
-    ...validation,
+    ...trueFalse,
   })
   public emailAddress: string;
 }
@@ -32,6 +57,7 @@ export interface SnowOptions {
   password: string;
   newEmailURI: string;
 }
+
 export async function requestNewEmailHandler(
   cli: CommandListenerInvocation<RequestEmailParams>): Promise<HandlerResult> {
   return new Promise<HandlerResult>(async (resolve, reject) => {
@@ -100,5 +126,5 @@ export const requestNewEmail: CommandHandlerRegistration<RequestEmailParams> = {
   paramsMaker: RequestEmailParams,
   intent: "request email",
   listener: requestNewEmailHandler,
-  autoSubmit: true,
+  autoSubmit: false,
 };

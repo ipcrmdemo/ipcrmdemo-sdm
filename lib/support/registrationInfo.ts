@@ -116,7 +116,6 @@ export async function listSkillsListener(cli: CommandListenerInvocation<NoParame
       ChatTeam: ChatTeamInfo[];
     }
 
-    const teamInfo = await cli.context.graphClient.query<TeamInfo, {}>({query: `{ChatTeam{team {id}}}`});
     try {
       // In-progress message
       await cli.addressChannels({
@@ -132,6 +131,7 @@ export async function listSkillsListener(cli: CommandListenerInvocation<NoParame
         ttl: 60 * 120,
       });
 
+      const teamInfo = await cli.context.graphClient.query<TeamInfo, {}>({query: `{ChatTeam{team {id}}}`});
       const allSkills = await buildSkillsList(cli.configuration, teamInfo.ChatTeam[0].team.id);
       const msgBody = [];
       const skills = filterSkills(allSkills);
@@ -174,22 +174,10 @@ export async function listSkillsListener(cli: CommandListenerInvocation<NoParame
   });
 }
 
-/**
- * Command Handler Registration for customized List Skills intent
- */
-export const listSkills: CommandHandlerRegistration<NoParameters> = {
-  name: "ListSkills",
-  intent: [
-    "list skills",
-    "show skills",
-    "list skill",
-    "show skill",
-    "ls",
-  ],
-  listener: listSkillsListener,
-};
 
 /** Build Skill List
+ * @param {string} Atomist TeamID (Workspace ID)
+ * @param {Configuration} config
  * @return {ListSkills} Skills to be printed
  */
 export function buildSkillsList(config: Configuration, teamId: string): Promise<SdmSkills[]> {
@@ -252,4 +240,19 @@ export const getRegistrationInfo = async (config: Configuration): Promise<RegObj
     logger.error("getRegistrationInfo: Error! Failed to retrieve data. Failure: " + e.message);
     throw new Error(e);
   }
+};
+
+/**
+ * Command Handler Registration for customized List Skills intent
+ */
+export const listSkills: CommandHandlerRegistration<NoParameters> = {
+  name: "ListSkills",
+  intent: [
+    "list skills",
+    "show skills",
+    "list skill",
+    "show skill",
+    "ls",
+  ],
+  listener: listSkillsListener,
 };

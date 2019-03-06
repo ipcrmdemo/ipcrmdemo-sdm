@@ -16,12 +16,13 @@
 
 // import { sonarQubeSupport, SonarScan } from "@atomist/sdm-pack-sonarqube";
 import {
+    BitBucketServerRepoRef,
     editModes,
     GitHubRepoRef, GraphQL,
     Issue,
     logger,
     ProjectOperationCredentials,
-    RemoteRepoRef
+    RemoteRepoRef,
 } from "@atomist/automation-client";
 import {
     AutoMergeMethod,
@@ -35,19 +36,19 @@ import {
     goals,
     IssueRouter,
     not,
-    onAnyPush, ParametersObject,
+    onAnyPush,
     PushImpact, Queue,
     SoftwareDeliveryMachine,
     SoftwareDeliveryMachineConfiguration,
     ToDefaultBranch,
-    whenPushSatisfies
+    whenPushSatisfies,
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
     DisableDeploy,
     DisplayDeployEnablement,
     EnableDeploy,
-    goalState, isConfiguredInEnv
+    goalState, isConfiguredInEnv,
 } from "@atomist/sdm-core";
 import {
     Artifact,
@@ -278,38 +279,21 @@ export function machine(
         ),
     );
 
-    interface MyParameters extends SpringProjectCreationParameters {
-        foo: string;
-        color: string;
-    }
-
-    const MyParametersDefinition: ParametersObject<MyParameters> = {
-        ...SpringProjectCreationParameterDefinitions,
-        foo: {
-            required: true,
-        },
-        color: {
-            order: 1,
-            required: true,
-            type: {
-                kind: "single",
-                options: [
-                    { value: "red", description: "Red" },
-                    { value: "blue", description: "Blue" }
-                ],
-            },
-        },
-    };
-
     /**
      * Generators
      */
-    sdm.addGeneratorCommand<MyParameters>({
+    sdm.addGeneratorCommand<SpringProjectCreationParameters>({
         name: "create-spring",
         intent: "create spring",
         description: "Create a new Java Spring Boot REST service",
-        parameters: MyParametersDefinition,
-        startingPoint: GitHubRepoRef.from({ owner: "atomist-seeds", repo: "spring-rest", branch: "master" }),
+        parameters: SpringProjectCreationParameterDefinitions,
+        startingPoint: new BitBucketServerRepoRef(
+          sdm.configuration.sdm.git.url,
+          "matt",
+          "anewtestthing",
+          true,
+          "add-dockerfile-20190215103843",
+        ),
         transform: [
             ReplaceReadmeTitle,
             SetAtomistTeamInApplicationYml,

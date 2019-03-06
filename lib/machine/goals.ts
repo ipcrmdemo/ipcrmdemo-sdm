@@ -1,5 +1,10 @@
 // Fingerprint Compliance
-import { allSatisfied, GoalWithFulfillment, LogSuppressor, SoftwareDeliveryMachine } from "@atomist/sdm";
+import {
+  allSatisfied,
+  GoalWithFulfillment,
+  LogSuppressor,
+  SoftwareDeliveryMachine,
+} from "@atomist/sdm";
 import {
   IsMaven,
   mavenBuilder,

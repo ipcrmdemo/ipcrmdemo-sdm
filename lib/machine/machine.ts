@@ -38,7 +38,7 @@ import {
     goalState,
 } from "@atomist/sdm-core";
 import {
-  Artifact, buildAwareCodeTransforms
+  Artifact, buildAwareCodeTransforms,
 } from "@atomist/sdm-pack-build";
 import {
     CloudFoundrySupport,
@@ -98,7 +98,7 @@ import {
   addImplementation,
   cfDeployment,
   cfDeploymentStaging,
-  dockerBuild, externalBuild, fingerprintComplianceGoal, k8sProductionDeploy, k8sStagingDeploy,
+  dockerBuild, externalBuild, k8sProductionDeploy, k8sStagingDeploy,
   mavenBuild,
   mavenVersion,
   nodeBuild,
@@ -261,7 +261,7 @@ export function machine(
 
     // Compliance Goals
     const ComplianceGoals = goals("compliance-goals")
-        .plan(fingerprintComplianceGoal).after(GlobalGoals);
+        // .plan(fingerprintComplianceGoal).after(GlobalGoals);
         // .plan(fingerprintComplianceGoal, SonarScanGoal).after(GlobalGoals);
 
     // Maven
@@ -289,7 +289,7 @@ export function machine(
         onAnyPush()
             .setGoals(GlobalGoals),
 
-        whenPushSatisfies(not(isFirstCommit))
+        whenPushSatisfies(not(isFirstCommit), ToDefaultBranch)
             .setGoals(ComplianceGoals),
 
         whenPushSatisfies(IsMaven, not(hasJenkinsfile))

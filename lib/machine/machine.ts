@@ -36,7 +36,7 @@ import {
     goals,
     IssueRouter,
     not,
-    onAnyPush,
+    onAnyPush, PreferenceScope,
     PushImpact, Queue,
     SoftwareDeliveryMachine,
     SoftwareDeliveryMachineConfiguration,
@@ -133,6 +133,7 @@ import * as path from "path";
 import * as os from "os";
 import { onScRequestEvent } from "../events/onScRequest";
 import { requestNewEmail } from "../support/requestEmail";
+import { ChannelMappingFirstPushListener } from "../events/onRepoCreation";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -156,6 +157,7 @@ export function machine(
     addImplementation(sdm);
     sdm.addIngester(GraphQL.ingester({ name: "scRequest" }));
     sdm.addEvent(onScRequestEvent());
+    sdm.addFirstPushListener(ChannelMappingFirstPushListener);
 
     // Bot Commands
     sdm.addCommand(EnableDeploy)
@@ -291,16 +293,20 @@ export function machine(
           sdm.configuration.sdm.git.url,
           "matt",
           "anewtestthing",
-          true,
-          undefined,
-          undefined,
-          "add-dockerfile-20190215103843",
         ),
         transform: [
             ReplaceReadmeTitle,
             SetAtomistTeamInApplicationYml,
             TransformSeedToCustomProject,
             AddFinalNameToPom,
+            async (p, pi) => {
+              const channel = pi.context.source.slack.channel.id;
+              const team = pi.context.source.slack.team.id;
+              await pi.preferences.put(
+                `generator/${p.id.owner}/${p.id.repo}/channel`,
+                { channel, team },
+                { scope: PreferenceScope.Sdm });
+            },
         ],
         fallbackTarget: () => new FixedRepoCreationParameters(),
     });

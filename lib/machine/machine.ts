@@ -257,14 +257,6 @@ export function machine(
             transform: [
                 UpdatePackageJsonIdentification,
                 UpdateReadmeTitle,
-                async (p, pi) => {
-                  const channel = pi.context.source.slack.channel.id;
-                  const team = pi.context.source.slack.team.id;
-                  await pi.preferences.put(
-                    `generator/${p.id.owner}/${p.id.repo}/channel`,
-                    { channel, team },
-                    { scope: PreferenceScope.Sdm });
-                },
             ],
         });
 

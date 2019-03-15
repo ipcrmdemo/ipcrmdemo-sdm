@@ -16,18 +16,18 @@
 
 import { editModes, GitHubRepoRef } from "@atomist/automation-client";
 import {
-    AutoCodeInspection,
-    Autofix,
-    Fingerprint,
-    goalContributors,
-    goals,
-    not,
-    onAnyPush,
-    PushImpact,
-    SoftwareDeliveryMachine,
-    SoftwareDeliveryMachineConfiguration,
-    ToDefaultBranch,
-    whenPushSatisfies,
+  AutoCodeInspection,
+  Autofix,
+  Fingerprint,
+  goalContributors,
+  goals,
+  not,
+  onAnyPush, PreferenceScope,
+  PushImpact,
+  SoftwareDeliveryMachine,
+  SoftwareDeliveryMachineConfiguration,
+  ToDefaultBranch,
+  whenPushSatisfies,
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
@@ -226,6 +226,14 @@ export function machine(
                 SetAtomistTeamInApplicationYml,
                 TransformSeedToCustomProject,
                 AddFinalNameToPom,
+                async (p, pi) => {
+                  const channel = pi.context.source.slack.channel.id;
+                  const team = pi.context.source.slack.team.id;
+                  await pi.preferences.put(
+                    `generator/${p.id.owner}/${p.id.repo}/channel`,
+                    { channel, team },
+                    { scope: PreferenceScope.Sdm });
+                },
             ],
         });
     sdm.addGeneratorCommand<SpringProjectCreationParameters>({
@@ -249,6 +257,14 @@ export function machine(
             transform: [
                 UpdatePackageJsonIdentification,
                 UpdateReadmeTitle,
+                async (p, pi) => {
+                  const channel = pi.context.source.slack.channel.id;
+                  const team = pi.context.source.slack.team.id;
+                  await pi.preferences.put(
+                    `generator/${p.id.owner}/${p.id.repo}/channel`,
+                    { channel, team },
+                    { scope: PreferenceScope.Sdm });
+                },
             ],
         });
 

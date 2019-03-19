@@ -41,3 +41,11 @@ export function isTeam(...teams: string[]): PushTest {
         return teams.includes(pci.context.workspaceId);
     });
 }
+
+// export function IsFirstPush(): PushTest {
+//     return pushTest(
+//       `IsFirstPush`,
+//       async p => !p.push.before && p.push.branch === p.push.repo.defaultBranch,
+//       },
+//     );
+// }

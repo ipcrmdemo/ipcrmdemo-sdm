@@ -1,0 +1,18 @@
+query EnergyDrinkLookup ($sha: String!){
+    Push {
+        commits (sha: $sha) @required{
+            sha
+            repo {
+                id
+                owner
+                name
+                org {
+                    scmProvider {
+                        providerId
+                    }
+                }
+            }
+        }
+        branch
+    }
+}

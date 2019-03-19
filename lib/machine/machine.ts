@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import { editModes, GitHubRepoRef } from "@atomist/automation-client";
+import { editModes, GitHubRepoRef, GraphQL } from "@atomist/automation-client";
 import {
   AutoCodeInspection,
-  Autofix,
+  Autofix, chooseAndSetGoals,
   Fingerprint,
   goalContributors,
   goals,
@@ -27,15 +27,15 @@ import {
   SoftwareDeliveryMachine,
   SoftwareDeliveryMachineConfiguration,
   ToDefaultBranch,
-  whenPushSatisfies,
+  whenPushSatisfies
 } from "@atomist/sdm";
 import {
-    createSoftwareDeliveryMachine,
-    DisableDeploy,
-    DisplayDeployEnablement,
-    EnableDeploy,
-    gitHubGoalStatus,
-    goalState,
+  createSoftwareDeliveryMachine,
+  DisableDeploy,
+  DisplayDeployEnablement,
+  EnableDeploy, fetchBranchTips,
+  gitHubGoalStatus,
+  goalState, tipOfBranch
 } from "@atomist/sdm-core";
 import {
   Artifact, buildAwareCodeTransforms,
@@ -108,6 +108,8 @@ import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
 import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
 import { listSkills } from "../support/registrationInfo";
+import { onEnergyDrinksEvent, OnEnergyDrinksEvents } from "../events/OnEnergyDrinks";
+import { myFirstGoal } from "./genericGoal";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -118,6 +120,8 @@ export function machine(
     );
 
     addImplementation(sdm);
+    sdm.addIngester(GraphQL.ingester({ name: "EnergyDrinks" }));
+    sdm.addEvent(OnEnergyDrinksEvents(myFirstGoal));
 
     // Bot Commands
     sdm.addCommand(EnableDeploy)
@@ -144,6 +148,10 @@ export function machine(
     const autofix = new Autofix()
         .with(ReduceMemorySize)
         .with(AddLicenseFile);
+
+    // chooseAndSetGoals()
+    // fetchBranchTips()
+    // tipOfBranch()
 
     /**
      * Ext Pack setup
@@ -264,7 +272,7 @@ export function machine(
      * Goals Definition
      */
     const GlobalGoals = goals("global")
-        .plan(autofix, fingerprint)
+        .plan(autofix, fingerprint, myFirstGoal)
         .plan(codeInspection, pushImpact).after(autofix);
 
     // Compliance Goals

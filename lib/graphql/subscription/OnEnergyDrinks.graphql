@@ -1,0 +1,10 @@
+subscription OnEnergyDrinks {
+  EnergyDrinks {
+    name @required
+    sha
+    caffeine
+    ingredients{
+        name
+    }
+  }
+}

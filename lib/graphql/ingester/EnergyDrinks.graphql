@@ -1,0 +1,10 @@
+type EnergyDrinks @rootType {
+    count: Int
+    name: String!
+    sha: String!
+    caffeine: Int
+    ingredients: [Ingredient]
+}
+type Ingredient {
+    name: String
+}

@@ -17,7 +17,7 @@
 import { editModes, GitHubRepoRef, GraphQL } from "@atomist/automation-client";
 import {
   AutoCodeInspection,
-  Autofix, chooseAndSetGoals,
+  Autofix,
   Fingerprint,
   goalContributors,
   goals,
@@ -33,9 +33,9 @@ import {
   createSoftwareDeliveryMachine,
   DisableDeploy,
   DisplayDeployEnablement,
-  EnableDeploy, fetchBranchTips,
+  EnableDeploy,
   gitHubGoalStatus,
-  goalState, tipOfBranch
+  goalState,
 } from "@atomist/sdm-core";
 import {
   Artifact, buildAwareCodeTransforms,
@@ -108,7 +108,7 @@ import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
 import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
 import { listSkills } from "../support/registrationInfo";
-import { onEnergyDrinksEvent, OnEnergyDrinksEvents } from "../events/OnEnergyDrinks";
+import { OnEnergyDrinksEvents } from "../events/OnEnergyDrinks";
 import { myFirstGoal } from "./genericGoal";
 
 export function machine(

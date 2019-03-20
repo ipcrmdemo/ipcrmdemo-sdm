@@ -6,11 +6,11 @@ import { isFirstCommit } from "../../lib/support/preChecks";
 
 describe("isFirstCommit", () => {
   let a: any;
-  before(() => {
+  beforeEach(() => {
       a = sinon.stub(sdm, "spawnLog");
   });
 
-  after(() => {
+  afterEach(() => {
     a.restore();
   })
 

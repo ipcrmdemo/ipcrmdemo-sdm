@@ -59,8 +59,8 @@ import {
     diffNpmDepsFingerprints,
 } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/npmDeps";
 import {
-    kubernetesSupport,
-} from "@atomist/sdm-pack-k8";
+  k8sSupport,
+} from "@atomist/sdm-pack-k8s";
 import {
     IsNode,
     NodeProjectCreationParametersDefinition,
@@ -166,7 +166,9 @@ export function machine(
           buildGoal: nodeBuild,
           issueCreation: {},
         }),
-        kubernetesSupport(),
+        k8sSupport({
+          addCommands: true,
+        }),
         CloudFoundrySupport({
             pushImpactGoal: pushImpact,
         }),

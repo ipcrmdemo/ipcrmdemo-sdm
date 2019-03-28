@@ -21,7 +21,7 @@ export const TsLintAutofix = new GoalWithFulfillment({
 }).with({
   name: DefaultGoalNameGenerator.generateName("tslint-autofix"),
   goalExecutor: tsLintTransform,
-})
+});
 
 export async function tsLintTransform(gi: GoalInvocation): Promise<ExecuteGoalResult> {
   return gi.configuration.sdm.projectLoader.doWithProject({
@@ -83,4 +83,4 @@ export async function tsLintTransform(gi: GoalInvocation): Promise<ExecuteGoalRe
       }
     });
   });
-};
+}

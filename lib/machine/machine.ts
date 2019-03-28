@@ -62,10 +62,10 @@ import {
   k8sSupport,
 } from "@atomist/sdm-pack-k8s";
 import {
-    IsNode,
-    NodeProjectCreationParametersDefinition,
-    UpdatePackageJsonIdentification,
-    UpdateReadmeTitle,
+  IsNode, NodeModulesProjectListener,
+  NodeProjectCreationParametersDefinition,
+  UpdatePackageJsonIdentification,
+  UpdateReadmeTitle
 } from "@atomist/sdm-pack-node";
 import {
     IsMaven,
@@ -108,6 +108,7 @@ import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
 import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
 import { listSkills } from "../support/registrationInfo";
+import { TsLintAutofix } from "../transform/tsLintAutofix";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -144,6 +145,9 @@ export function machine(
     const autofix = new Autofix()
         .with(ReduceMemorySize)
         .with(AddLicenseFile);
+
+    const tsLint = TsLintAutofix
+      .withProjectListener(NodeModulesProjectListener);
 
     /**
      * Ext Pack setup
@@ -266,7 +270,8 @@ export function machine(
      * Goals Definition
      */
     const GlobalGoals = goals("global")
-        .plan(autofix, fingerprint)
+        .plan(tsLint)
+        .plan(autofix, fingerprint).after(tsLint)
         .plan(codeInspection, pushImpact).after(autofix);
 
     // Compliance Goals
@@ -276,11 +281,11 @@ export function machine(
 
     // Maven
     const MavenBaseGoals = goals("maven-base")
-        .plan(mavenVersion, mavenBuild).after(ComplianceGoals);
+        .plan(mavenVersion, mavenBuild).after(ComplianceGoals, GlobalGoals);
 
     // Node
     const NodeBaseGoals = goals("node-base")
-        .plan(nodeVersion, nodeBuild).after(ComplianceGoals);
+        .plan(nodeVersion, nodeBuild).after(ComplianceGoals, GlobalGoals);
 
     // K8s
     const k8sDeployGoals = goals("deploy")

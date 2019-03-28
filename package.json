@@ -35,7 +35,7 @@
     "@atomist/sdm-pack-fingerprints": "1.4.8-updates.20190125123722",
     "@atomist/sdm-pack-issue": "1.1.1-master.20181213113748",
     "@atomist/sdm-pack-k8s": "^1.4.1",
-    "@atomist/sdm-pack-node": "1.0.3-master.20190110120831",
+    "@atomist/sdm-pack-node": "1.0.4-master.20190321220053",
     "@atomist/sdm-pack-sonarqube": "1.0.2-ipcrm-fix-empty-channels.20190228130106",
     "@atomist/sdm-pack-spring": "^1.1.1-master.20190314165126",
     "@atomist/slack-messages": "^1.1.0",

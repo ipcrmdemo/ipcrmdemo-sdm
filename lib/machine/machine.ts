@@ -38,7 +38,7 @@ import {
     goalState,
 } from "@atomist/sdm-core";
 import {
-  Artifact, buildAwareCodeTransforms,
+  buildAwareCodeTransforms,
 } from "@atomist/sdm-pack-build";
 import {
     CloudFoundrySupport,
@@ -65,7 +65,7 @@ import {
   IsNode, NodeModulesProjectListener,
   NodeProjectCreationParametersDefinition,
   UpdatePackageJsonIdentification,
-  UpdateReadmeTitle
+  UpdateReadmeTitle,
 } from "@atomist/sdm-pack-node";
 import {
     IsMaven,
@@ -107,7 +107,6 @@ import {
 import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
 import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
-import { listSkills } from "../support/registrationInfo";
 import { TsLintAutofix } from "../transform/tsLintAutofix";
 
 export function machine(
@@ -124,7 +123,6 @@ export function machine(
     sdm.addCommand(EnableDeploy)
         .addCommand(DisableDeploy)
         .addCommand(DisplayDeployEnablement)
-        .addCommand(listSkills)
         .addCodeTransformCommand(AddDockerFile)
         .addCodeTransformCommand(AddJenkinsfileRegistration)
         .addCodeTransformCommand(UpdateDockerfileMaintainer)
@@ -138,7 +136,6 @@ export function machine(
      */
     const fingerprint = new Fingerprint();
     const pushImpact = new PushImpact();
-    const artifact = new Artifact();
     const codeInspection = new AutoCodeInspection();
 
     // Autofix
@@ -270,7 +267,6 @@ export function machine(
      * Goals Definition
      */
     const GlobalGoals = goals("global")
-        .plan(tsLint)
         .plan(autofix, fingerprint).after(tsLint)
         .plan(codeInspection, pushImpact).after(autofix);
 
@@ -294,7 +290,7 @@ export function machine(
 
     // CF Deployment
     const pcfDeploymentGoals = goals("cfdeploy")
-      .plan(cfDeploymentStaging).after(mavenBuild)
+      .plan(cfDeploymentStaging).after(mavenBuild, nodeBuild)
       .plan(cfDeployment).after(cfDeploymentStaging);
 
     /**
@@ -303,6 +299,9 @@ export function machine(
     sdm.addGoalContributions(goalContributors(
         onAnyPush()
             .setGoals(GlobalGoals),
+
+        whenPushSatisfies(IsNode)
+          .setGoals(goals("node-autofix").plan(tsLint)),
 
         whenPushSatisfies(not(isFirstCommit), ToDefaultBranch)
             .setGoals(ComplianceGoals),
@@ -320,7 +319,6 @@ export function machine(
             .setGoals(
                 goals("docker-build")
                     .plan(dockerBuild).after(mavenBuild, nodeBuild, externalBuild)
-                    .plan(artifact).after(dockerBuild),
             ),
 
         whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch)

@@ -90,7 +90,7 @@ RUN mkdir dist
 COPY dist/. dist/.
 
 # Configure
-EXPOSE 3000
+EXPOSE 8080
 CMD [ "npm", "start" ]
     `;
 

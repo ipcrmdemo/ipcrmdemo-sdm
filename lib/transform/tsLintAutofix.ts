@@ -8,6 +8,7 @@ import {
 import * as path from "path";
 import {mapTslintResultsToReviewComments} from "@atomist/sdm-pack-node/lib/inspection/tslint";
 import { logger, ReviewComment } from "@atomist/automation-client";
+import { IsNode } from "@atomist/sdm-pack-node";
 
 export const TsLintAutofix = new GoalWithFulfillment({
   displayName: "tslint Autofix",
@@ -20,6 +21,7 @@ export const TsLintAutofix = new GoalWithFulfillment({
 
 }).with({
   name: DefaultGoalNameGenerator.generateName("tslint-autofix"),
+  pushTest: IsNode,
   goalExecutor: tsLintTransform,
 });
 

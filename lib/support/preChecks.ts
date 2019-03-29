@@ -19,6 +19,18 @@ export const hasJenkinsfile: PredicatePushTest = predicatePushTest(
         return p.hasFile("Jenkinsfile");
     },
 );
+export const hasTsLintConfig: PredicatePushTest = predicatePushTest(
+  "hasTsLintConfig",
+  async p => {
+    return p.hasFile("tslint.json");
+  },
+);
+export const hasTsConfig: PredicatePushTest = predicatePushTest(
+  "hasTsConfig",
+  async p => {
+    return p.hasFile("tsconfig.json");
+  },
+);
 
 export const isFirstCommit: PredicatePushTest = predicatePushTest(
     "isFirstCommit",

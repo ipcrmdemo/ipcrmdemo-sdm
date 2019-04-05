@@ -21,6 +21,7 @@ import {
   configureSdm,
 } from "@atomist/sdm-core";
 import { machine } from "./lib/machine/machine";
+import { configureDashboardNotifications } from "@atomist/automation-client-ext-dashboard";
 
 const machineOptions: ConfigureOptions = {
   requiredConfigurationValues: [],
@@ -29,5 +30,6 @@ const machineOptions: ConfigureOptions = {
 export const configuration: Configuration = {
   postProcessors: [
     configureSdm(machine, machineOptions),
+    configureDashboardNotifications,
   ],
 };

@@ -24,6 +24,7 @@
   "types": "./index.d.ts",
   "dependencies": {
     "@atomist/automation-client": "1.3.0",
+    "@atomist/automation-client-ext-dashboard": "^1.0.2",
     "@atomist/clj-editors": "0.5.7",
     "@atomist/sdm": "1.3.0",
     "@atomist/sdm-core": "1.3.0",

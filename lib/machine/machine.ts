@@ -81,7 +81,7 @@ import { issueSupport } from "@atomist/sdm-pack-issue";
 import {
   hasJenkinsfile,
   npmHasBuildScript,
-  isFirstCommit, hasTsLintConfig, hasTsConfig
+  isFirstCommit, hasTsLintConfig, hasTsConfig,
 } from "../support/preChecks";
 import { AddDockerFile } from "../transform/addDockerfile";
 import { AddJenkinsfileRegistration } from "../transform/addJenkinsfile";
@@ -199,7 +199,7 @@ export function machine(
             checkNpmCoordinatesImpactHandler(),
             fingerprintImpactHandler(
               {
-                transformPresentation: (ci, p) => {
+                transformPresentation: ci => {
                   return new editModes.PullRequest(
                     `apply-target-fingerprint-${Date.now()}`,
                     ci.parameters.title,

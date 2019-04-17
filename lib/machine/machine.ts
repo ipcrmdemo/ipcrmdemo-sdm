@@ -98,7 +98,7 @@ import {
   addImplementation,
   cfDeployment,
   cfDeploymentStaging,
-  dockerBuild, externalBuild, k8sProductionDeploy, k8sStagingDeploy,
+  dockerBuild, externalBuild,
   mavenBuild,
   mavenVersion,
   nodeBuild,
@@ -108,6 +108,7 @@ import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
 import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
 import { TsLintAutofix } from "../transform/tsLintAutofix";
+import { EcsDeploy } from "@atomist/sdm-pack-ecs";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -287,9 +288,26 @@ export function machine(
         .plan(nodeVersion, nodeBuild).after(ComplianceGoals, GlobalGoals);
 
     // K8s
-    const k8sDeployGoals = goals("deploy")
-      .plan(k8sStagingDeploy).after(dockerBuild)
-      .plan(k8sProductionDeploy).after(k8sStagingDeploy);
+    const ecsDeployProduction = new EcsDeploy({
+      displayName: "Deploy to ECS",
+      uniqueName: "ecsDeployProduction",
+      environment: "production",
+      descriptions: {
+        inProcess: "Deploying to ECS `prod`",
+        completed: "Deploy to ECS `prod`",
+      },
+    })
+      .with({
+        pushTest: HasDockerfile,
+        region: "us-east-1",
+        // roleDetail: {
+        //   RoleArn: "arn:aws:iam::247672886355:role/test_ecs_role",
+        //   RoleSessionName: "ecs_example",
+        // },
+      });
+
+    const ecsDeployGoals = goals("deploy")
+      .plan(ecsDeployProduction).after(dockerBuild);
 
     // CF Deployment
     const pcfDeploymentGoals = goals("cfdeploy")
@@ -328,7 +346,8 @@ export function machine(
             .setGoals(pcfDeploymentGoals),
 
         whenPushSatisfies(HasDockerfile, ToDefaultBranch)
-            .setGoals(k8sDeployGoals)));
+            // .setGoals(k8sDeployGoals)));
+          .setGoals(ecsDeployGoals)));
 
     addRandomCommand(sdm);
     return sdm;

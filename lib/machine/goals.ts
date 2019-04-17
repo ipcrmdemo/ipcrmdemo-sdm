@@ -140,9 +140,6 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
         .withProjectListener(NpmCompileProjectListener)
         .withProjectListener(NpmVersionProjectListener);
 
-  cfDeployment
-    .with({ environment: "production", strategy: CloudFoundryDeploymentStrategy.API });
-
   cfDeploymentStaging
     .with({ environment: "staging", strategy: CloudFoundryDeploymentStrategy.API });
 
@@ -176,18 +173,6 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
         name: "fingerprint-compliance-waiting",
       },
     );
-
-  k8sStagingDeploy
-    .with({
-      name: "@atomist/k8s-sdm_gke-cluster-1",
-      applicationData: k8sCallback,
-    });
-
-  k8sProductionDeploy
-    .with({
-      name: "@atomist/k8s-sdm_gke-cluster-1",
-      applicationData: k8sCallback,
-    });
 
   return sdm;
 }

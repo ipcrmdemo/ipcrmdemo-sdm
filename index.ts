@@ -26,8 +26,8 @@ import {
   configureSdm,
 } from "@atomist/sdm-core";
 import { machine } from "./lib/machine/machine";
-import { BitBucketRepoCreationParameters } from "@atomist/sdm";
 import { BasicAuthCredentials } from "@atomist/automation-client/lib/operations/common/BasicAuthCredentials";
+import { NewRepoCreationParameters } from "@atomist/automation-client/lib/operations/generate/NewRepoCreationParameters";
 
 const machineOptions: ConfigureOptions = {
   requiredConfigurationValues: [],
@@ -49,7 +49,7 @@ export function bitBucketCredentials(): BasicAuthCredentials {
   };
 }
 
-export class FixedRepoCreationParameters extends BitBucketRepoCreationParameters {
+export class FixedRepoCreationParameters extends NewRepoCreationParameters {
   @Value("sdm.git.url")
   public apiUrl: string;
 
@@ -57,10 +57,17 @@ export class FixedRepoCreationParameters extends BitBucketRepoCreationParameters
     return bitBucketCredentials();
   }
 
+  /**
+   * Return a single RepoRef or undefined if we're not identifying a single repo
+   * This implementation returns a GitHub.com repo but it can be overriden
+   * to return any kind of repo
+   * @return {RepoRef}
+   */
   get repoRef(): RemoteRepoRef {
     return new BitBucketServerRepoRef(
       this.apiUrl,
       this.owner, this.repo,
       true);
   }
+
 }

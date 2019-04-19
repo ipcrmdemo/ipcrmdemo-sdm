@@ -17,8 +17,8 @@ export const SuggestAddingDockerfile: ChannelLinkListener = async inv => {
         text: "Add a Dockerfile to your new repo?",
         fallback: "Add a Dockerfile to your new repo?",
         actions: [buttonForCommand({ text: "Add Dockerfile" },
-            AddDockerFile.name,
-            { "targets.owner": inv.id.owner, "targets.repo": inv.id.repo },
+          AddDockerFile.name,
+          { "targets.owner": inv.id.owner, "targets.repo": inv.id.repo },
         ),
         ],
     };

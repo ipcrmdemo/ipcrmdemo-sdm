@@ -1,0 +1,15 @@
+query GetPRByOwnerNameSourceBranch($owner:String!, $name:String!, $sourceBranch:String!){
+    PullRequest {
+        repo (owner:$owner, name:$name) @required {
+            name
+            owner
+        },
+        name
+        sourceBranch (name: $sourceBranch) @required {
+            name
+        }
+        destinationBranch {
+            name
+        }
+    }
+}

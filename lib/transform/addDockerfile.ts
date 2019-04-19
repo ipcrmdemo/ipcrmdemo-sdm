@@ -23,7 +23,6 @@ import {
     CodeTransformRegistration,
     formatDate,
 } from "@atomist/sdm";
-import { makeBuildAware } from "@atomist/sdm-pack-build";
 import * as _ from "lodash";
 
 export const AddDockerfileTransform: CodeTransform<NoParameters> = async (p, inv) => {
@@ -39,7 +38,7 @@ export const AddDockerfileTransform: CodeTransform<NoParameters> = async (p, inv
 const AtomistGeneratedMarker = "[atomist:generated]";
 const AddDockerfileMarker = "[atomist:add-dockerfile]";
 
-export const AddDockerFile: CodeTransformRegistration = makeBuildAware({
+export const AddDockerFile: CodeTransformRegistration = {
     transform: AddDockerfileTransform,
     name: "AddDockerFileTransform",
     intent: "Add Dockerfile",
@@ -51,7 +50,7 @@ export const AddDockerFile: CodeTransformRegistration = makeBuildAware({
     ${AtomistGeneratedMarker}`,
         `Add Dockerfile
 ${AddDockerfileMarker}`),
-});
+};
 
 export const AddDockerfileAutofix: AutofixRegistration<NoParameters> = {
     name: "Dockerfile",

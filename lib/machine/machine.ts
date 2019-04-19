@@ -16,13 +16,10 @@
 
 // import { sonarQubeSupport, SonarScan } from "@atomist/sdm-pack-sonarqube";
 import {
-    BitBucketServerRepoRef,
+    Configuration,
+    configurationValue,
     editModes,
-    GitHubRepoRef, GraphQL,
-    Issue,
-    logger,
-    ProjectOperationCredentials,
-    RemoteRepoRef,
+    GitHubRepoRef, GraphQL, logger
 } from "@atomist/automation-client";
 import {
     AutoMergeMethod,
@@ -30,29 +27,27 @@ import {
 } from "@atomist/automation-client/lib/operations/edit/editModes";
 import {
     AutoCodeInspection,
-    Autofix, Cancel,
+    Autofix, Cancel, chooseAndSetGoals,
     Fingerprint,
     goalContributors,
     goals,
-    IssueRouter,
     not,
     onAnyPush, PreferenceScope,
-    PushImpact, Queue,
+    PushImpact, Queue, resolveCredentialsPromise,
     SoftwareDeliveryMachine,
     SoftwareDeliveryMachineConfiguration,
     ToDefaultBranch,
-    whenPushSatisfies,
+    whenPushSatisfies
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
     DisableDeploy,
     DisplayDeployEnablement,
-    EnableDeploy,
-    goalState, isConfiguredInEnv,
+    EnableDeploy, fetchBranchTips,
+    goalState, isConfiguredInEnv
 } from "@atomist/sdm-core";
 import {
     Artifact,
-    buildAwareCodeTransforms,
 } from "@atomist/sdm-pack-build";
 import { changelogSupport } from "@atomist/sdm-pack-changelog";
 import {
@@ -77,10 +72,6 @@ import {
     createNpmDepsFingerprints,
     diffNpmDepsFingerprints,
 } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/npmDeps";
-import {
-    checkCljCoordinatesImpactHandler,
-    checkNpmCoordinatesImpactHandler,
-} from "@atomist/sdm-pack-fingerprints/lib/machine/FingerprintSupport";
 import { issueSupport } from "@atomist/sdm-pack-issue";
 import { kubernetesSupport } from "@atomist/sdm-pack-k8";
 import {
@@ -98,7 +89,7 @@ import {
     springSupport,
     TransformSeedToCustomProject,
 } from "@atomist/sdm-pack-spring";
-import { FixedRepoCreationParameters } from "../../index";
+import { bitBucketCredentials, FixedRepoCreationParameters } from "../../index";
 import {
     hasJenkinsfile,
     isFirstCommit,
@@ -134,6 +125,8 @@ import * as os from "os";
 import { onScRequestEvent } from "../events/onScRequest";
 import { requestNewEmail } from "../support/requestEmail";
 import { ChannelMappingFirstPushListener } from "../events/onRepoCreation";
+import { BbPRReviewListener, HasPlugin, SpotbugsSecurityReview } from "../inspections/spotbugs";
+import { fetchPushForCommit } from "@atomist/sdm-core/lib/util/graph/queryCommits";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -178,21 +171,60 @@ export function machine(
     const fingerprint = new Fingerprint();
     const pushImpact = new PushImpact();
     const artifact = new Artifact();
-    const codeInspection = new AutoCodeInspection();
+    const codeInspection = new AutoCodeInspection()
+      .with({
+          name: "spotbugs",
+          inspection: SpotbugsSecurityReview,
+          pushTest: HasPlugin,
+      })
+      .withListener(BbPRReviewListener);
+
+      // .withListener(SlackFormattedReviewListener);
+
+    sdm.addPullRequestListener(async prl => {
+        logger.debug(`PR Goal Setter fired`);
+        const repo = await fetchBranchTips(
+          prl.context,
+          {
+              repo: prl.pullRequest.repo.name,
+              owner: prl.pullRequest.repo.owner,
+              providerId: prl.pullRequest.repo.org.provider.providerId,
+          },
+        );
+        const id = GitHubRepoRef.from({
+            owner: prl.pullRequest.repo.owner,
+            repo: prl.pullRequest.repo.name,
+            branch: prl.pullRequest.branch.name,
+            sha: repo.branches.filter(b => b.name === prl.pullRequest.branch.name)[0].commit.sha,
+        });
+
+        const push = await fetchPushForCommit(prl.context, id, repo.org.provider.providerId);
+        await chooseAndSetGoals({
+            projectLoader: sdm.configuration.sdm.projectLoader,
+            repoRefResolver: sdm.configuration.sdm.repoRefResolver,
+            goalsListeners: [...sdm.goalsSetListeners],
+            goalSetter: onAnyPush().setGoals(goals("code-inspection").plan(codeInspection)),
+            implementationMapping: sdm.goalFulfillmentMapper,
+        }, {
+            context: prl.context,
+            credentials: prl.credentials,
+            push,
+        });
+    });
 
     // Autofix
     const autofix = new Autofix()
         .with(ReduceMemorySize)
         .with(AddLicenseFile);
 
-    class MattsIssueRouter implements IssueRouter {
-        public async raiseIssue(
-            credentials: ProjectOperationCredentials,
-            id: RemoteRepoRef,
-            issue: Issue): Promise<void> {
-            logger.info(`Run logic here!`);
-        }
-    }
+    // class MattsIssueRouter implements IssueRouter {
+    //     public async raiseIssue(
+    //         credentials: ProjectOperationCredentials,
+    //         id: RemoteRepoRef,
+    //         issue: Issue): Promise<void> {
+    //         logger.info(`Run logic here!`);
+    //     }
+    // }
 
     /**
      * Ext Pack setup
@@ -210,12 +242,12 @@ export function machine(
             autofixGoal: autofix,
             reviewListeners: [],
         }),
-        buildAwareCodeTransforms({
-            buildGoal: nodeBuild,
-            issueCreation: {
-                issueRouter: new MattsIssueRouter(),
-            },
-        }),
+        // buildAwareCodeTransforms({
+        //     buildGoal: nodeBuild,
+        //     issueCreation: {
+        //         issueRouter: new MattsIssueRouter(),
+        //     },
+        // }),
         kubernetesSupport(),
         CloudFoundrySupport({
             pushImpactGoal: pushImpact,
@@ -258,8 +290,6 @@ export function machine(
                     selector: fp => fp.name !== undefined,
                 },
             ],
-            checkNpmCoordinatesImpactHandler(),
-            checkCljCoordinatesImpactHandler(),
             fingerprintImpactHandler(
                 {
                     complianceGoal: fingerprintComplianceGoal,
@@ -289,11 +319,12 @@ export function machine(
         intent: "create spring",
         description: "Create a new Java Spring Boot REST service",
         parameters: SpringProjectCreationParameterDefinitions,
-        startingPoint: new BitBucketServerRepoRef(
-          sdm.configuration.sdm.git.url,
-          "matt",
-          "anewtestthing",
-        ),
+        // startingPoint: new BitBucketServerRepoRef(
+        //   sdm.configuration.sdm.git.url,
+        //   "matt",
+        //   "anewtestthing",
+        // ),
+        startingPoint: GitHubRepoRef.from({ owner: "ipcrmdemo", repo: "spring-rest-jenkins", branch: "master" }),
         transform: [
             ReplaceReadmeTitle,
             SetAtomistTeamInApplicationYml,

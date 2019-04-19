@@ -1,0 +1,14 @@
+query GetPRByNameOwnerSha ($name: String!, $owner: String!, $sha: String!) {
+    Push {
+        repo (name: $name, owner: $owner) @required {
+            owner
+            name
+            url
+        }
+        after (sha: $sha) @required {
+            pullRequests {
+                name
+            }
+        }
+    }
+}

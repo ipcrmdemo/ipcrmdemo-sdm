@@ -42,11 +42,13 @@
     "@atomist/slack-messages": "^1.1.0",
     "@types/dateformat": "^1.0.1",
     "@types/lodash": "^4.14.108",
+    "@types/xml2js": "^0.4.4",
     "axios": "^0.18.0",
     "dateformat": "^3.0.3",
     "docker-file-parser": "^1.0.4",
     "lodash": "^4.17.10",
-    "typescript": "^3.2.2"
+    "typescript": "^3.2.2",
+    "xml2js": "^0.4.19"
   },
   "devDependencies": {
     "@atomist/sdm-local": "1.0.2",

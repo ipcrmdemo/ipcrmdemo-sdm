@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 import {
+  automationClientInstance,
   BitBucketServerRepoRef,
   Configuration,
   configurationValue,
   ProjectOperationCredentials, RemoteRepoRef,
-  Value,
+  Value
 } from "@atomist/automation-client";
 import {
   ConfigurationBasedBasicCredentialsResolver,
@@ -28,6 +29,19 @@ import {
 import { machine } from "./lib/machine/machine";
 import { BasicAuthCredentials } from "@atomist/automation-client/lib/operations/common/BasicAuthCredentials";
 import { NewRepoCreationParameters } from "@atomist/automation-client/lib/operations/generate/NewRepoCreationParameters";
+import { BitBucketRepoTargets } from "@atomist/sdm";
+
+export class FixedBitBucketRepoTargets extends BitBucketRepoTargets {
+  get repoRef(): BitBucketServerRepoRef {
+    return (!!this.owner && !!this.repo && !this.usesRegex) ?
+      new BitBucketServerRepoRef(
+        automationClientInstance().configuration.sdm.git.url,
+        this.owner, this.repo,
+        true,
+        this.branch ? this.branch : this.sha) :
+      undefined;
+  }
+}
 
 const machineOptions: ConfigureOptions = {
   requiredConfigurationValues: [],
@@ -35,6 +49,7 @@ const machineOptions: ConfigureOptions = {
 
 export const configuration: Configuration = {
   sdm: {
+    targets: FixedBitBucketRepoTargets,
     credentialsResolver: new ConfigurationBasedBasicCredentialsResolver(),
   },
   postProcessors: [

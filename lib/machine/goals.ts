@@ -1,10 +1,5 @@
 // Fingerprint Compliance
-import {
-  allSatisfied,
-  GoalWithFulfillment,
-  LogSuppressor,
-  SoftwareDeliveryMachine,
-} from "@atomist/sdm";
+import { allSatisfied, GoalWithFulfillment, LogSuppressor, SoftwareDeliveryMachine } from "@atomist/sdm";
 import {
   IsMaven,
   mavenBuilder,
@@ -19,7 +14,9 @@ import {
   IsNode,
   nodeBuilder,
   NodeModulesProjectListener,
-  NodeProjectVersioner, NpmCompileProjectListener, NpmProgressReporter,
+  NodeProjectVersioner,
+  NpmCompileProjectListener,
+  NpmProgressReporter,
   NpmVersionProjectListener,
 } from "@atomist/sdm-pack-node";
 import { Version } from "@atomist/sdm-core";
@@ -49,7 +46,12 @@ export const mavenBuild = new Build()
     .with({
         ...MavenDefaultOptions,
         name: "maven-run-build",
-        builder: mavenBuilder([{ name: "maven-run-build" }]),
+        builder: mavenBuilder(
+          // [
+          //   {name: "s", value: "/Users/matt/Downloads/settings.xml", type: MavenArgType.Option},
+          //   {name: "X", type: MavenArgType.Option},
+          // ],
+        ),
         pushTest: MavenDefaultOptions.pushTest,
     });
 

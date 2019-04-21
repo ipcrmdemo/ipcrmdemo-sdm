@@ -74,7 +74,7 @@ import {
     SpringProjectCreationParameterDefinitions,
     ReplaceReadmeTitle,
     SetAtomistTeamInApplicationYml,
-    TransformSeedToCustomProject,
+    TransformMavenSpringBootSeedToCustomProject,
 } from "@atomist/sdm-pack-spring";
 import { changelogSupport } from "@atomist/sdm-pack-changelog";
 import { issueSupport } from "@atomist/sdm-pack-issue";
@@ -98,7 +98,7 @@ import {
   addImplementation,
   cfDeployment,
   cfDeploymentStaging,
-  dockerBuild, externalBuild, k8sProductionDeploy, k8sStagingDeploy,
+  dockerBuild, k8sProductionDeploy, k8sStagingDeploy,
   mavenBuild,
   mavenVersion,
   nodeBuild,
@@ -108,6 +108,7 @@ import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
 import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
 import { TsLintAutofix } from "../transform/tsLintAutofix";
+import { Terraform, TerraformRegistration } from "../support/terraform/goal";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -118,6 +119,16 @@ export function machine(
     );
 
     addImplementation(sdm);
+
+    const tfApplyGoal = new Terraform()
+      .with({
+        tfWorkspace: "foo",
+        tfVars: [
+          {tfVar: "aws_access_key", value: process.env.AWS_ACCESS},
+          {tfVar: "aws_secret_key", value: process.env.AWS_SECRET},
+          {tfVar: "region", value: "us-east-1"},
+        ],
+      });
 
     // Bot Commands
     sdm.addCommand(EnableDeploy)
@@ -230,7 +241,7 @@ export function machine(
             transform: [
                 ReplaceReadmeTitle,
                 SetAtomistTeamInApplicationYml,
-                TransformSeedToCustomProject,
+                // TransformMavenSpringBootSeedToCustomProject,
                 AddFinalNameToPom,
                 async (p, pi) => {
                   const channel = pi.context.source.slack.channel.id;
@@ -251,7 +262,7 @@ export function machine(
             transform: [
                 ReplaceReadmeTitle,
                 SetAtomistTeamInApplicationYml,
-                TransformSeedToCustomProject,
+                // TransformMavenSpringBootSeedToCustomProject,
                 AddFinalNameToPom,
             ],
         });
@@ -300,35 +311,38 @@ export function machine(
      * Configure Push rules
      */
     sdm.addGoalContributions(goalContributors(
-        whenPushSatisfies(IsNode, hasTsLintConfig, hasTsConfig)
-          .setGoals(goals("node-autofix").plan(tsLint)),
-
         onAnyPush()
-            .setGoals(GlobalGoals),
-
-        whenPushSatisfies(not(isFirstCommit), ToDefaultBranch)
-            .setGoals(ComplianceGoals),
-
-        whenPushSatisfies(IsMaven, not(hasJenkinsfile))
-            .setGoals(MavenBaseGoals),
-
-        whenPushSatisfies(IsNode, npmHasBuildScript, not(hasJenkinsfile))
-            .setGoals(NodeBaseGoals),
-
-        whenPushSatisfies(IsMaven, hasJenkinsfile)
-            .setGoals(goals("maven-external").plan(mavenVersion, externalBuild).after(GlobalGoals)),
-
-        whenPushSatisfies(HasDockerfile)
-            .setGoals(
-                goals("docker-build")
-                    .plan(dockerBuild).after(mavenBuild, nodeBuild, externalBuild),
-            ),
-
-        whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch)
-            .setGoals(pcfDeploymentGoals),
-
-        whenPushSatisfies(HasDockerfile, ToDefaultBranch)
-            .setGoals(k8sDeployGoals)));
+          .setGoals(goals("terraform").plan(tfApplyGoal)),
+        // whenPushSatisfies(IsNode, hasTsLintConfig, hasTsConfig)
+        //   .setGoals(goals("node-autofix").plan(tsLint)),
+        //
+        // onAnyPush()
+        //     .setGoals(GlobalGoals),
+        //
+        // whenPushSatisfies(not(isFirstCommit), ToDefaultBranch)
+        //     .setGoals(ComplianceGoals),
+        //
+        // whenPushSatisfies(IsMaven, not(hasJenkinsfile))
+        //     .setGoals(MavenBaseGoals),
+        //
+        // whenPushSatisfies(IsNode, npmHasBuildScript, not(hasJenkinsfile))
+        //     .setGoals(NodeBaseGoals),
+        //
+        // whenPushSatisfies(IsMaven, hasJenkinsfile)
+        //     .setGoals(goals("maven-external").plan(mavenVersion, externalBuild).after(GlobalGoals)),
+        //
+        // whenPushSatisfies(HasDockerfile)
+        //     .setGoals(
+        //         goals("docker-build")
+        //             .plan(dockerBuild).after(mavenBuild, nodeBuild, externalBuild),
+        //     ),
+        //
+        // whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch)
+        //     .setGoals(pcfDeploymentGoals),
+        //
+        // whenPushSatisfies(HasDockerfile, ToDefaultBranch)
+        //     .setGoals(k8sDeployGoals)
+    ));
 
     addRandomCommand(sdm);
     return sdm;

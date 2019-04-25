@@ -60,7 +60,6 @@ import {
   k8sSupport,
 } from "@atomist/sdm-pack-k8s";
 import {
-  NodeModulesProjectListener,
   NodeProjectCreationParametersDefinition,
   UpdatePackageJsonIdentification,
   UpdateReadmeTitle,
@@ -93,7 +92,6 @@ import {
 import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
 import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
-import { TsLintAutofix } from "../transform/tsLintAutofix";
 import { EcsDeploy } from "@atomist/sdm-pack-ecs";
 import { metadataAwsCreds } from "@atomist/sdm-pack-ecs/lib/support/metadataCreds";
 
@@ -130,9 +128,6 @@ export function machine(
     const autofix = new Autofix()
         .with(ReduceMemorySize)
         .with(AddLicenseFile);
-
-    const tsLint = TsLintAutofix
-      .withProjectListener(NodeModulesProjectListener);
 
     /**
      * Ext Pack setup

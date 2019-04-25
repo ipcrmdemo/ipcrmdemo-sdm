@@ -49,7 +49,7 @@ export const mavenBuild = new Build()
     .with({
         ...MavenDefaultOptions,
         name: "maven-run-build",
-        builder: mavenBuilder([{ name: "maven-run-build" }]),
+        builder: mavenBuilder(),
         pushTest: MavenDefaultOptions.pushTest,
     });
 

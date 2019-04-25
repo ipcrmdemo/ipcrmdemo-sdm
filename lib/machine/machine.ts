@@ -48,10 +48,10 @@ import {
     HasDockerfile,
 } from "@atomist/sdm-pack-docker";
 import {
-    fingerprintSupport,
-    fingerprintImpactHandler,
-    messageMaker,
-    checkNpmCoordinatesImpactHandler,
+  fingerprintSupport,
+  fingerprintImpactHandler,
+  messageMaker,
+  checkNpmCoordinatesImpactHandler, applyFingerprint, depsFingerprints, renderClojureProjectDiff,
 } from "@atomist/sdm-pack-fingerprints";
 import {
     createNpmDepsFingerprints,
@@ -74,7 +74,7 @@ import {
     SpringProjectCreationParameterDefinitions,
     ReplaceReadmeTitle,
     SetAtomistTeamInApplicationYml,
-    TransformSeedToCustomProject,
+    TransformMavenSpringBootSeedToCustomProject,
 } from "@atomist/sdm-pack-spring";
 import { changelogSupport } from "@atomist/sdm-pack-changelog";
 import { issueSupport } from "@atomist/sdm-pack-issue";
@@ -184,8 +184,16 @@ export function machine(
               {
                 extract: createNpmDepsFingerprints,
                 apply: applyNpmDepsFingerprint,
-                selector: fp => fp.name.startsWith("test-npm-project-dep"),
+                selector: fp => fp.name.startsWith("npm-project-dep"),
                 summary: diffNpmDepsFingerprints,
+              },
+              {
+                extract: p => depsFingerprints(p.baseDir),
+                apply: (p, fp) => applyFingerprint(p.baseDir, fp),
+                selector: fp => {
+                  return fp.name.startsWith("maven-project") || fp.name.startsWith("clojure-project");
+                },
+                summary: renderClojureProjectDiff,
               },
               {
                 extract: createFileFingerprint(
@@ -230,7 +238,7 @@ export function machine(
             transform: [
                 ReplaceReadmeTitle,
                 SetAtomistTeamInApplicationYml,
-                TransformSeedToCustomProject,
+                ...TransformMavenSpringBootSeedToCustomProject,
                 AddFinalNameToPom,
                 async (p, pi) => {
                   const channel = pi.context.source.slack.channel.id;
@@ -251,7 +259,7 @@ export function machine(
             transform: [
                 ReplaceReadmeTitle,
                 SetAtomistTeamInApplicationYml,
-                TransformSeedToCustomProject,
+                ...TransformMavenSpringBootSeedToCustomProject,
                 AddFinalNameToPom,
             ],
         });

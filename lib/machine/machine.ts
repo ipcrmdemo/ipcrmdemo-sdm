@@ -21,8 +21,7 @@ import {
   Fingerprint,
   goalContributors,
   goals,
-  not,
-  onAnyPush, PreferenceScope,
+  PreferenceScope,
   PushImpact,
   SoftwareDeliveryMachine,
   SoftwareDeliveryMachineConfiguration,
@@ -42,7 +41,6 @@ import {
 } from "@atomist/sdm-pack-build";
 import {
     CloudFoundrySupport,
-    HasCloudFoundryManifest,
 } from "@atomist/sdm-pack-cloudfoundry";
 import {
     HasDockerfile,
@@ -68,20 +66,16 @@ import {
   UpdateReadmeTitle,
 } from "@atomist/sdm-pack-node";
 import {
-    IsMaven,
     springSupport,
     SpringProjectCreationParameters,
     SpringProjectCreationParameterDefinitions,
     ReplaceReadmeTitle,
     SetAtomistTeamInApplicationYml,
-    TransformSeedToCustomProject,
 } from "@atomist/sdm-pack-spring";
 import { changelogSupport } from "@atomist/sdm-pack-changelog";
 import { issueSupport } from "@atomist/sdm-pack-issue";
 import {
-  hasJenkinsfile,
-  npmHasBuildScript,
-  isFirstCommit, hasTsLintConfig, hasTsConfig,
+  hasTsLintConfig, hasTsConfig,
 } from "../support/preChecks";
 import { AddDockerFile } from "../transform/addDockerfile";
 import { AddJenkinsfileRegistration } from "../transform/addJenkinsfile";
@@ -96,19 +90,16 @@ import { AutoMergeMethod, AutoMergeMode } from "@atomist/automation-client/lib/o
 import { AddFinalNameToPom } from "../transform/addFinalName";
 import {
   addImplementation,
-  cfDeployment,
-  cfDeploymentStaging,
   dockerBuild, externalBuild,
   mavenBuild,
-  mavenVersion,
   nodeBuild,
-  nodeVersion,
 } from "./goals";
 import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
 import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
 import { TsLintAutofix } from "../transform/tsLintAutofix";
 import { EcsDeploy } from "@atomist/sdm-pack-ecs";
+import { metadataAwsCreds } from "@atomist/sdm-pack-ecs/lib/support/metadataCreds";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -231,7 +222,6 @@ export function machine(
             transform: [
                 ReplaceReadmeTitle,
                 SetAtomistTeamInApplicationYml,
-                TransformSeedToCustomProject,
                 AddFinalNameToPom,
                 async (p, pi) => {
                   const channel = pi.context.source.slack.channel.id;
@@ -252,7 +242,6 @@ export function machine(
             transform: [
                 ReplaceReadmeTitle,
                 SetAtomistTeamInApplicationYml,
-                TransformSeedToCustomProject,
                 AddFinalNameToPom,
             ],
         });
@@ -270,23 +259,6 @@ export function machine(
     /**
      * Goals Definition
      */
-    const GlobalGoals = goals("global")
-        .plan(autofix, fingerprint).after(tsLint)
-        .plan(codeInspection, pushImpact).after(autofix);
-
-    // Compliance Goals
-    const ComplianceGoals = goals("compliance-goals");
-        // .plan(fingerprintComplianceGoal).after(GlobalGoals);
-        // .plan(fingerprintComplianceGoal, SonarScanGoal).after(GlobalGoals);
-
-    // Maven
-    const MavenBaseGoals = goals("maven-base")
-        .plan(mavenVersion, mavenBuild).after(ComplianceGoals, GlobalGoals);
-
-    // Node
-    const NodeBaseGoals = goals("node-base")
-        .plan(nodeVersion, nodeBuild).after(ComplianceGoals, GlobalGoals);
-
     // K8s
     const ecsDeployProduction = new EcsDeploy({
       displayName: "Deploy to ECS",
@@ -300,6 +272,7 @@ export function machine(
       .with({
         pushTest: HasDockerfile,
         region: "us-east-1",
+        credentialLookup: metadataAwsCreds,
         // roleDetail: {
         //   RoleArn: "arn:aws:iam::247672886355:role/test_ecs_role",
         //   RoleSessionName: "ecs_example",
@@ -309,11 +282,6 @@ export function machine(
     const ecsDeployGoals = goals("deploy")
       .plan(ecsDeployProduction).after(dockerBuild);
 
-    // CF Deployment
-    const pcfDeploymentGoals = goals("cfdeploy")
-      .plan(cfDeploymentStaging).after(mavenBuild, nodeBuild)
-      .plan(cfDeployment).after(cfDeploymentStaging);
-
     /**
      * Configure Push rules
      */
@@ -321,20 +289,19 @@ export function machine(
         whenPushSatisfies(IsNode, hasTsLintConfig, hasTsConfig)
           .setGoals(goals("node-autofix").plan(tsLint)),
 
-        onAnyPush()
-            .setGoals(GlobalGoals),
+        // onAnyPush()
+        //     .setGoals(GlobalGoals),
 
-        whenPushSatisfies(not(isFirstCommit), ToDefaultBranch)
-            .setGoals(ComplianceGoals),
-
-        whenPushSatisfies(IsMaven, not(hasJenkinsfile))
-            .setGoals(MavenBaseGoals),
-
-        whenPushSatisfies(IsNode, npmHasBuildScript, not(hasJenkinsfile))
-            .setGoals(NodeBaseGoals),
-
-        whenPushSatisfies(IsMaven, hasJenkinsfile)
-            .setGoals(goals("maven-external").plan(mavenVersion, externalBuild).after(GlobalGoals)),
+        // whenPushSatisfies(not(isFirstCommit), ToDefaultBranch)
+        //     .setGoals(ComplianceGoals),
+        //
+        // whenPushSatisfies(IsMaven, not(hasJenkinsfile))
+        //     .setGoals(MavenBaseGoals),
+        //
+        // whenPushSatisfies(IsNode, npmHasBuildScript, not(hasJenkinsfile))
+        //     .setGoals(NodeBaseGoals),
+        // whenPushSatisfies(IsMaven, hasJenkinsfile)
+        //     .setGoals(goals("maven-external").plan(mavenVersion, externalBuild).after(GlobalGoals)),
 
         whenPushSatisfies(HasDockerfile)
             .setGoals(
@@ -342,8 +309,8 @@ export function machine(
                     .plan(dockerBuild).after(mavenBuild, nodeBuild, externalBuild),
             ),
 
-        whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch)
-            .setGoals(pcfDeploymentGoals),
+        // whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch)
+        //     .setGoals(pcfDeploymentGoals),
 
         whenPushSatisfies(HasDockerfile, ToDefaultBranch)
             // .setGoals(k8sDeployGoals)));

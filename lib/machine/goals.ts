@@ -27,8 +27,6 @@ import { Build } from "@atomist/sdm-pack-build";
 import { KubernetesDeploy } from "@atomist/sdm-pack-k8s";
 import { hasJenkinsfile } from "../support/preChecks";
 import * as fs from "fs";
-import * as _ from "lodash";
-import { ApplicationDataCallback } from "@atomist/sdm-pack-k8s/lib/deploy/goal";
 
 /**
  * Goals
@@ -83,37 +81,37 @@ export const cfDeploymentStaging = new CloudFoundryDeploy({
   },
 );
 
-const k8sCallback: ApplicationDataCallback = async (a, p, g, e) => {
-  a.ns = e.environment.includes("prod") ? "production" : "testing";
-  a.path = `/${a.ns}/${p.name}`;
-
-  let annotations: any;
-  if (
-    a.ingressSpec &&
-    a.ingressSpec.metadata &&
-    a.ingressSpec.metadata.annotations
-  ) {
-    annotations = _.merge({
-        "kubernetes.io/ingress.class": "nginx",
-        "nginx.ingress.kubernetes.io/rewrite-target": "/",
-        "nginx.ingress.kubernetes.io/ssl-redirect": "false",
-      },
-      a.ingressSpec.metadata.annotations,
-    );
-  } else {
-    annotations = {
-      "kubernetes.io/ingress.class": "nginx",
-      "nginx.ingress.kubernetes.io/rewrite-target": "/",
-      "nginx.ingress.kubernetes.io/ssl-redirect": "false",
-    };
-  }
-  a.ingressSpec = {
-    metadata: {
-      annotations,
-    },
-  };
-  return a;
-};
+// const k8sCallback: ApplicationDataCallback = async (a, p, g, e) => {
+//   a.ns = e.environment.includes("prod") ? "production" : "testing";
+//   a.path = `/${a.ns}/${p.name}`;
+//
+//   let annotations: any;
+//   if (
+//     a.ingressSpec &&
+//     a.ingressSpec.metadata &&
+//     a.ingressSpec.metadata.annotations
+//   ) {
+//     annotations = _.merge({
+//         "kubernetes.io/ingress.class": "nginx",
+//         "nginx.ingress.kubernetes.io/rewrite-target": "/",
+//         "nginx.ingress.kubernetes.io/ssl-redirect": "false",
+//       },
+//       a.ingressSpec.metadata.annotations,
+//     );
+//   } else {
+//     annotations = {
+//       "kubernetes.io/ingress.class": "nginx",
+//       "nginx.ingress.kubernetes.io/rewrite-target": "/",
+//       "nginx.ingress.kubernetes.io/ssl-redirect": "false",
+//     };
+//   }
+//   a.ingressSpec = {
+//     metadata: {
+//       annotations,
+//     },
+//   };
+//   return a;
+// };
 
 /**
  * Implementations

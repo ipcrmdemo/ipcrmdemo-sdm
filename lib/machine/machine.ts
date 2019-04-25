@@ -60,7 +60,7 @@ import {
   k8sSupport,
 } from "@atomist/sdm-pack-k8s";
 import {
-  IsNode, NodeModulesProjectListener,
+  NodeModulesProjectListener,
   NodeProjectCreationParametersDefinition,
   UpdatePackageJsonIdentification,
   UpdateReadmeTitle,
@@ -74,9 +74,6 @@ import {
 } from "@atomist/sdm-pack-spring";
 import { changelogSupport } from "@atomist/sdm-pack-changelog";
 import { issueSupport } from "@atomist/sdm-pack-issue";
-import {
-  hasTsLintConfig, hasTsConfig,
-} from "../support/preChecks";
 import { AddDockerFile } from "../transform/addDockerfile";
 import { AddJenkinsfileRegistration } from "../transform/addJenkinsfile";
 import { AddLicenseFile } from "../transform/addLicense";
@@ -90,8 +87,7 @@ import { AutoMergeMethod, AutoMergeMode } from "@atomist/automation-client/lib/o
 import { AddFinalNameToPom } from "../transform/addFinalName";
 import {
   addImplementation,
-  dockerBuild, externalBuild,
-  mavenBuild,
+  dockerBuild,
   nodeBuild,
 } from "./goals";
 import { addRandomCommand } from "../support/randomCommand";
@@ -286,9 +282,6 @@ export function machine(
      * Configure Push rules
      */
     sdm.addGoalContributions(goalContributors(
-        whenPushSatisfies(IsNode, hasTsLintConfig, hasTsConfig)
-          .setGoals(goals("node-autofix").plan(tsLint)),
-
         // onAnyPush()
         //     .setGoals(GlobalGoals),
 
@@ -306,7 +299,7 @@ export function machine(
         whenPushSatisfies(HasDockerfile)
             .setGoals(
                 goals("docker-build")
-                    .plan(dockerBuild).after(mavenBuild, nodeBuild, externalBuild),
+                    .plan(dockerBuild),
             ),
 
         // whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch)

@@ -16,10 +16,8 @@
 
 // import { sonarQubeSupport, SonarScan } from "@atomist/sdm-pack-sonarqube";
 import {
-    Configuration,
-    configurationValue,
     editModes,
-    GitHubRepoRef, GraphQL, logger
+    GitHubRepoRef, GraphQL, logger,
 } from "@atomist/automation-client";
 import {
     AutoMergeMethod,
@@ -33,11 +31,11 @@ import {
     goals,
     not,
     onAnyPush, PreferenceScope,
-    PushImpact, Queue, resolveCredentialsPromise,
+    PushImpact, Queue,
     SoftwareDeliveryMachine,
     SoftwareDeliveryMachineConfiguration,
     ToDefaultBranch,
-    whenPushSatisfies
+    whenPushSatisfies,
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
@@ -89,7 +87,7 @@ import {
     springSupport,
     TransformSeedToCustomProject,
 } from "@atomist/sdm-pack-spring";
-import { bitBucketCredentials, FixedRepoCreationParameters } from "../../index";
+import {FixedRepoCreationParameters } from "../../index";
 import {
     hasJenkinsfile,
     isFirstCommit,
@@ -127,6 +125,7 @@ import { requestNewEmail } from "../support/requestEmail";
 import { ChannelMappingFirstPushListener } from "../events/onRepoCreation";
 import { BbPRReviewListener, HasPlugin, SpotbugsSecurityReview } from "../inspections/spotbugs";
 import { fetchPushForCommit } from "@atomist/sdm-core/lib/util/graph/queryCommits";
+import { raisePrForBranchReg } from "../support/bbPr";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -157,6 +156,7 @@ export function machine(
         .addCommand(DisableDeploy)
         .addCommand(DisplayDeployEnablement)
         .addCommand(requestNewEmail)
+        .addCommand(raisePrForBranchReg)
         .addCodeTransformCommand(AddDockerFile)
         .addCodeTransformCommand(AddJenkinsfileRegistration)
         .addCodeTransformCommand(UpdateDockerfileMaintainer)

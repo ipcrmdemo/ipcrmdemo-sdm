@@ -1,12 +1,19 @@
 // Fingerprint Compliance
-import { allSatisfied, GoalWithFulfillment, LogSuppressor, SoftwareDeliveryMachine } from "@atomist/sdm";
+import {
+  allSatisfied,
+  GoalProjectListenerEvent,
+  GoalWithFulfillment,
+  LogSuppressor,
+  SdmGoalState,
+  SoftwareDeliveryMachine
+} from "@atomist/sdm";
 import {
   IsMaven,
   mavenBuilder,
   MavenDefaultOptions,
   MavenProjectVersioner,
   MvnPackage,
-  MvnVersion,
+  MvnVersion
 } from "@atomist/sdm-pack-spring";
 import { CloudFoundryDeploy, CloudFoundryDeploymentStrategy } from "@atomist/sdm-pack-cloudfoundry";
 import { DockerBuild, HasDockerfile } from "@atomist/sdm-pack-docker";
@@ -14,14 +21,17 @@ import {
   IsNode,
   nodeBuilder,
   NodeModulesProjectListener,
-  NodeProjectVersioner, NpmCompileProjectListener, NpmProgressReporter,
-  NpmVersionProjectListener,
+  NodeProjectVersioner,
+  NpmCompileProjectListener,
+  NpmProgressReporter,
+  NpmVersionProjectListener
 } from "@atomist/sdm-pack-node";
 import { Version } from "@atomist/sdm-core";
 import { Build } from "@atomist/sdm-pack-build";
 import { KubernetesDeploy } from "@atomist/sdm-pack-k8";
 import { hasJenkinsfile } from "../support/preChecks";
 import * as fs from "fs";
+import { buttonForCommand, logger } from "@atomist/automation-client";
 
 /**
  * Goals
@@ -44,7 +54,31 @@ export const mavenBuild = new Build()
         name: "maven-run-build",
         builder: mavenBuilder([{ name: "maven-run-build" }]),
         pushTest: MavenDefaultOptions.pushTest,
-    });
+    })
+  .withProjectListener({
+    name: "openPrButton",
+    listener: async (p, r, event1) => {
+      logger.debug(`openPrButton => Listener fired`);
+      if (event1 === GoalProjectListenerEvent.after && p.branch !== "master") {
+        logger.debug(`openPrButton => Branch wasn't master and after build`);
+        if (r.goalEvent.state === SdmGoalState.success) {
+          // Create a raise PR button
+          await r.addressChannels({
+            attachments: [
+              {
+                pretext: `Open new PR for branch ${p.branch}?`,
+                fallback: `Open new PR for branch ${p.branch}?`,
+                actions: [
+                  buttonForCommand({text: "Raise PR"}, "RaisePrForBranch",
+                    {name: r.goalEvent.repo.name, owner: r.goalEvent.repo.owner, branch: p.branch }),
+                ],
+              },
+            ],
+          });
+        }
+      }
+    },
+  });
 
 // Builds
 export const externalBuild = new Build();
@@ -123,7 +157,40 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
         },
       ),
       pushTest: IsNode,
-    });
+    })
+    .withProjectListener({
+        name: "openPrButton",
+        listener: async (p, r, event1) => {
+          logger.debug(`openPrButton => Listener fired`);
+          if (event1 === GoalProjectListenerEvent.after && p.branch !== "master") {
+            logger.debug(`openPrButton => Branch wasn't master and after build`);
+            if (r.goalEvent.state !== SdmGoalState.failure) {
+              logger.debug(`openPrButton => Running raise PR logic`);
+              // Create a raise PR button
+              await r.addressChannels({
+                attachments: [
+                  {
+                    pretext: `Open new PR for branch ${p.branch}?`,
+                    fallback: `Open new PR for branch ${p.branch}?`,
+                    actions: [
+                      buttonForCommand({text: "Raise PR"}, "RaisePrForBranch",
+                        {
+                          name: r.goalEvent.repo.name,
+                          owner: r.goalEvent.repo.owner,
+                          branch: p.branch,
+                          sha: r.goalEvent.push.after.sha }),
+                    ],
+                  },
+                ],
+              }, {
+                id:
+                  `openPR/${r.goalEvent.repo.owner}/${r.goalEvent.repo.name}/` +
+                  `${p.branch}/master/${r.goalEvent.push.after.sha }`,
+              });
+            }
+          }
+        },
+      });
 
   externalBuild
     .with({

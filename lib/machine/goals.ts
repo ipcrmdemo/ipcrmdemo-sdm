@@ -31,7 +31,8 @@ import { Build } from "@atomist/sdm-pack-build";
 import { KubernetesDeploy } from "@atomist/sdm-pack-k8";
 import { hasJenkinsfile } from "../support/preChecks";
 import * as fs from "fs";
-import { buttonForCommand, logger } from "@atomist/automation-client";
+import { buttonForCommand, logger, QueryNoCacheOptions } from "@atomist/automation-client";
+import { GetPrByOwnerNameSourceBranch } from "../typings/types";
 
 /**
  * Goals
@@ -58,8 +59,18 @@ export const mavenBuild = new Build()
   .withProjectListener({
     name: "openPrButton",
     listener: async (p, r, event1) => {
+      const pr = await r.context.graphClient
+        .query<GetPrByOwnerNameSourceBranch.Query, GetPrByOwnerNameSourceBranch.Variables>({
+          name: "GetPrByOwnerNameSourceBranch",
+          variables: {
+            name: r.goalEvent.repo.name,
+            owner: r.goalEvent.repo.owner,
+            sourceBranch: p.branch,
+          },
+          options: QueryNoCacheOptions,
+        });
       logger.debug(`openPrButton => Listener fired`);
-      if (event1 === GoalProjectListenerEvent.after && p.branch !== "master") {
+      if (event1 === GoalProjectListenerEvent.after && p.branch !== "master" && pr.PullRequest.length === 0 ) {
         logger.debug(`openPrButton => Branch wasn't master and after build`);
         if (r.goalEvent.state === SdmGoalState.success) {
           // Create a raise PR button

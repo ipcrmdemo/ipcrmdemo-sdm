@@ -126,6 +126,7 @@ import { ChannelMappingFirstPushListener } from "../events/onRepoCreation";
 import { BbPRReviewListener, HasPlugin, SpotbugsSecurityReview } from "../inspections/spotbugs";
 import { fetchPushForCommit } from "@atomist/sdm-core/lib/util/graph/queryCommits";
 import { raisePrForBranchReg } from "../support/bbPr";
+import { ZeroCommitPushTest } from "../support/pushTests";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -374,7 +375,8 @@ export function machine(
      * Goals Definition
      */
     const GlobalGoals = goals("global")
-        .plan(autofix, fingerprint).after(queueGoal)
+        // .plan(autofix, fingerprint).after(queueGoal)
+        .plan(autofix).after(queueGoal)
         .plan(codeInspection, pushImpact).after(autofix);
 
     // Compliance Goals
@@ -416,35 +418,35 @@ export function machine(
      * Configure Push rules
      */
     sdm.addGoalContributions(goalContributors(
-        onAnyPush()
+        whenPushSatisfies(not(ZeroCommitPushTest))
             .setGoals(controlGoals),
 
-        onAnyPush()
+        whenPushSatisfies(not(ZeroCommitPushTest))
             .setGoals(GlobalGoals),
 
-        whenPushSatisfies(not(isFirstCommit))
+        whenPushSatisfies(not(isFirstCommit), not(ZeroCommitPushTest))
             .setGoals(ComplianceGoals),
 
-        whenPushSatisfies(IsMaven, not(hasJenkinsfile))
+        whenPushSatisfies(IsMaven, not(hasJenkinsfile), not(ZeroCommitPushTest))
             .setGoals(MavenBaseGoals),
 
-        whenPushSatisfies(IsNode, npmHasBuildScript, not(hasJenkinsfile))
+        whenPushSatisfies(IsNode, npmHasBuildScript, not(hasJenkinsfile), not(ZeroCommitPushTest))
             .setGoals(NodeBaseGoals),
 
-        whenPushSatisfies(IsMaven, hasJenkinsfile)
+        whenPushSatisfies(IsMaven, hasJenkinsfile, not(ZeroCommitPushTest))
             .setGoals(goals("maven-external").plan(mavenVersion, externalBuild).after(GlobalGoals)),
 
-        whenPushSatisfies(HasDockerfile)
+        whenPushSatisfies(HasDockerfile, not(ZeroCommitPushTest))
             .setGoals(
                 goals("docker-build")
                     .plan(dockerBuild).after(mavenBuild, nodeBuild, externalBuild)
                     .plan(artifact).after(dockerBuild),
             ),
 
-        whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch)
+        whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch, not(ZeroCommitPushTest))
             .setGoals(pcfDeploymentGoals),
 
-        whenPushSatisfies(HasDockerfile, ToDefaultBranch)
+        whenPushSatisfies(HasDockerfile, ToDefaultBranch, not(ZeroCommitPushTest))
             .setGoals(k8sDeployGoals)));
 
     sdm.addCommand<{ color: string }>({

@@ -20,6 +20,8 @@ import {
     PushTest,
 } from "@atomist/sdm";
 
+export const ZeroCommitPushTest = pushTest("zero-commits", async pi => pi.push.commits.length === 0);
+
 export function isNamed(...names: string[]): PushTest {
     return pushTest(`Project name is one of these '${names.join(", ")}'`, async pci => {
         if (names.includes(pci.project.name)) {

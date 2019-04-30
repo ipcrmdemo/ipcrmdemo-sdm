@@ -1,11 +1,11 @@
 // Fingerprint Compliance
 import {
-  allSatisfied,
+  allSatisfied, GoalProjectListener,
   GoalProjectListenerEvent,
   GoalWithFulfillment,
   LogSuppressor,
   SdmGoalState,
-  SoftwareDeliveryMachine
+  SoftwareDeliveryMachine,
 } from "@atomist/sdm";
 import {
   IsMaven,
@@ -13,7 +13,7 @@ import {
   MavenDefaultOptions,
   MavenProjectVersioner,
   MvnPackage,
-  MvnVersion
+  MvnVersion,
 } from "@atomist/sdm-pack-spring";
 import { CloudFoundryDeploy, CloudFoundryDeploymentStrategy } from "@atomist/sdm-pack-cloudfoundry";
 import { DockerBuild, HasDockerfile } from "@atomist/sdm-pack-docker";
@@ -24,7 +24,7 @@ import {
   NodeProjectVersioner,
   NpmCompileProjectListener,
   NpmProgressReporter,
-  NpmVersionProjectListener
+  NpmVersionProjectListener,
 } from "@atomist/sdm-pack-node";
 import { Version } from "@atomist/sdm-core";
 import { Build } from "@atomist/sdm-pack-build";
@@ -33,6 +33,48 @@ import { hasJenkinsfile } from "../support/preChecks";
 import * as fs from "fs";
 import { buttonForCommand, logger, QueryNoCacheOptions } from "@atomist/automation-client";
 import { GetPrByOwnerNameSourceBranch } from "../typings/types";
+
+export const openPrListener: GoalProjectListener = async (p, r, event1) => {
+  logger.debug(`openPrButton => Listener fired`);
+  const pr = await r.context.graphClient
+    .query<GetPrByOwnerNameSourceBranch.Query, GetPrByOwnerNameSourceBranch.Variables>({
+      name: "GetPrByOwnerNameSourceBranch",
+      variables: {
+        name: r.goalEvent.repo.name,
+        owner: r.goalEvent.repo.owner,
+        sourceBranch: r.goalEvent.branch,
+      },
+      options: QueryNoCacheOptions,
+    });
+
+  if (event1 === GoalProjectListenerEvent.after && p.branch !== "master" && pr.PullRequest.length === 0) {
+    logger.debug(`openPrButton => Branch wasn't master and after build`);
+    if (r.goalEvent.state !== SdmGoalState.failure) {
+      logger.debug(`openPrButton => Running raise PR logic`);
+      // Create a raise PR button
+      await r.addressChannels({
+        attachments: [
+          {
+            pretext: `Open new PR for branch ${p.branch}?`,
+            fallback: `Open new PR for branch ${p.branch}?`,
+            actions: [
+              buttonForCommand({text: "Raise PR"}, "RaisePrForBranch",
+                {
+                  name: r.goalEvent.repo.name,
+                  owner: r.goalEvent.repo.owner,
+                  branch: p.branch,
+                  sha: r.goalEvent.push.after.sha }),
+            ],
+          },
+        ],
+      }, {
+        id:
+          `openPR/${r.goalEvent.repo.owner}/${r.goalEvent.repo.name}/` +
+          `${p.branch}/master/${r.goalEvent.push.after.sha }`,
+      });
+    }
+  }
+};
 
 /**
  * Goals
@@ -58,37 +100,7 @@ export const mavenBuild = new Build()
     })
   .withProjectListener({
     name: "openPrButton",
-    listener: async (p, r, event1) => {
-      const pr = await r.context.graphClient
-        .query<GetPrByOwnerNameSourceBranch.Query, GetPrByOwnerNameSourceBranch.Variables>({
-          name: "GetPrByOwnerNameSourceBranch",
-          variables: {
-            name: r.goalEvent.repo.name,
-            owner: r.goalEvent.repo.owner,
-            sourceBranch: p.branch,
-          },
-          options: QueryNoCacheOptions,
-        });
-      logger.debug(`openPrButton => Listener fired`);
-      if (event1 === GoalProjectListenerEvent.after && p.branch !== "master" && pr.PullRequest.length === 0 ) {
-        logger.debug(`openPrButton => Branch wasn't master and after build`);
-        if (r.goalEvent.state === SdmGoalState.success) {
-          // Create a raise PR button
-          await r.addressChannels({
-            attachments: [
-              {
-                pretext: `Open new PR for branch ${p.branch}?`,
-                fallback: `Open new PR for branch ${p.branch}?`,
-                actions: [
-                  buttonForCommand({text: "Raise PR"}, "RaisePrForBranch",
-                    {name: r.goalEvent.repo.name, owner: r.goalEvent.repo.owner, branch: p.branch }),
-                ],
-              },
-            ],
-          });
-        }
-      }
-    },
+    listener: openPrListener,
   });
 
 // Builds
@@ -170,38 +182,9 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
       pushTest: IsNode,
     })
     .withProjectListener({
-        name: "openPrButton",
-        listener: async (p, r, event1) => {
-          logger.debug(`openPrButton => Listener fired`);
-          if (event1 === GoalProjectListenerEvent.after && p.branch !== "master") {
-            logger.debug(`openPrButton => Branch wasn't master and after build`);
-            if (r.goalEvent.state !== SdmGoalState.failure) {
-              logger.debug(`openPrButton => Running raise PR logic`);
-              // Create a raise PR button
-              await r.addressChannels({
-                attachments: [
-                  {
-                    pretext: `Open new PR for branch ${p.branch}?`,
-                    fallback: `Open new PR for branch ${p.branch}?`,
-                    actions: [
-                      buttonForCommand({text: "Raise PR"}, "RaisePrForBranch",
-                        {
-                          name: r.goalEvent.repo.name,
-                          owner: r.goalEvent.repo.owner,
-                          branch: p.branch,
-                          sha: r.goalEvent.push.after.sha }),
-                    ],
-                  },
-                ],
-              }, {
-                id:
-                  `openPR/${r.goalEvent.repo.owner}/${r.goalEvent.repo.name}/` +
-                  `${p.branch}/master/${r.goalEvent.push.after.sha }`,
-              });
-            }
-          }
-        },
-      });
+      name: "openPrButton",
+      listener: openPrListener,
+    });
 
   externalBuild
     .with({
@@ -218,3 +201,4 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
 
   return sdm;
 }
+

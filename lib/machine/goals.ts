@@ -179,13 +179,13 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
 
   k8sStagingDeploy
     .with({
-      name: "@atomist/k8s-sdm_gke-cluster-1",
+      name: "@atomist/k8s-sdm_kubernetes",
       applicationData: k8sCallback,
     });
 
   k8sProductionDeploy
     .with({
-      name: "@atomist/k8s-sdm_gke-cluster-1",
+      name: "@atomist/k8s-sdm_kubernetes",
       applicationData: k8sCallback,
     });
 

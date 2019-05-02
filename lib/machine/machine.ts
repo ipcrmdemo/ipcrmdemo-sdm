@@ -17,7 +17,7 @@
 // import { sonarQubeSupport, SonarScan } from "@atomist/sdm-pack-sonarqube";
 import {
     editModes,
-    GitHubRepoRef, GraphQL, logger,
+    GitHubRepoRef, GraphQL,
 } from "@atomist/automation-client";
 import {
     AutoMergeMethod,
@@ -25,12 +25,12 @@ import {
 } from "@atomist/automation-client/lib/operations/edit/editModes";
 import {
     AutoCodeInspection,
-    Autofix, Cancel, chooseAndSetGoals,
+    Autofix, Cancel,
     Fingerprint,
     goalContributors,
     goals,
     not,
-    onAnyPush, PreferenceScope,
+    PreferenceScope,
     PushImpact, Queue,
     SoftwareDeliveryMachine,
     SoftwareDeliveryMachineConfiguration,
@@ -41,8 +41,8 @@ import {
     createSoftwareDeliveryMachine,
     DisableDeploy,
     DisplayDeployEnablement,
-    EnableDeploy, fetchBranchTips,
-    goalState, isConfiguredInEnv
+    EnableDeploy,
+    goalState, isConfiguredInEnv,
 } from "@atomist/sdm-core";
 import {
     Artifact,
@@ -124,9 +124,14 @@ import { onScRequestEvent } from "../events/onScRequest";
 import { requestNewEmail } from "../support/requestEmail";
 import { ChannelMappingFirstPushListener } from "../events/onRepoCreation";
 import { BbPRReviewListener, HasPlugin, SpotbugsSecurityReview } from "../inspections/spotbugs";
-import { fetchPushForCommit } from "@atomist/sdm-core/lib/util/graph/queryCommits";
 import { raisePrForBranchReg } from "../support/bbPr";
 import { ZeroCommitPushTest } from "../support/pushTests";
+import { bitbucketAutoMergeSupport } from "@atomist/sdm-pack-rcca-bitbucket";
+import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
+import {
+    jiraCreateProjectBranchReg,
+    jiraFindAndAssignReg,
+} from "@ipcrmdemo/sdm-pack-jira/lib/support/commands/findAndAssign";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -158,6 +163,8 @@ export function machine(
         .addCommand(DisplayDeployEnablement)
         .addCommand(requestNewEmail)
         .addCommand(raisePrForBranchReg)
+        .addCommand(jiraFindAndAssignReg)
+        .addCommand(jiraCreateProjectBranchReg)
         .addCodeTransformCommand(AddDockerFile)
         .addCodeTransformCommand(AddJenkinsfileRegistration)
         .addCodeTransformCommand(UpdateDockerfileMaintainer)
@@ -182,36 +189,36 @@ export function machine(
 
       // .withListener(SlackFormattedReviewListener);
 
-    sdm.addPullRequestListener(async prl => {
-        logger.debug(`PR Goal Setter fired`);
-        const repo = await fetchBranchTips(
-          prl.context,
-          {
-              repo: prl.pullRequest.repo.name,
-              owner: prl.pullRequest.repo.owner,
-              providerId: prl.pullRequest.repo.org.provider.providerId,
-          },
-        );
-        const id = GitHubRepoRef.from({
-            owner: prl.pullRequest.repo.owner,
-            repo: prl.pullRequest.repo.name,
-            branch: prl.pullRequest.branch.name,
-            sha: repo.branches.filter(b => b.name === prl.pullRequest.branch.name)[0].commit.sha,
-        });
-
-        const push = await fetchPushForCommit(prl.context, id, repo.org.provider.providerId);
-        await chooseAndSetGoals({
-            projectLoader: sdm.configuration.sdm.projectLoader,
-            repoRefResolver: sdm.configuration.sdm.repoRefResolver,
-            goalsListeners: [...sdm.goalsSetListeners],
-            goalSetter: onAnyPush().setGoals(goals("code-inspection").plan(codeInspection)),
-            implementationMapping: sdm.goalFulfillmentMapper,
-        }, {
-            context: prl.context,
-            credentials: prl.credentials,
-            push,
-        });
-    });
+    // sdm.addPullRequestListener(async prl => {
+    //     logger.debug(`PR Goal Setter fired`);
+    //     const repo = await fetchBranchTips(
+    //       prl.context,
+    //       {
+    //           repo: prl.pullRequest.repo.name,
+    //           owner: prl.pullRequest.repo.owner,
+    //           providerId: prl.pullRequest.repo.org.provider.providerId,
+    //       },
+    //     );
+    //     const id = GitHubRepoRef.from({
+    //         owner: prl.pullRequest.repo.owner,
+    //         repo: prl.pullRequest.repo.name,
+    //         branch: prl.pullRequest.branch.name,
+    //         sha: repo.branches.filter(b => b.name === prl.pullRequest.branch.name)[0].commit.sha,
+    //     });
+    //
+    //     const push = await fetchPushForCommit(prl.context, id, repo.org.provider.providerId);
+    //     await chooseAndSetGoals({
+    //         projectLoader: sdm.configuration.sdm.projectLoader,
+    //         repoRefResolver: sdm.configuration.sdm.repoRefResolver,
+    //         goalsListeners: [...sdm.goalsSetListeners],
+    //         goalSetter: onAnyPush().setGoals(goals("code-inspection").plan(codeInspection)),
+    //         implementationMapping: sdm.goalFulfillmentMapper,
+    //     }, {
+    //         context: prl.context,
+    //         credentials: prl.credentials,
+    //         push,
+    //     });
+    // });
 
     // Autofix
     const autofix = new Autofix()
@@ -231,6 +238,8 @@ export function machine(
      * Ext Pack setup
      */
     sdm.addExtensionPacks(
+        jiraSupport(),
+        bitbucketAutoMergeSupport(),
         springSupport({
             review: {
                 springStyle: true,

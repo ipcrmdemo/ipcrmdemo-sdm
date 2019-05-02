@@ -227,7 +227,7 @@ export const BbPRReviewListener: ReviewListenerRegistration = {
   },
 };
 
-function usernameColonPassword(): { Authorization: string } | {} {
+export function usernameColonPassword(): { Authorization: string } | {} {
   const creds = bitBucketCredentials();
   if (isBasicAuthCredentials(creds)) {
     return {

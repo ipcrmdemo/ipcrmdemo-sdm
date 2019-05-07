@@ -98,7 +98,7 @@ import {
   addImplementation,
   cfDeployment,
   cfDeploymentStaging,
-  dockerBuild, externalBuild, k8sProductionDeploy, k8sStagingDeploy,
+  dockerBuild, dotNetBuild, dotNetVersion, externalBuild, k8sProductionDeploy, k8sStagingDeploy,
   mavenBuild,
   mavenVersion,
   nodeBuild,
@@ -108,6 +108,10 @@ import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
 import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
 import { TsLintAutofix } from "../transform/tsLintAutofix";
+import { isDotNetCore, SimpleDotNetCoreWebApplication } from "../support/dotnet/support";
+import {
+  DotnetCoreProjectFileCodeTransform,
+} from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -274,6 +278,16 @@ export function machine(
             ],
         });
 
+    sdm.addGeneratorCommand({
+      name: "dotnet-example-generator",
+      startingPoint: new GitHubRepoRef("atomist-seeds", "dotnet-core-service"),
+      intent: "create dotnetcore",
+      transform: [
+        SimpleDotNetCoreWebApplication,
+        DotnetCoreProjectFileCodeTransform,
+      ],
+    });
+
     /**
      * Goals Definition
      */
@@ -288,11 +302,18 @@ export function machine(
 
     // Maven
     const MavenBaseGoals = goals("maven-base")
-        .plan(mavenVersion, mavenBuild).after(ComplianceGoals, GlobalGoals);
+      .plan(mavenVersion)
+      .plan(mavenBuild).after(mavenVersion, ComplianceGoals, GlobalGoals);
 
     // Node
     const NodeBaseGoals = goals("node-base")
-        .plan(nodeVersion, nodeBuild).after(ComplianceGoals, GlobalGoals);
+      .plan(nodeVersion)
+      .plan(nodeVersion, nodeBuild).after(ComplianceGoals, GlobalGoals);
+
+    // DotNet
+    const DotNetBasegoals = goals("dotnet-base")
+      .plan(dotNetVersion)
+      .plan(dotNetBuild).after(dotNetVersion, ComplianceGoals, GlobalGoals);
 
     // K8s
     const k8sDeployGoals = goals("deploy")
@@ -323,13 +344,16 @@ export function machine(
         whenPushSatisfies(IsNode, npmHasBuildScript, not(hasJenkinsfile))
             .setGoals(NodeBaseGoals),
 
+        whenPushSatisfies(isDotNetCore, not(hasJenkinsfile))
+            .setGoals(DotNetBasegoals),
+
         whenPushSatisfies(IsMaven, hasJenkinsfile)
             .setGoals(goals("maven-external").plan(mavenVersion, externalBuild).after(GlobalGoals)),
 
         whenPushSatisfies(HasDockerfile)
             .setGoals(
                 goals("docker-build")
-                    .plan(dockerBuild).after(mavenBuild, nodeBuild, externalBuild),
+                    .plan(dockerBuild).after(mavenBuild, nodeBuild, externalBuild, dotNetBuild),
             ),
 
         whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch)

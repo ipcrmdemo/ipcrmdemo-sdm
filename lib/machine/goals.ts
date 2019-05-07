@@ -29,6 +29,12 @@ import { hasJenkinsfile } from "../support/preChecks";
 import * as fs from "fs";
 import * as _ from "lodash";
 import { ApplicationDataCallback } from "@atomist/sdm-pack-k8s/lib/deploy/goal";
+import {
+  dotnetCoreBuilder,
+  DotnetCoreProjectVersioner,
+  DotnetCoreVersionProjectListener
+} from "@atomist/sdm-pack-analysis-dotnet";
+import { isDotNetCore } from "../support/dotnet/support";
 
 /**
  * Goals
@@ -43,6 +49,7 @@ export const fingerprintComplianceGoal = new GoalWithFulfillment(
 // Version-ers
 export const mavenVersion = new Version().withVersioner(MavenProjectVersioner);
 export const nodeVersion = new Version().withVersioner(NodeProjectVersioner);
+export const dotNetVersion = new Version().withVersioner(DotnetCoreProjectVersioner);
 
 // Builds
 export const mavenBuild = new Build()
@@ -53,10 +60,10 @@ export const mavenBuild = new Build()
         pushTest: MavenDefaultOptions.pushTest,
     });
 
-// Builds
 export const externalBuild = new Build();
 export const nodeBuild = new Build();
 export const dockerBuild = new DockerBuild();
+export const dotNetBuild = new Build({ displayName: "dotnet build" })
 
 // Kubernetes Deploys
 export const k8sStagingDeploy = new KubernetesDeploy({ environment: "testing", approval: true });
@@ -120,6 +127,14 @@ const k8sCallback: ApplicationDataCallback = async (a, p, g, e) => {
  * @param sdm
  */
 export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliveryMachine {
+  dotNetBuild
+    .with({
+      logInterpreter: LogSuppressor,
+      name: "dotnet-build",
+      builder: dotnetCoreBuilder(),
+    })
+    .withProjectListener(DotnetCoreVersionProjectListener);
+
   dockerBuild
     .with({
         options: {
@@ -132,13 +147,18 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
         .withProjectListener(MvnVersion)
         .withProjectListener(MvnPackage)
 
-        .with({
-          options: { push: true, ...sdm.configuration.sdm.dockerinfo },
-          pushTest: allSatisfied(IsNode, HasDockerfile),
-        })
+    .with({
+        options: { push: true, ...sdm.configuration.sdm.dockerinfo },
+        pushTest: allSatisfied(IsNode, HasDockerfile),
+      })
         .withProjectListener(NodeModulesProjectListener)
         .withProjectListener(NpmCompileProjectListener)
-        .withProjectListener(NpmVersionProjectListener);
+        .withProjectListener(NpmVersionProjectListener)
+
+    .with({
+      options: { push: true, ...sdm.configuration.sdm.dockerinfo },
+      pushTest: allSatisfied(isDotNetCore, HasDockerfile),
+    });
 
   cfDeployment
     .with({ environment: "production", strategy: CloudFoundryDeploymentStrategy.API });

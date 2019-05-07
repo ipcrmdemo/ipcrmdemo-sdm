@@ -264,10 +264,10 @@ export function machine(
         pushTest: HasDockerfile,
         region: "us-east-1",
         credentialLookup: metadataAwsCreds,
-        // roleDetail: {
-        //   RoleArn: "arn:aws:iam::247672886355:role/test_ecs_role",
-        //   RoleSessionName: "ecs_example",
-        // },
+        roleDetail: {
+          RoleArn: "arn:aws:iam::247672886355:role/test_ecs_role",
+          RoleSessionName: "ecs_example",
+        },
       });
 
     const ecsDeployGoals = goals("deploy")

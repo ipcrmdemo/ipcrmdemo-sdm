@@ -33,7 +33,7 @@
     "@atomist/sdm-pack-changelog": "1.0.2-master.20181210135742",
     "@atomist/sdm-pack-cloudfoundry": "1.0.2",
     "@atomist/sdm-pack-docker": "1.1.0-master.20190213113315",
-    "@atomist/sdm-pack-ecs": "0.0.2-ipcrm-metadata-creds.20190508145246",
+    "@atomist/sdm-pack-ecs": "0.0.2-ipcrm-metadata-creds.20190508153838",
     "@atomist/sdm-pack-fingerprints": "2.0.2-master.20190329005645",
     "@atomist/sdm-pack-issue": "1.1.1-master.20181213113748",
     "@atomist/sdm-pack-k8s": "^1.4.1",

@@ -20,7 +20,7 @@ import {
   nodeBuilder,
   NodeModulesProjectListener,
   NodeProjectVersioner, NpmCompileProjectListener, NpmProgressReporter,
-  NpmVersionProjectListener,
+  // NpmVersionProjectListener,
 } from "@atomist/sdm-pack-node";
 import { Version } from "@atomist/sdm-core";
 import { Build } from "@atomist/sdm-pack-build";
@@ -136,7 +136,7 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
         })
         .withProjectListener(NodeModulesProjectListener)
         .withProjectListener(NpmCompileProjectListener)
-        .withProjectListener(NpmVersionProjectListener);
+        // .withProjectListener(NpmVersionProjectListener);
 
   cfDeploymentStaging
     .with({ environment: "staging", strategy: CloudFoundryDeploymentStrategy.API });

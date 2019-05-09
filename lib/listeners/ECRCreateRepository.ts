@@ -21,7 +21,7 @@ export const ECRCreateRepository: GoalProjectListenerRegistration = {
       );
 
       // Get all the existing repos
-      const repos: Array<{repositoryName: string}> = _.get(result.stdout, "repositories");
+      const repos: Array<{repositoryName: string}> = _.get(result.output, "repositories");
       const names = repos.map(repo => repo.repositoryName);
 
       // If our project name doesn't have a repo, create one

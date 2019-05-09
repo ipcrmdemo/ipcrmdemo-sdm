@@ -112,6 +112,7 @@ import { isDotNetCore, SimpleDotNetCoreWebApplication } from "../support/dotnet/
 import {
   DotnetCoreProjectFileCodeTransform,
 } from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
+import { replaceSeedSlug } from "../transform/updateRepoSlug";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -244,6 +245,7 @@ export function machine(
                 SetAtomistTeamInApplicationYml,
                 ...TransformMavenSpringBootSeedToCustomProject,
                 AddFinalNameToPom,
+                replaceSeedSlug,
                 async (p, pi) => {
                   const channel = pi.context.source.slack.channel.id;
                   const team = pi.context.source.slack.team.id;
@@ -265,6 +267,7 @@ export function machine(
                 SetAtomistTeamInApplicationYml,
                 ...TransformMavenSpringBootSeedToCustomProject,
                 AddFinalNameToPom,
+                replaceSeedSlug,
             ],
         });
     sdm.addGeneratorCommand({

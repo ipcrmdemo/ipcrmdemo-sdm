@@ -288,6 +288,7 @@ export function machine(
       transform: [
         SimpleDotNetCoreWebApplication,
         DotnetCoreProjectFileCodeTransform,
+        replaceSeedSlug,
       ],
     });
 

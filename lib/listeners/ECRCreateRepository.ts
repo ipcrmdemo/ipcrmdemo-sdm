@@ -1,4 +1,4 @@
-import { GoalProjectListenerRegistration, spawnLog } from "@atomist/sdm";
+import { execPromise, GoalProjectListenerRegistration, spawnLog } from "@atomist/sdm";
 import { configurationValue } from "@atomist/automation-client";
 import * as _ from "lodash";
 
@@ -11,17 +11,16 @@ export const ECRCreateRepository: GoalProjectListenerRegistration = {
   name: "ECRCreateRepository",
   listener: async (p, r, event1) => {
     if (event1 === "before") {
-      const result = await spawnLog(
+      const result = await execPromise(
        "aws",
        ["ecr", "describe-repositories", `--region=${configurationValue<string>("sdm.aws.region")}`],
         {
           cwd: p.baseDir,
-          log: r.progressLog,
         },
       );
 
       // Get all the existing repos
-      const repos: Array<{repositoryName: string}> = _.get(JSON.parse(result.output.join("")), "repositories");
+      const repos: Array<{repositoryName: string}> = _.get(JSON.parse(result.stdout), "repositories");
       const names = repos.map(repo => repo.repositoryName);
 
       // If our project name doesn't have a repo, create one

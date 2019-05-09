@@ -27,6 +27,7 @@ import { Build } from "@atomist/sdm-pack-build";
 import { KubernetesDeploy } from "@atomist/sdm-pack-k8s";
 import { hasJenkinsfile } from "../support/preChecks";
 import * as fs from "fs";
+import { ECRCreateRepository } from "../listeners/ECRCreateRepository";
 
 /**
  * Goals
@@ -134,6 +135,7 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
           options: { push: true, ...sdm.configuration.sdm.dockerinfo },
           pushTest: allSatisfied(IsNode, HasDockerfile),
         })
+        .withProjectListener(ECRCreateRepository)
         .withProjectListener(NodeModulesProjectListener)
         .withProjectListener(NpmCompileProjectListener)
         // .withProjectListener(NpmVersionProjectListener);

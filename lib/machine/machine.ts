@@ -263,7 +263,7 @@ export function machine(
       .with({
         pushTest: HasDockerfile,
         region: "us-east-1",
-        credentialLookup: metadataAwsCreds,
+        // credentialLookup: metadataAwsCreds,
         roleDetail: {
           RoleArn: "arn:aws:iam::247672886355:role/test_ecs_role",
           RoleSessionName: "ecs_example",

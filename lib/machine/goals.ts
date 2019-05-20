@@ -27,7 +27,7 @@ import { Build } from "@atomist/sdm-pack-build";
 import { KubernetesDeploy } from "@atomist/sdm-pack-k8s";
 import { hasJenkinsfile } from "../support/preChecks";
 import * as fs from "fs";
-import { ECRCreateRepository } from "../listeners/ECRCreateRepository";
+// import { ECRCreateRepository } from "../listeners/ECRCreateRepository";
 
 /**
  * Goals
@@ -120,25 +120,25 @@ export const cfDeploymentStaging = new CloudFoundryDeploy({
  */
 export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliveryMachine {
   dockerBuild
-    .with({
-        options: {
-          builder: fs.existsSync("/kaniko/executor") ? "kaniko" : "docker",
-          push: true,
-          ...sdm.configuration.sdm.dockerinfo,
-        },
-        pushTest: allSatisfied(IsMaven, HasDockerfile),
-      })
-        .withProjectListener(MvnVersion)
-        .withProjectListener(MvnPackage)
-
-        .with({
-          options: { push: true, ...sdm.configuration.sdm.dockerinfo },
-          pushTest: allSatisfied(IsNode, HasDockerfile),
+      .with({
+          options: {
+            builder: fs.existsSync("/kaniko/executor") ? "kaniko" : "docker",
+            push: true,
+            ...sdm.configuration.sdm.dockerinfo,
+          },
+          pushTest: allSatisfied(IsMaven, HasDockerfile),
         })
-        .withProjectListener(ECRCreateRepository)
-        .withProjectListener(NodeModulesProjectListener)
-        .withProjectListener(NpmCompileProjectListener)
-        // .withProjectListener(NpmVersionProjectListener);
+      .withProjectListener(MvnVersion)
+      .withProjectListener(MvnPackage)
+
+      .with({
+        options: { push: true, ...sdm.configuration.sdm.dockerinfo },
+        pushTest: allSatisfied(IsNode, HasDockerfile),
+      })
+      // .withProjectListener(ECRCreateRepository)
+      .withProjectListener(NodeModulesProjectListener)
+      .withProjectListener(NpmCompileProjectListener);
+      // .withProjectListener(NpmVersionProjectListener);
 
   cfDeploymentStaging
     .with({ environment: "staging", strategy: CloudFoundryDeploymentStrategy.API });

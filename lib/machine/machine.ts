@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import { editModes, GitHubRepoRef } from "@atomist/automation-client";
+import { editModes, GitHubRepoRef, logger } from "@atomist/automation-client";
 import {
   AutoCodeInspection,
   Autofix,
   Fingerprint,
-  goalContributors,
+  goalContributors, GoalProjectListenerEvent,
   goals,
   PreferenceScope,
   PushImpact,
@@ -60,6 +60,7 @@ import {
   k8sSupport,
 } from "@atomist/sdm-pack-k8s";
 import {
+  IsNode,
   NodeProjectCreationParametersDefinition,
   UpdatePackageJsonIdentification,
   UpdateReadmeTitle,
@@ -92,8 +93,11 @@ import {
 import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
 import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
-import { EcsDeploy } from "@atomist/sdm-pack-ecs";
-import { metadataAwsCreds } from "@atomist/sdm-pack-ecs/lib/support/metadataCreds";
+import { EcsDeploy, ecsSupport } from "@atomist/sdm-pack-ecs";
+// import { ECSCreateTargetGroup } from "../listeners/ECSCreateTargetGroup";
+// import { ECSUpdateTargetUrl } from "../listeners/ECSUpdateTargetUrl";
+// import { EC2CreateListenerRule } from "../listeners/EC2CreateListenerRule";
+// import { metadataAwsCreds } from "@atomist/sdm-pack-ecs/lib/support/metadataCreds";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -133,6 +137,7 @@ export function machine(
      * Ext Pack setup
      */
     sdm.addExtensionPacks(
+        ecsSupport(),
         jiraSupport(),
         springSupport({
             review: {
@@ -268,7 +273,22 @@ export function machine(
           RoleArn: "arn:aws:iam::247672886355:role/test_ecs_role",
           RoleSessionName: "ecs_example",
         },
-      });
+      })
+        .withListener({
+          pushTest: IsNode,
+          name: "foo",
+          events: [GoalProjectListenerEvent.before],
+          listener: async (p, r, e, registration) => {
+            logger.debug(`FOO Listener: ${p.name}`);
+            logger.debug(`FOO Listener: ${r.goalEvent.description}`);
+            logger.debug(`FOO Listener: (event) ${e}`);
+            logger.debug(`FOO Listener: (reg) ${registration.serviceRequest.serviceName}`);
+            return {code: 0};
+          },
+        });
+        // .withListener(ECSCreateTargetGroup)
+        // .withListener(EC2CreateListenerRule);
+        // .withListener(ECSUpdateTargetUrl);
 
     const ecsDeployGoals = goals("deploy")
       .plan(ecsDeployProduction).after(dockerBuild);

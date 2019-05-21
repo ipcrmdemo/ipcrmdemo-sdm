@@ -47,6 +47,7 @@ export const IsK8sDeployable: PredicatePushTest = predicatePushTest(
   },
 );
 
+export const ZeroCommitPushTest = pushTest("zero-commits", async pi => pi.push.commits.length === 0);
 export const IsSdmProject: PredicatePushTest = predicatePushTest(
   "IsSdmProject",
   async p => {

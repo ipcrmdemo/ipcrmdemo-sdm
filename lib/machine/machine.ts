@@ -17,7 +17,7 @@
 import { editModes, GitHubRepoRef } from "@atomist/automation-client";
 import {
   AutoCodeInspection,
-  Autofix,
+  Autofix, DoNotSetAnyGoalsAndLock,
   Fingerprint,
   goalContributors,
   goals,
@@ -30,12 +30,12 @@ import {
   whenPushSatisfies,
 } from "@atomist/sdm";
 import {
-    createSoftwareDeliveryMachine,
-    DisableDeploy,
-    DisplayDeployEnablement,
-    EnableDeploy,
-    gitHubGoalStatus,
-    goalState,
+  createSoftwareDeliveryMachine,
+  DisableDeploy,
+  DisplayDeployEnablement,
+  EnableDeploy,
+  githubGoalStatusSupport,
+  goalStateSupport,
 } from "@atomist/sdm-core";
 import {
   buildAwareCodeTransforms,
@@ -120,11 +120,18 @@ import {
   DotnetCoreProjectFileCodeTransform,
 } from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
 import { replaceSeedSlug } from "../transform/updateRepoSlug";
-import { IsEcsDeployable, IsK8sDeployable } from "../support/pushTests";
+import { IsEcsDeployable, IsK8sDeployable, ZeroCommitPushTest } from "../support/pushTests";
 import { SuggestEnableEcsDeploy } from "../support/suggestEnableEcsDeploy";
 import { enableEcsDeployRegistration } from "../transform/enableEcsDeploy";
 import { SuggestEnableK8sDeploy } from "../support/suggestEnableK8sDeploy";
 import { enableK8sDeployRegistration } from "../transform/enableK8sDeploy";
+import {
+  jiraCreateProjectBranchReg,
+  jiraFindAndAssignReg,
+} from "@ipcrmdemo/sdm-pack-jira/lib/support/commands/findAndAssign";
+import { createBugIssueReg } from "@ipcrmdemo/sdm-pack-jira/lib/support/commands/createBugIssue";
+import { JiraApproval } from "@ipcrmdemo/sdm-pack-jira/lib/goals/JiraApproval";
+import { onJiraIssueEventApproval } from "@ipcrmdemo/sdm-pack-jira/lib/event/onJiraIssueEventApproval";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -140,6 +147,9 @@ export function machine(
     sdm.addCommand(EnableDeploy)
         .addCommand(DisableDeploy)
         .addCommand(DisplayDeployEnablement)
+        .addCommand(jiraFindAndAssignReg)
+        .addCommand(jiraCreateProjectBranchReg)
+        .addCommand(createBugIssueReg)
         .addCodeTransformCommand(AddDockerFile)
         .addCodeTransformCommand(AddJenkinsfileRegistration)
         .addCodeTransformCommand(UpdateDockerfileMaintainer)
@@ -151,6 +161,7 @@ export function machine(
     sdm.addChannelLinkListener(SuggestAddingDockerfile);
     sdm.addChannelLinkListener(SuggestEnableEcsDeploy);
     sdm.addChannelLinkListener(SuggestEnableK8sDeploy);
+    sdm.addEvent(onJiraIssueEventApproval(JiraApproval));
 
     /**
      * Generic Goals
@@ -194,8 +205,8 @@ export function machine(
         CloudFoundrySupport({
             pushImpactGoal: pushImpact,
         }),
-        gitHubGoalStatus(),
-        goalState(),
+        githubGoalStatusSupport(),
+        goalStateSupport(),
         changelogSupport(),
         issueSupport(),
         fingerprintSupport({
@@ -337,7 +348,8 @@ export function machine(
 
     // K8s
     const k8sDeployGoals = goals("deploy")
-      .plan(k8sStagingDeploy).after(dockerBuild)
+      .plan(JiraApproval)
+      .plan(k8sStagingDeploy).after(dockerBuild, JiraApproval)
       .plan(k8sProductionDeploy).after(k8sStagingDeploy);
 
     // CF Deployment
@@ -354,6 +366,8 @@ export function machine(
      * Configure Push rules
      */
     sdm.addGoalContributions(goalContributors(
+        whenPushSatisfies(ZeroCommitPushTest).setGoals(DoNotSetAnyGoalsAndLock),
+
         whenPushSatisfies(IsNode, hasTsLintConfig, hasTsConfig)
           .setGoals(goals("node-autofix").plan(tsLint)),
 

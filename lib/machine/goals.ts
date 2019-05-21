@@ -32,7 +32,7 @@ import { ApplicationDataCallback } from "@atomist/sdm-pack-k8s/lib/deploy/goal";
 import {
   dotnetCoreBuilder,
   DotnetCoreProjectVersioner,
-  DotnetCoreVersionProjectListener
+  DotnetCoreVersionProjectListener,
 } from "@atomist/sdm-pack-analysis-dotnet";
 import { isDotNetCore } from "../support/dotnet/support";
 import { EcsDeploy } from "@atomist/sdm-pack-ecs";
@@ -72,8 +72,25 @@ export const k8sStagingDeploy = new KubernetesDeploy({ environment: "testing", a
 export const k8sProductionDeploy = new KubernetesDeploy({ environment: "production" });
 
 // ECS Deployment
-export const ecsDeployStaging = new EcsDeploy({ displayName: "ECS Deploy Staging", approval: true});
-export const ecsDeployProd = new EcsDeploy({ displayName: "ECS Deploy Prod"});
+export const ecsDeployStaging = new EcsDeploy({
+  displayName: "ECS Deploy Staging",
+  approval: true,
+  uniqueName: "ecsDeployStaging",
+  environment: "staging",
+  descriptions: {
+    inProcess: "Deploying to ECS `staging`",
+    completed: "Deploy to ECS `staging`",
+  },
+});
+export const ecsDeployProd = new EcsDeploy({
+  displayName: "ECS Deploy Prod",
+  uniqueName: "ecsDeployProd",
+  environment: "production",
+  descriptions: {
+    inProcess: "Deploying to ECS `prod`",
+    completed: "Deploy to ECS `prod`",
+  },
+});
 
 // CF Deployment
 export const cfDeployment = new CloudFoundryDeploy({

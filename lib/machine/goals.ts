@@ -35,6 +35,8 @@ import {
   DotnetCoreVersionProjectListener
 } from "@atomist/sdm-pack-analysis-dotnet";
 import { isDotNetCore } from "../support/dotnet/support";
+import { EcsDeploy } from "@atomist/sdm-pack-ecs";
+import { IsEcsDeployable } from "../support/pushTests";
 
 /**
  * Goals
@@ -68,6 +70,10 @@ export const dotNetBuild = new Build({ displayName: "dotnet build" })
 // Kubernetes Deploys
 export const k8sStagingDeploy = new KubernetesDeploy({ environment: "testing", approval: true });
 export const k8sProductionDeploy = new KubernetesDeploy({ environment: "production" });
+
+// ECS Deployment
+export const ecsDeployStaging = new EcsDeploy({ displayName: "ECS Deploy Staging", approval: true});
+export const ecsDeployProd = new EcsDeploy({ displayName: "ECS Deploy Prod"});
 
 // CF Deployment
 export const cfDeployment = new CloudFoundryDeploy({
@@ -127,6 +133,33 @@ const k8sCallback: ApplicationDataCallback = async (a, p, g, e) => {
  * @param sdm
  */
 export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliveryMachine {
+  /**
+   * Builds
+   */
+  nodeBuild
+    .with({
+      logInterpreter: LogSuppressor,
+      progressReporter: NpmProgressReporter,
+      name: "node-run-build",
+      builder: nodeBuilder(
+        {
+          command: "npm",
+          args: ["install"],
+        },
+        {
+          command: "npm",
+          args: ["run", "build"],
+        },
+      ),
+      pushTest: IsNode,
+    });
+
+  externalBuild
+    .with({
+      externalTool: "jenkins",
+      pushTest: hasJenkinsfile,
+    });
+
   dotNetBuild
     .with({
       logInterpreter: LogSuppressor,
@@ -160,42 +193,40 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
       pushTest: allSatisfied(isDotNetCore, HasDockerfile),
     });
 
+  /**
+   * Deployments
+   */
   cfDeployment
     .with({ environment: "production", strategy: CloudFoundryDeploymentStrategy.API });
 
   cfDeploymentStaging
     .with({ environment: "staging", strategy: CloudFoundryDeploymentStrategy.API });
 
-  nodeBuild
+  ecsDeployProd
     .with({
-      logInterpreter: LogSuppressor,
-      progressReporter: NpmProgressReporter,
-      name: "node-run-build",
-      builder: nodeBuilder(
-        {
-          command: "npm",
-          args: ["install"],
-        },
-        {
-          command: "npm",
-          args: ["run", "build"],
-        },
-      ),
-      pushTest: IsNode,
-    });
-
-  externalBuild
-    .with({
-        externalTool: "jenkins",
-        pushTest: hasJenkinsfile,
-    });
-
-  fingerprintComplianceGoal
-    .with(
-      {
-        name: "fingerprint-compliance-waiting",
+      region: "us-east-1",
+      pushTest: allSatisfied(IsEcsDeployable, HasDockerfile),
+      serviceRequest: {
+        cluster: "fooecs2", // EC2 Cluster
       },
-    );
+      roleDetail: {
+        RoleArn: "arn:aws:iam::247672886355:role/test_ecs_role",
+        RoleSessionName: "ecs_example",
+      },
+    });
+
+  ecsDeployStaging
+    .with({
+      region: "us-east-1",
+      pushTest: allSatisfied(IsEcsDeployable, HasDockerfile),
+      serviceRequest: {
+        cluster: "foo", // FARGATE Cluster
+      },
+      roleDetail: {
+        RoleArn: "arn:aws:iam::247672886355:role/test_ecs_role",
+        RoleSessionName: "ecs_example",
+      },
+    });
 
   k8sStagingDeploy
     .with({
@@ -208,6 +239,13 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
       name: "@atomist/k8s-sdm_kubernetes",
       applicationData: k8sCallback,
     });
+
+  fingerprintComplianceGoal
+    .with(
+      {
+        name: "fingerprint-compliance-waiting",
+      },
+    );
 
   return sdm;
 }

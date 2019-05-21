@@ -16,9 +16,58 @@
 
 import { logger } from "@atomist/automation-client";
 import {
-    pushTest,
-    PushTest,
+  predicatePushTest,
+  PredicatePushTest,
+  pushTest,
+  PushTest,
 } from "@atomist/sdm";
+
+export const IsEcsDeployable: PredicatePushTest = predicatePushTest(
+  "IsEcsDeployable",
+  async p => {
+    const td = await p.hasFile(".atomist/ecs/task-definition.json") ?
+      (await p.getFile(".atomist/ecs/task-definition.json")).getContent() :
+      undefined;
+
+    const sd = await p.hasFile(".atomist/ecs/service.json") ?
+      (await p.getFile(".atomist/ecs/service.json")).getContent() :
+      undefined;
+
+    return !!(td || sd);
+  },
+);
+
+export const IsK8sDeployable: PredicatePushTest = predicatePushTest(
+  "IsK8sDeployable",
+  async p => {
+    return !!(
+      await p.hasFile(".atomist/kubernetes/deployment.json") ||
+      await p.hasFile(".atomist/kubernetes/deployment.yaml")
+    );
+  },
+);
+
+export const IsSdmProject: PredicatePushTest = predicatePushTest(
+  "IsSdmProject",
+  async p => {
+
+      const hasPackageJson = await p.hasFile("package.json");
+      if (!hasPackageJson) {
+          return false;
+      }
+      const packageJson = await p.getFile("package.json");
+      const packageDetails = await packageJson.getContent();
+      const parsed = JSON.parse(packageDetails);
+      const deps = {
+          ...parsed.dependencies,
+          ...parsed.devDependencies,
+      };
+      const sdm = deps.hasOwnProperty("@atomist/sdm");
+      const sdmLocal = deps.hasOwnProperty("@atomist/sdm-local");
+
+      return !!(sdm || sdmLocal);
+  },
+);
 
 export function isNamed(...names: string[]): PushTest {
     return pushTest(`Project name is one of these '${names.join(", ")}'`, async pci => {

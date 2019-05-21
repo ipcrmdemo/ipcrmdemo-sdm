@@ -13,35 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import { NoParameters } from "@atomist/automation-client";
 import {
-    AutofixRegistration,
     CodeTransform,
     CodeTransformRegistration,
 } from "@atomist/sdm";
 import { PullRequest } from "@atomist/automation-client/lib/operations/edit/editModes";
 import { addDockerfileIfMissing } from "./shared/createDockerfile";
 
-export const AddDockerfileTransform: CodeTransform<NoParameters> = async (p, inv) => {
-    return addDockerfileIfMissing(p, inv);
+export const enableK8sDeploy: CodeTransform<NoParameters> = async (p, inv) => {
+    await addDockerfileIfMissing(p, inv);
+    await p.addDirectory(".atomist");
+    await p.addDirectory(".atomist/kubernetes");
+    await p.addFile(".atomist/kubernetes/deployment.json", "{}");
+    return p;
 };
-
 const AtomistGeneratedMarker = "[atomist:generated]";
-const AddDockerfileMarker = "[atomist:add-dockerfile-manifest]";
-export const AddDockerFile: CodeTransformRegistration = {
-    transform: AddDockerfileTransform,
-    name: "AddDockerFileTransform",
-    intent: "Add Dockerfile",
-    transformPresentation: () => new PullRequest(
-        `add-dockerfile-${Date.now()}`,
-        "Add a dockerfile",
-        `Adding a dockerfile to enable build/deployment in container format.
-    ${AtomistGeneratedMarker}`,
-        `Add Dockerfile
-${AddDockerfileMarker}`),
-};
+const AddDockerfileMarker = "[atomist:add-k8s-details]";
 
-export const AddDockerfileAutofix: AutofixRegistration<NoParameters> = {
-    name: "Dockerfile",
-    transform: AddDockerfileTransform,
+export const enableK8sDeployRegistration: CodeTransformRegistration = {
+    transform: enableK8sDeploy,
+    name: "EnableK8sDeploy",
+    intent: "Enable K8s Deployment",
+    transformPresentation: () => new PullRequest(
+        `enable-k8s-deploy-${Date.now()}`,
+        "Enable K8s deployment",
+        `Adding a dockerfile and empty K8s deployment spec file
+    ${AtomistGeneratedMarker}`,
+        `Add K8s Deployment info
+${AddDockerfileMarker}`),
 };

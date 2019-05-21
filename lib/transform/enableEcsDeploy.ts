@@ -13,35 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import { NoParameters } from "@atomist/automation-client";
 import {
-    AutofixRegistration,
     CodeTransform,
     CodeTransformRegistration,
 } from "@atomist/sdm";
 import { PullRequest } from "@atomist/automation-client/lib/operations/edit/editModes";
 import { addDockerfileIfMissing } from "./shared/createDockerfile";
 
-export const AddDockerfileTransform: CodeTransform<NoParameters> = async (p, inv) => {
-    return addDockerfileIfMissing(p, inv);
-};
+export const enableEcsDeploy: CodeTransform<NoParameters> = async (p, inv) => {
+    await addDockerfileIfMissing(p, inv);
+    await p.addDirectory(".atomist");
+    await p.addDirectory(".atomist/ecs");
+    await p.addFile(".atomist/ecs/task-definition.json", "{}");
+    await p.addFile(".atomist/ecs/service.json", "{}");
 
+    return p;
+};
 const AtomistGeneratedMarker = "[atomist:generated]";
-const AddDockerfileMarker = "[atomist:add-dockerfile-manifest]";
-export const AddDockerFile: CodeTransformRegistration = {
-    transform: AddDockerfileTransform,
-    name: "AddDockerFileTransform",
-    intent: "Add Dockerfile",
+const AddDockerfileMarker = "[atomist:add-ecs-details]";
+
+export const enableEcsDeployRegistration: CodeTransformRegistration = {
+    transform: enableEcsDeploy,
+    name: "EnableEcsDeploy",
+    intent: "Enable ECS Deployment",
     transformPresentation: () => new PullRequest(
-        `add-dockerfile-${Date.now()}`,
-        "Add a dockerfile",
-        `Adding a dockerfile to enable build/deployment in container format.
+        `enable-ecs-deploy-${Date.now()}`,
+        "Enable ECS deployment",
+        `Adding a dockerfile and empty ECS task and service definitions
     ${AtomistGeneratedMarker}`,
-        `Add Dockerfile
+        `Add ECS Deployment info
 ${AddDockerfileMarker}`),
 };
 
-export const AddDockerfileAutofix: AutofixRegistration<NoParameters> = {
-    name: "Dockerfile",
-    transform: AddDockerfileTransform,
-};

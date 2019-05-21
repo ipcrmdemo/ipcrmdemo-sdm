@@ -98,7 +98,14 @@ import {
   addImplementation,
   cfDeployment,
   cfDeploymentStaging,
-  dockerBuild, dotNetBuild, dotNetVersion, externalBuild, k8sProductionDeploy, k8sStagingDeploy,
+  dockerBuild,
+  dotNetBuild,
+  dotNetVersion,
+  ecsDeployProd,
+  ecsDeployStaging,
+  externalBuild,
+  k8sProductionDeploy,
+  k8sStagingDeploy,
   mavenBuild,
   mavenVersion,
   nodeBuild,
@@ -113,6 +120,11 @@ import {
   DotnetCoreProjectFileCodeTransform,
 } from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
 import { replaceSeedSlug } from "../transform/updateRepoSlug";
+import { IsEcsDeployable, IsK8sDeployable } from "../support/pushTests";
+import { SuggestEnableEcsDeploy } from "../support/suggestEnableEcsDeploy";
+import { enableEcsDeployRegistration } from "../transform/enableEcsDeploy";
+import { SuggestEnableK8sDeploy } from "../support/suggestEnableK8sDeploy";
+import { enableK8sDeployRegistration } from "../transform/enableK8sDeploy";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -131,10 +143,14 @@ export function machine(
         .addCodeTransformCommand(AddDockerFile)
         .addCodeTransformCommand(AddJenkinsfileRegistration)
         .addCodeTransformCommand(UpdateDockerfileMaintainer)
+        .addCodeTransformCommand(enableEcsDeployRegistration)
+        .addCodeTransformCommand(enableK8sDeployRegistration)
         .addCodeTransformCommand(FixSmallMemory);
 
     // Channel Link Listeners
     sdm.addChannelLinkListener(SuggestAddingDockerfile);
+    sdm.addChannelLinkListener(SuggestEnableEcsDeploy);
+    sdm.addChannelLinkListener(SuggestEnableK8sDeploy);
 
     /**
      * Generic Goals
@@ -329,6 +345,11 @@ export function machine(
       .plan(cfDeploymentStaging).after(mavenBuild, nodeBuild)
       .plan(cfDeployment).after(cfDeploymentStaging);
 
+    // ECS
+    const ecsDeployGoals = goals("ecsDeploy")
+      .plan(ecsDeployStaging).after(dockerBuild)
+      .plan(ecsDeployProd).after(ecsDeployStaging);
+
     /**
      * Configure Push rules
      */
@@ -363,8 +384,11 @@ export function machine(
         whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch)
             .setGoals(pcfDeploymentGoals),
 
-        whenPushSatisfies(HasDockerfile, ToDefaultBranch)
-            .setGoals(k8sDeployGoals)));
+        whenPushSatisfies(HasDockerfile, ToDefaultBranch, IsK8sDeployable)
+            .setGoals(k8sDeployGoals),
+
+        whenPushSatisfies(HasDockerfile, ToDefaultBranch, IsEcsDeployable)
+            .setGoals(ecsDeployGoals)));
 
     addRandomCommand(sdm);
     return sdm;

@@ -362,6 +362,15 @@ export function machine(
       .plan(ecsDeployStaging).after(dockerBuild)
       .plan(ecsDeployProd).after(ecsDeployStaging);
 
+    // Docker Build goals
+    const dockerBuildGoals = goals("docker-build")
+      .plan(dockerBuild).after(
+        mavenBuild,
+        nodeBuild,
+        externalBuild,
+        dotNetBuild,
+      );
+
     /**
      * Configure Push rules
      */
@@ -390,10 +399,7 @@ export function machine(
             .setGoals(goals("maven-external").plan(mavenVersion, externalBuild).after(GlobalGoals)),
 
         whenPushSatisfies(HasDockerfile)
-            .setGoals(
-                goals("docker-build")
-                    .plan(dockerBuild).after(mavenBuild, nodeBuild, externalBuild, dotNetBuild),
-            ),
+          .setGoals(dockerBuildGoals),
 
         whenPushSatisfies(HasCloudFoundryManifest, ToDefaultBranch)
             .setGoals(pcfDeploymentGoals),

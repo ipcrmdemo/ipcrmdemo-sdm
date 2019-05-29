@@ -188,7 +188,6 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
   dockerBuild
     .with({
         options: {
-          builder: fs.existsSync("/kaniko/executor") ? "kaniko" : "docker",
           push: true,
           ...sdm.configuration.sdm.dockerinfo,
         },

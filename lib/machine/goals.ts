@@ -26,7 +26,6 @@ import { Version } from "@atomist/sdm-core";
 import { Build } from "@atomist/sdm-pack-build";
 import { KubernetesDeploy } from "@atomist/sdm-pack-k8s";
 import { hasJenkinsfile } from "../support/preChecks";
-import * as fs from "fs";
 import * as _ from "lodash";
 import { ApplicationDataCallback } from "@atomist/sdm-pack-k8s/lib/deploy/goal";
 import {

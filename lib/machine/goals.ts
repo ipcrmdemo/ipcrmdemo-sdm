@@ -28,8 +28,7 @@ import { KubernetesDeploy } from "@atomist/sdm-pack-k8s";
 import { hasJenkinsfile } from "../support/preChecks";
 import * as _ from "lodash";
 import { ApplicationDataCallback } from "@atomist/sdm-pack-k8s/lib/deploy/goal";
-import {
-  dotnetCoreBuilder,
+import { dotnetCoreBuilder,
   DotnetCoreProjectVersioner,
   DotnetCoreVersionProjectListener,
 } from "@atomist/sdm-pack-analysis-dotnet";

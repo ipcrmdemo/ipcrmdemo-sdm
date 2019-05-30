@@ -15,8 +15,10 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsof
         ca-certificates \
         curl \
         gnupg-agent \
-        software-properties-common
+        software-properties-common \
+        golang
 
+# Install Docker CLI
 RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
 RUN add-apt-repository \
        "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
@@ -28,10 +30,16 @@ RUN apt-get update && apt-get install -y \
         dotnet-sdk-2.2 \
         && rm -rf /var/lib/apt/lists/*
 
-COPY package.json package-lock.json ./
+# Configure ECR Login Helper
+ENV GOPATH /usr/local/src/go
+RUN go get -u github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login && \
+    mv /usr/local/src/go/bin/docker-credential-ecr-login /usr/local/bin/ && \
+    chmod +x /usr/local/bin/docker-credential-ecr-login && \
+    mkdir /root/.docker && \
+    echo '{ "credsStore": "ecr-login" }' > /root/.docker/config.json
 
+# Copy SDM project into place and install packages
+COPY package.json package-lock.json ./
 RUN npm ci \
     && npm cache clean --force
-
-
 COPY . .

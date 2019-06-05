@@ -130,8 +130,8 @@ import {
   jiraFindAndAssignReg,
 } from "@ipcrmdemo/sdm-pack-jira/lib/support/commands/findAndAssign";
 import { createBugIssueReg } from "@ipcrmdemo/sdm-pack-jira/lib/support/commands/createBugIssue";
-import { JiraApproval } from "@ipcrmdemo/sdm-pack-jira/lib/goals/JiraApproval";
-import { onJiraIssueEventApproval } from "@ipcrmdemo/sdm-pack-jira/lib/event/onJiraIssueEventApproval";
+// import { JiraApproval } from "@ipcrmdemo/sdm-pack-jira/lib/goals/JiraApproval";
+// import { onJiraIssueEventApproval } from "@ipcrmdemo/sdm-pack-jira/lib/event/onJiraIssueEventApproval";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -161,7 +161,7 @@ export function machine(
     sdm.addChannelLinkListener(SuggestAddingDockerfile);
     sdm.addChannelLinkListener(SuggestEnableEcsDeploy);
     sdm.addChannelLinkListener(SuggestEnableK8sDeploy);
-    sdm.addEvent(onJiraIssueEventApproval(JiraApproval));
+    // sdm.addEvent(onJiraIssueEventApproval(JiraApproval));
 
     /**
      * Generic Goals
@@ -348,8 +348,8 @@ export function machine(
 
     // K8s
     const k8sDeployGoals = goals("deploy")
-      .plan(JiraApproval)
-      .plan(k8sStagingDeploy).after(dockerBuild, JiraApproval)
+      // .plan(JiraApproval)
+      .plan(k8sStagingDeploy).after(dockerBuild)
       .plan(k8sProductionDeploy).after(k8sStagingDeploy);
 
     // CF Deployment

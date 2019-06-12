@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-import { editModes, GitHubRepoRef } from "@atomist/automation-client";
+import { editModes, GitHubRepoRef, logger } from "@atomist/automation-client";
 import {
   AutoCodeInspection,
-  Autofix, DoNotSetAnyGoalsAndLock,
+  Autofix,
+  DoNotSetAnyGoalsAndLock, execPromise,
   Fingerprint,
   goalContributors,
   goals,
   not,
-  onAnyPush, PreferenceScope,
+  onAnyPush,
+  PreferenceScope,
   PushImpact,
+  SdmGoalState,
   SoftwareDeliveryMachine,
   SoftwareDeliveryMachineConfiguration,
   ToDefaultBranch,
-  whenPushSatisfies,
+  whenPushSatisfies
 } from "@atomist/sdm";
 import {
   createSoftwareDeliveryMachine,
@@ -35,61 +38,49 @@ import {
   DisplayDeployEnablement,
   EnableDeploy,
   githubGoalStatusSupport,
-  goalStateSupport,
+  goalStateSupport
 } from "@atomist/sdm-core";
+import { buildAwareCodeTransforms } from "@atomist/sdm-pack-build";
+import { CloudFoundrySupport, HasCloudFoundryManifest } from "@atomist/sdm-pack-cloudfoundry";
+import { HasDockerfile } from "@atomist/sdm-pack-docker";
 import {
-  buildAwareCodeTransforms,
-} from "@atomist/sdm-pack-build";
-import {
-    CloudFoundrySupport,
-    HasCloudFoundryManifest,
-} from "@atomist/sdm-pack-cloudfoundry";
-import {
-    HasDockerfile,
-} from "@atomist/sdm-pack-docker";
-import {
-  fingerprintSupport,
+  applyFingerprint,
+  checkNpmCoordinatesImpactHandler,
+  depsFingerprints,
   fingerprintImpactHandler,
+  fingerprintSupport,
   messageMaker,
-  checkNpmCoordinatesImpactHandler, applyFingerprint, depsFingerprints, renderClojureProjectDiff,
+  renderClojureProjectDiff
 } from "@atomist/sdm-pack-fingerprints";
 import {
-    createNpmDepsFingerprints,
-    applyNpmDepsFingerprint,
-    diffNpmDepsFingerprints,
+  applyNpmDepsFingerprint,
+  createNpmDepsFingerprints,
+  diffNpmDepsFingerprints
 } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/npmDeps";
+import { k8sSupport, KubernetesApplication } from "@atomist/sdm-pack-k8s";
 import {
-  k8sSupport,
-} from "@atomist/sdm-pack-k8s";
-import {
-  IsNode, NodeModulesProjectListener,
+  IsNode,
+  NodeModulesProjectListener,
   NodeProjectCreationParametersDefinition,
   UpdatePackageJsonIdentification,
-  UpdateReadmeTitle,
+  UpdateReadmeTitle
 } from "@atomist/sdm-pack-node";
 import {
-    IsMaven,
-    springSupport,
-    SpringProjectCreationParameters,
-    SpringProjectCreationParameterDefinitions,
-    ReplaceReadmeTitle,
-    SetAtomistTeamInApplicationYml,
-    TransformMavenSpringBootSeedToCustomProject,
+  IsMaven,
+  ReplaceReadmeTitle,
+  SetAtomistTeamInApplicationYml,
+  SpringProjectCreationParameterDefinitions,
+  SpringProjectCreationParameters,
+  springSupport,
+  TransformMavenSpringBootSeedToCustomProject
 } from "@atomist/sdm-pack-spring";
 import { changelogSupport } from "@atomist/sdm-pack-changelog";
 import { issueSupport } from "@atomist/sdm-pack-issue";
-import {
-  hasJenkinsfile,
-  npmHasBuildScript,
-  isFirstCommit, hasTsLintConfig, hasTsConfig,
-} from "../support/preChecks";
+import { hasJenkinsfile, hasTsConfig, hasTsLintConfig, isFirstCommit, npmHasBuildScript } from "../support/preChecks";
 import { AddDockerFile } from "../transform/addDockerfile";
 import { AddJenkinsfileRegistration } from "../transform/addJenkinsfile";
 import { AddLicenseFile } from "../transform/addLicense";
-import {
-    FixSmallMemory,
-    ReduceMemorySize,
-} from "../transform/smallMemory";
+import { FixSmallMemory, ReduceMemorySize } from "../transform/smallMemory";
 import { UpdateDockerfileMaintainer } from "../transform/updateDockerFileMaintainer";
 import { SuggestAddingDockerfile } from "../support/suggestAddDockerfile";
 import { AutoMergeMethod, AutoMergeMode } from "@atomist/automation-client/lib/operations/edit/editModes";
@@ -104,21 +95,21 @@ import {
   ecsDeployProd,
   ecsDeployStaging,
   externalBuild,
+  k8s10CanaryDeploy,
+  k8s50CanaryDeploy,
   k8sProductionDeploy,
   k8sStagingDeploy,
   mavenBuild,
   mavenVersion,
   nodeBuild,
-  nodeVersion,
+  nodeVersion
 } from "./goals";
 import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
 import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
 import { TsLintAutofix } from "../transform/tsLintAutofix";
 import { isDotNetCore, SimpleDotNetCoreWebApplication } from "../support/dotnet/support";
-import {
-  DotnetCoreProjectFileCodeTransform,
-} from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
+import { DotnetCoreProjectFileCodeTransform } from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
 import { replaceSeedSlug } from "../transform/updateRepoSlug";
 import { IsEcsDeployable, IsK8sDeployable, ZeroCommitPushTest } from "../support/pushTests";
 import { SuggestEnableEcsDeploy } from "../support/suggestEnableEcsDeploy";
@@ -127,9 +118,12 @@ import { SuggestEnableK8sDeploy } from "../support/suggestEnableK8sDeploy";
 import { enableK8sDeployRegistration } from "../transform/enableK8sDeploy";
 import {
   jiraCreateProjectBranchReg,
-  jiraFindAndAssignReg,
+  jiraFindAndAssignReg
 } from "@ipcrmdemo/sdm-pack-jira/lib/support/commands/findAndAssign";
 import { createBugIssueReg } from "@ipcrmdemo/sdm-pack-jira/lib/support/commands/createBugIssue";
+import { deleteApplication } from "@atomist/sdm-pack-k8s/lib/kubernetes/application";
+import * as _ from "lodash";
+import { Deferred } from "@atomist/automation-client/lib/internal/util/Deferred";
 // import { JiraApproval } from "@ipcrmdemo/sdm-pack-jira/lib/goals/JiraApproval";
 // import { onJiraIssueEventApproval } from "@ipcrmdemo/sdm-pack-jira/lib/event/onJiraIssueEventApproval";
 
@@ -346,11 +340,62 @@ export function machine(
       .plan(dotNetVersion)
       .plan(dotNetBuild).after(dotNetVersion, ComplianceGoals, GlobalGoals);
 
+    sdm.addGoalCompletionListener(async l => {
+      if (l.completedGoal.uniqueName.includes("k8sDeployToProd") && l.completedGoal.state === SdmGoalState.success) {
+        const deployInfo = _.get(
+          JSON.parse(l.completedGoal.data as any), "@atomist/sdm-pack-k8s") as KubernetesApplication;
+        // Wait for convergence
+        // Starting polling
+        const result = new Deferred<string>();
+        const times = 20;
+        let counter = 0;
+        const timer = setInterval(async () => {
+            if (counter >= times) {
+              clearInterval(timer);
+            }
+
+            logger.debug(`------> Testing if ${deployInfo.name} has converged`);
+            const output = await execPromise(
+              "kubectl",
+              ["get", "deployment", "-n", "production", deployInfo.name, "-o", "json"],
+            );
+
+            // @ts-ignore
+            const parsed = JSON.parse(output.stdout);
+            if (!parsed.status.hasOwnProperty("unavailableReplicas")) {
+              logger.debug(`------> ${deployInfo.name} has converged, proceeding with canary cleanup`);
+              result.resolve(true);
+            } else {
+              logger.debug(`------> ${deployInfo.name} has not yet converged, sleeping`);
+            }
+
+            counter++;
+        }, 3000);
+
+        // Wait for polling to finish
+        // @ts-ignore
+        const status = await result.promise;
+        clearInterval(timer);
+
+        if (status) {
+          deployInfo.name = deployInfo.name + "canary";
+          logger.debug(`------> Removing old K8s canary ${deployInfo.name}!`);
+          await deleteApplication(deployInfo);
+          logger.debug(`------> Succeeded removing old K8s canary ${deployInfo.name}!`);
+        } else {
+          logger.debug(`------> Deployment ${deployInfo.name} failed to start all replicas!`);
+        }
+
+      }
+    });
+
     // K8s
     const k8sDeployGoals = goals("deploy")
       // .plan(JiraApproval)
       .plan(k8sStagingDeploy).after(dockerBuild)
-      .plan(k8sProductionDeploy).after(k8sStagingDeploy);
+      .plan(k8s10CanaryDeploy).after(k8sStagingDeploy)
+      .plan(k8s50CanaryDeploy).after(k8s10CanaryDeploy)
+      .plan(k8sProductionDeploy).after(k8s50CanaryDeploy);
 
     // CF Deployment
     const pcfDeploymentGoals = goals("cfdeploy")
@@ -377,26 +422,26 @@ export function machine(
     sdm.addGoalContributions(goalContributors(
         whenPushSatisfies(ZeroCommitPushTest).setGoals(DoNotSetAnyGoalsAndLock),
 
-        whenPushSatisfies(IsNode, hasTsLintConfig, hasTsConfig)
-          .setGoals(goals("node-autofix").plan(tsLint)),
-
-        onAnyPush()
-            .setGoals(GlobalGoals),
-
-        whenPushSatisfies(not(isFirstCommit), ToDefaultBranch)
-            .setGoals(ComplianceGoals),
-
-        whenPushSatisfies(IsMaven, not(hasJenkinsfile))
-            .setGoals(MavenBaseGoals),
-
+        // whenPushSatisfies(IsNode, hasTsLintConfig, hasTsConfig)
+        //   .setGoals(goals("node-autofix").plan(tsLint)),
+        //
+        // onAnyPush()
+        //     .setGoals(GlobalGoals),
+        //
+        // whenPushSatisfies(not(isFirstCommit), ToDefaultBranch)
+        //     .setGoals(ComplianceGoals),
+        //
+        // whenPushSatisfies(IsMaven, not(hasJenkinsfile))
+        //     .setGoals(MavenBaseGoals),
+        //
         whenPushSatisfies(IsNode, npmHasBuildScript, not(hasJenkinsfile))
             .setGoals(NodeBaseGoals),
-
-        whenPushSatisfies(isDotNetCore, not(hasJenkinsfile))
-            .setGoals(DotNetBasegoals),
-
-        whenPushSatisfies(IsMaven, hasJenkinsfile)
-            .setGoals(goals("maven-external").plan(mavenVersion, externalBuild).after(GlobalGoals)),
+        //
+        // whenPushSatisfies(isDotNetCore, not(hasJenkinsfile))
+        //     .setGoals(DotNetBasegoals),
+        //
+        // whenPushSatisfies(IsMaven, hasJenkinsfile)
+        //     .setGoals(goals("maven-external").plan(mavenVersion, externalBuild).after(GlobalGoals)),
 
         whenPushSatisfies(HasDockerfile)
           .setGoals(dockerBuildGoals),

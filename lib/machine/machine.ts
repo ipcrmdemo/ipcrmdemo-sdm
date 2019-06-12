@@ -95,14 +95,12 @@ import {
   ecsDeployProd,
   ecsDeployStaging,
   externalBuild,
-  k8s10CanaryDeploy,
-  k8s50CanaryDeploy,
-  k8sProductionDeploy,
+  k8sBlueProd, k8sGreenProd,
   k8sStagingDeploy,
   mavenBuild,
   mavenVersion,
   nodeBuild,
-  nodeVersion
+  nodeVersion,
 } from "./goals";
 import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
@@ -392,10 +390,13 @@ export function machine(
     // K8s
     const k8sDeployGoals = goals("deploy")
       // .plan(JiraApproval)
-      .plan(k8sStagingDeploy).after(dockerBuild)
-      .plan(k8s10CanaryDeploy).after(k8sStagingDeploy)
-      .plan(k8s50CanaryDeploy).after(k8s10CanaryDeploy)
-      .plan(k8sProductionDeploy).after(k8s50CanaryDeploy);
+      .plan(k8sStagingDeploy).after(dockerBuild);
+
+    const k8sBlueGoal = goals("deploy-blue")
+      .plan(k8sBlueProd).after(k8sStagingDeploy);
+
+    const k8sGreenGoal = goals("deploy-blue")
+      .plan(k8sGreenProd).after(k8sStagingDeploy);
 
     // CF Deployment
     const pcfDeploymentGoals = goals("cfdeploy")

@@ -3,7 +3,7 @@ import {
   allSatisfied,
   GoalWithFulfillment,
   LogSuppressor, SdmGoalEvent,
-  SoftwareDeliveryMachine
+  SoftwareDeliveryMachine,
 } from "@atomist/sdm";
 import {
   IsMaven,
@@ -63,7 +63,7 @@ export const mavenBuild = new Build()
 export const externalBuild = new Build();
 export const nodeBuild = new Build();
 export const dockerBuild = new DockerBuild();
-export const dotNetBuild = new Build({ displayName: "dotnet build" })
+export const dotNetBuild = new Build({ displayName: "dotnet build" });
 
 // Kubernetes Deploys
 export const k8sStagingDeploy = new KubernetesDeploy({
@@ -81,58 +81,41 @@ export const k8sStagingDeploy = new KubernetesDeploy({
   },
 });
 
-export const k8s10CanaryDeploy = new KubernetesDeploy(
+export const k8sBlueProd = new KubernetesDeploy(
   {
-    uniqueName: "10canary",
+    uniqueName: "k8sblueprod",
     environment: "production",
     preApproval: true,
-    displayName: "Canary Deployment to K8s `production` (10%)",
+    displayName: "Blue Deployment to K8s `production`",
     descriptions: {
-      planned: "Canary deployment to K8s `production` planned (10%)",
-      requested: "Canary deployment to K8s `production` pending (10%)",
-      stopped: "Canary deployment to K8s `production` stopped (10%)",
-      inProcess: "Canary deployment to K8s `production` running (10%)",
-      completed: "Canary deployment to K8s `production` completed (10%)",
-      failed: "Canary deployment to K8s `production` failed (10%)",
-      waitingForApproval: "Canary deployment to K8s `production` pending approval (10%)",
-      waitingForPreApproval: "Canary deployment to K8s `production` pending pre-approval (10%)",
+      planned: "Blue deployment to K8s `production` planned",
+      requested: "Blue deployment to K8s `production` pending ",
+      stopped: "Blue deployment to K8s `production` stopped ",
+      inProcess: "Blue deployment to K8s `production` running ",
+      completed: "Blue deployment to K8s `production` completed ",
+      failed: "Blue deployment to K8s `production` failed ",
+      waitingForApproval: "Blue deployment to K8s `production` pending approval ",
+      waitingForPreApproval: "Blue deployment to K8s `production` pending pre-approval ",
     },
   });
 
-export const k8s50CanaryDeploy = new KubernetesDeploy(
+export const k8sGreenProd = new KubernetesDeploy(
   {
-    uniqueName: "50canary",
+    uniqueName: "k8sgreendeploy",
     environment: "production",
     preApproval: true,
-    displayName: "Canary Deployment to K8s `production` (50%)",
+    displayName: "Green Deployment to K8s `production`",
     descriptions: {
-      planned: "Canary deployment to K8s `production` planned (50%)",
-      requested: "Canary deployment to K8s `production` pending (50%)",
-      stopped: "Canary deployment to K8s `production` stopped (50%)",
-      completed: "Canary deployment to K8s `production` completed (50%)",
-      inProcess: "Canary deployment to K8s `production` running (50%)",
-      failed: "Canary deployment to K8s `production` failed (50%)",
-      waitingForApproval: "Canary deployment to K8s `production` pending approval (50%)",
-      waitingForPreApproval: "Canary deployment to K8s `production` pending pre-approval (50%)",
+      planned: "Green deployment to K8s `production` planned",
+      requested: "Green deployment to K8s `production` pending ",
+      stopped: "Green deployment to K8s `production` stopped ",
+      inProcess: "Green deployment to K8s `production` running ",
+      completed: "Green deployment to K8s `production` completed ",
+      failed: "Green deployment to K8s `production` failed ",
+      waitingForApproval: "Green deployment to K8s `production` pending approval ",
+      waitingForPreApproval: "Green deployment to K8s `production` pending pre-approval ",
     },
   });
-
-export const k8sProductionDeploy = new KubernetesDeploy({
-  environment: "production",
-  displayName: "Promote Canary to K8s `production`",
-  uniqueName: "k8sDeployToProd",
-  preApproval: true,
-  descriptions: {
-    planned: "Promote Canary deployment to K8s `production` planned",
-    requested: "Promote Canary deployment to K8s `production` requested",
-    stopped: "Promote Canary deployment to K8s `production` stopped",
-    completed: "Promote Canary deployment to K8s `production` completed",
-    inProcess: "Promote Canary deployment to K8s `production` running",
-    failed: "Promote Canary deployment to K8s `production` failed",
-    waitingForPreApproval: "Promote Canary deployment to K8s `production` pending pre-approval",
-    waitingForApproval: "Promote Canary deployment to K8s `production` pending approval",
-  },
-});
 
 // ECS Deployment
 export const ecsDeployStaging = new EcsDeploy({
@@ -339,13 +322,10 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
   k8sStagingDeploy
     .with(k8sRegistration);
 
-  k8s10CanaryDeploy
+  k8sBlueProd
     .with(k8sRegistration);
 
-  k8s50CanaryDeploy
-    .with(k8sRegistration);
-
-  k8sProductionDeploy
+  k8sGreenProd
     .with(k8sRegistration);
 
   fingerprintComplianceGoal

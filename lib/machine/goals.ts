@@ -315,7 +315,7 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
     });
 
   const k8sRegistration = {
-    name: "@atomist/k8s-sdm_kubernetes",
+    // name: "@atomist/k8s-sdm_kubernetes",
     applicationData: k8sCallback,
   };
 

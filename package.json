@@ -36,7 +36,7 @@
     "@atomist/sdm-pack-cloudfoundry": "1.0.2",
     "@atomist/sdm-pack-docker": "1.1.0-master.20190213113315",
     "@atomist/sdm-pack-ecs": "0.0.2",
-    "@atomist/sdm-pack-fingerprints": "2.0.5-master.20190424030718",
+    "@atomist/sdm-pack-fingerprints": "2.0.5",
     "@atomist/sdm-pack-issue": "1.1.1-master.20181213113748",
     "@atomist/sdm-pack-k8s": "^1.5.1",
     "@atomist/sdm-pack-node": "1.0.4-master.20190321220053",

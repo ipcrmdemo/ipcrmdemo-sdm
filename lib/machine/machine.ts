@@ -96,20 +96,28 @@ import {
   ecsDeployStaging,
   externalBuild,
   k8sBlueProd, k8sGreenProd,
-  k8sStagingDeploy,
+  k8sStagingDeploy, k8sTrafficUpdate,
   mavenBuild,
   mavenVersion,
   nodeBuild,
-  nodeVersion,
+  nodeVersion
 } from "./goals";
 import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
 import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
 import { TsLintAutofix } from "../transform/tsLintAutofix";
 import { isDotNetCore, SimpleDotNetCoreWebApplication } from "../support/dotnet/support";
-import { DotnetCoreProjectFileCodeTransform } from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
+import {
+  DotnetCoreProjectFileCodeTransform,
+} from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
 import { replaceSeedSlug } from "../transform/updateRepoSlug";
-import { IsEcsDeployable, IsK8sDeployable, ZeroCommitPushTest } from "../support/pushTests";
+import {
+  isBlueDeploy,
+  IsEcsDeployable,
+  isGreenDeploy,
+  IsK8sDeployable,
+  ZeroCommitPushTest
+} from "../support/pushTests";
 import { SuggestEnableEcsDeploy } from "../support/suggestEnableEcsDeploy";
 import { enableEcsDeployRegistration } from "../transform/enableEcsDeploy";
 import { SuggestEnableK8sDeploy } from "../support/suggestEnableK8sDeploy";
@@ -393,10 +401,12 @@ export function machine(
       .plan(k8sStagingDeploy).after(dockerBuild);
 
     const k8sBlueGoal = goals("deploy-blue")
-      .plan(k8sBlueProd).after(k8sStagingDeploy);
+      .plan(k8sBlueProd).after(k8sStagingDeploy)
+      .plan(k8sTrafficUpdate).after(k8sBlueProd);
 
-    const k8sGreenGoal = goals("deploy-blue")
-      .plan(k8sGreenProd).after(k8sStagingDeploy);
+    const k8sGreenGoal = goals("deploy-green")
+      .plan(k8sGreenProd).after(k8sStagingDeploy)
+      .plan(k8sTrafficUpdate).after(k8sGreenProd);
 
     // CF Deployment
     const pcfDeploymentGoals = goals("cfdeploy")
@@ -452,6 +462,12 @@ export function machine(
 
         whenPushSatisfies(HasDockerfile, ToDefaultBranch, IsK8sDeployable)
             .setGoals(k8sDeployGoals),
+
+        whenPushSatisfies(HasDockerfile, ToDefaultBranch, IsK8sDeployable, isBlueDeploy)
+            .setGoals(k8sBlueGoal),
+
+        whenPushSatisfies(HasDockerfile, ToDefaultBranch, IsK8sDeployable, isGreenDeploy)
+          .setGoals(k8sGreenGoal),
 
         whenPushSatisfies(HasDockerfile, ToDefaultBranch, IsEcsDeployable)
             .setGoals(ecsDeployGoals)));

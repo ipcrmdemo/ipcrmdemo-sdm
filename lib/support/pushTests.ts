@@ -21,6 +21,7 @@ import {
   pushTest,
   PushTest,
 } from "@atomist/sdm";
+import { BlueGreenDeploy } from "../machine/goals";
 
 export const IsEcsDeployable: PredicatePushTest = predicatePushTest(
   "IsEcsDeployable",
@@ -46,6 +47,18 @@ export const IsK8sDeployable: PredicatePushTest = predicatePushTest(
     );
   },
 );
+
+export const isGreenDeploy = pushTest("bg-check", async pi => {
+  const currentDeploy = await pi.preferences.get(
+    `${pi.push.repo.name}`, {scope: `bgdeploy`, defaultValue: undefined});
+  return currentDeploy !== BlueGreenDeploy.green && currentDeploy !== undefined;
+});
+
+export const isBlueDeploy = pushTest("bg-check", async pi => {
+  const currentDeploy = await pi.preferences.get(
+    `${pi.push.repo.name}`, {scope: `bgdeploy`, defaultValue: undefined});
+  return currentDeploy !== BlueGreenDeploy.blue || currentDeploy === undefined;
+});
 
 export const ZeroCommitPushTest = pushTest("zero-commits", async pi => pi.push.commits.length === 0);
 export const IsSdmProject: PredicatePushTest = predicatePushTest(

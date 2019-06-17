@@ -21,7 +21,7 @@ import {
   pushTest,
   PushTest,
 } from "@atomist/sdm";
-import { BlueGreenDeploy } from "../machine/goals";
+import { BlueGreenDeploy } from "../machine/k8sTraffic";
 
 export const IsEcsDeployable: PredicatePushTest = predicatePushTest(
   "IsEcsDeployable",

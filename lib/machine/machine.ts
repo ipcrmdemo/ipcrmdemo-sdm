@@ -23,14 +23,13 @@ import {
   goalContributors,
   goals,
   not,
-  onAnyPush,
   PreferenceScope,
   PushImpact,
   SdmGoalState,
   SoftwareDeliveryMachine,
   SoftwareDeliveryMachineConfiguration,
   ToDefaultBranch,
-  whenPushSatisfies
+  whenPushSatisfies,
 } from "@atomist/sdm";
 import {
   createSoftwareDeliveryMachine,
@@ -38,7 +37,7 @@ import {
   DisplayDeployEnablement,
   EnableDeploy,
   githubGoalStatusSupport,
-  goalStateSupport
+  goalStateSupport,
 } from "@atomist/sdm-core";
 import { buildAwareCodeTransforms } from "@atomist/sdm-pack-build";
 import { CloudFoundrySupport, HasCloudFoundryManifest } from "@atomist/sdm-pack-cloudfoundry";
@@ -50,12 +49,12 @@ import {
   fingerprintImpactHandler,
   fingerprintSupport,
   messageMaker,
-  renderClojureProjectDiff
+  renderClojureProjectDiff,
 } from "@atomist/sdm-pack-fingerprints";
 import {
   applyNpmDepsFingerprint,
   createNpmDepsFingerprints,
-  diffNpmDepsFingerprints
+  diffNpmDepsFingerprints,
 } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/npmDeps";
 import { k8sSupport, KubernetesApplication } from "@atomist/sdm-pack-k8s";
 import {
@@ -63,20 +62,17 @@ import {
   NodeModulesProjectListener,
   NodeProjectCreationParametersDefinition,
   UpdatePackageJsonIdentification,
-  UpdateReadmeTitle
+  UpdateReadmeTitle,
 } from "@atomist/sdm-pack-node";
 import {
-  IsMaven,
   ReplaceReadmeTitle,
   SetAtomistTeamInApplicationYml,
   SpringProjectCreationParameterDefinitions,
   SpringProjectCreationParameters,
   springSupport,
-  TransformMavenSpringBootSeedToCustomProject
+  TransformMavenSpringBootSeedToCustomProject,
 } from "@atomist/sdm-pack-spring";
-import { changelogSupport } from "@atomist/sdm-pack-changelog";
-import { issueSupport } from "@atomist/sdm-pack-issue";
-import { hasJenkinsfile, hasTsConfig, hasTsLintConfig, isFirstCommit, npmHasBuildScript } from "../support/preChecks";
+import { hasJenkinsfile, npmHasBuildScript } from "../support/preChecks";
 import { AddDockerFile } from "../transform/addDockerfile";
 import { AddJenkinsfileRegistration } from "../transform/addJenkinsfile";
 import { AddLicenseFile } from "../transform/addLicense";
@@ -96,17 +92,17 @@ import {
   ecsDeployStaging,
   externalBuild,
   k8sBlueProd, k8sGreenProd,
-  k8sStagingDeploy, k8sTrafficUpdate,
+  k8sStagingDeploy,
   mavenBuild,
   mavenVersion,
   nodeBuild,
-  nodeVersion
+  nodeVersion,
 } from "./goals";
 import { addRandomCommand } from "../support/randomCommand";
 import { applyFileFingerprint, createFileFingerprint } from "@atomist/sdm-pack-fingerprints/lib/fingerprints/jsonFiles";
 import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
 import { TsLintAutofix } from "../transform/tsLintAutofix";
-import { isDotNetCore, SimpleDotNetCoreWebApplication } from "../support/dotnet/support";
+import { SimpleDotNetCoreWebApplication } from "../support/dotnet/support";
 import {
   DotnetCoreProjectFileCodeTransform,
 } from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
@@ -116,7 +112,7 @@ import {
   IsEcsDeployable,
   isGreenDeploy,
   IsK8sDeployable,
-  ZeroCommitPushTest
+  ZeroCommitPushTest,
 } from "../support/pushTests";
 import { SuggestEnableEcsDeploy } from "../support/suggestEnableEcsDeploy";
 import { enableEcsDeployRegistration } from "../transform/enableEcsDeploy";
@@ -124,14 +120,13 @@ import { SuggestEnableK8sDeploy } from "../support/suggestEnableK8sDeploy";
 import { enableK8sDeployRegistration } from "../transform/enableK8sDeploy";
 import {
   jiraCreateProjectBranchReg,
-  jiraFindAndAssignReg
+  jiraFindAndAssignReg,
 } from "@ipcrmdemo/sdm-pack-jira/lib/support/commands/findAndAssign";
 import { createBugIssueReg } from "@ipcrmdemo/sdm-pack-jira/lib/support/commands/createBugIssue";
 import { deleteApplication } from "@atomist/sdm-pack-k8s/lib/kubernetes/application";
 import * as _ from "lodash";
 import { Deferred } from "@atomist/automation-client/lib/internal/util/Deferred";
-// import { JiraApproval } from "@ipcrmdemo/sdm-pack-jira/lib/goals/JiraApproval";
-// import { onJiraIssueEventApproval } from "@ipcrmdemo/sdm-pack-jira/lib/event/onJiraIssueEventApproval";
+import {k8sTrafficUpdateBlue, k8sTrafficUpdateGreen} from "./k8sTraffic";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -162,6 +157,10 @@ export function machine(
     sdm.addChannelLinkListener(SuggestEnableEcsDeploy);
     sdm.addChannelLinkListener(SuggestEnableK8sDeploy);
     // sdm.addEvent(onJiraIssueEventApproval(JiraApproval));
+
+    sdm.addPullRequestListener(async prl => {
+      logger.debug(`----> PR Listener Fired --- Latest update => ${prl.pullRequest.updatedAt}`);
+    });
 
     /**
      * Generic Goals
@@ -207,8 +206,8 @@ export function machine(
         }),
         githubGoalStatusSupport(),
         goalStateSupport(),
-        changelogSupport(),
-        issueSupport(),
+        // changelogSupport(),
+        // issueSupport(),
         fingerprintSupport({
           fingerprintGoal: fingerprint,
           fingerprints:
@@ -397,16 +396,15 @@ export function machine(
 
     // K8s
     const k8sDeployGoals = goals("deploy")
-      // .plan(JiraApproval)
       .plan(k8sStagingDeploy).after(dockerBuild);
 
     const k8sBlueGoal = goals("deploy-blue")
       .plan(k8sBlueProd).after(k8sStagingDeploy)
-      .plan(k8sTrafficUpdate).after(k8sBlueProd);
+      .plan(k8sTrafficUpdateBlue).after(k8sBlueProd);
 
     const k8sGreenGoal = goals("deploy-green")
       .plan(k8sGreenProd).after(k8sStagingDeploy)
-      .plan(k8sTrafficUpdate).after(k8sGreenProd);
+      .plan(k8sTrafficUpdateGreen).after(k8sGreenProd);
 
     // CF Deployment
     const pcfDeploymentGoals = goals("cfdeploy")

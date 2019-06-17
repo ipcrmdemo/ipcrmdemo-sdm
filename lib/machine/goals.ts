@@ -1,16 +1,9 @@
 // Fingerprint Compliance
 import {
   allSatisfied,
-  DefaultGoalNameGenerator, ExecuteGoal, ExecuteGoalResult,
-  FulfillableGoalDetails,
-  FulfillableGoalWithRegistrations,
-  getGoalDefinitionFrom, Goal, GoalInvocation,
-  GoalProjectListenerEvent,
-  GoalProjectListenerRegistration,
   GoalWithFulfillment,
   LogSuppressor,
   SdmGoalEvent,
-  SdmGoalState,
   SoftwareDeliveryMachine,
 } from "@atomist/sdm";
 import {
@@ -34,13 +27,8 @@ import {
 } from "@atomist/sdm-pack-node";
 import { Version } from "@atomist/sdm-core";
 import { Build } from "@atomist/sdm-pack-build";
-import { KubernetesApplication, KubernetesDeploy, KubernetesDeployRegistration } from "@atomist/sdm-pack-k8s";
+import { KubernetesDeploy } from "@atomist/sdm-pack-k8s";
 import { hasJenkinsfile } from "../support/preChecks";
-import * as _ from "lodash";
-import {
-  ApplicationDataCallback,
-  defaultDataSources,
-} from "@atomist/sdm-pack-k8s/lib/deploy/goal";
 import {
   dotnetCoreBuilder,
   DotnetCoreProjectVersioner,
@@ -49,12 +37,7 @@ import {
 import { isDotNetCore } from "../support/dotnet/support";
 import { EcsDeploy } from "@atomist/sdm-pack-ecs";
 import { IsEcsDeployable } from "../support/pushTests";
-import { logger } from "@atomist/automation-client";
-import { generateKubernetesGoalEventData, getKubernetesGoalEventData } from "@atomist/sdm-pack-k8s/lib/deploy/data";
-import { upsertService } from "@atomist/sdm-pack-k8s/lib/kubernetes/service";
-import { loadKubeConfig } from "@atomist/sdm-core/lib/pack/k8s/config";
-import { makeApiClients } from "@atomist/sdm-pack-k8s/lib/kubernetes/clients";
-import { upsertIngress } from "@atomist/sdm-pack-k8s/lib/kubernetes/ingress";
+import { k8sCallback } from "../support/k8s/callback";
 
 /**
  * Goals
@@ -137,86 +120,6 @@ export const k8sGreenProd = new KubernetesDeploy(
     },
   });
 
-export function initiateKubernetesServiceChange(
-  k8Deploy: KubernetesDeploy,
-  registration: KubernetesDeployRegistration,
-): ExecuteGoal {
-  return async (goalInvocation: GoalInvocation): Promise<ExecuteGoalResult> => {
-    const currentDeploy = await goalInvocation.preferences.get(
-      `${goalInvocation.goalEvent.repo.name}`, {scope: `bgdeploy`, defaultValue: undefined});
-
-    const activeDeploy = (currentDeploy !== BlueGreenDeploy.blue || currentDeploy === undefined)
-        ? BlueGreenDeploy.green : BlueGreenDeploy.blue;
-
-    defaultDataSources(registration);
-    const goalEvent = await generateKubernetesGoalEventData(k8Deploy, registration, goalInvocation);
-    const app = getKubernetesGoalEventData(goalEvent);
-
-    app.ns = goalInvocation.goalEvent.environment.includes("prod") ? "production" : "testing";
-    app.path = `/${app.ns}/${goalInvocation.goalEvent.repo.name}`;
-    app.ingressSpec = {
-      spec: {
-        rules: [
-          {
-            http: {
-              paths: [
-                {
-                  path: `${app.path}`,
-                  backend: { serviceName: `${app.name}${BlueGreenDeploy[activeDeploy]}`},
-                },
-              ],
-            },
-          },
-        ],
-      },
-    };
-
-    let config: any;
-    try {
-      config = loadKubeConfig();
-    } catch (e) {
-      e.message = `Failed to load Kubernetes config to deploy ${app.ns}/${app.name}: ${e.message}`;
-      logger.error(e.message);
-      throw e;
-    }
-    const clients = makeApiClients(config);
-    const req = { ...app, ...{sdmFulfiller: "local"}, clients };
-
-    await upsertIngress(req);
-
-    await goalInvocation.preferences.put(
-      `${goalInvocation.goalEvent.push.repo.name}`, activeDeploy, {scope: `bgdeploy`});
-
-    return {
-      code: 0,
-    };
-  };
-}
-
-export class KubernetesManageServiceTraffic extends KubernetesDeploy {
-  constructor(public readonly details?: FulfillableGoalDetails, ...dependsOn: Goal[]) {
-    super(getGoalDefinitionFrom(details, DefaultGoalNameGenerator.generateName("traffic-updater")), ...dependsOn);
-  }
-  public with(registration: KubernetesDeployRegistration): this {
-    const fulfillment = registration.name || this.sdm.configuration.name;
-    this.addFulfillment({
-      name: fulfillment,
-      goalExecutor: initiateKubernetesServiceChange(this, registration),
-      pushTest: registration.pushTest,
-    });
-    return this;
-  }
-}
-
-export const k8sTrafficUpdate = new KubernetesManageServiceTraffic(
-  {
-    uniqueName: "k8sTrafficSwitcher",
-    preApproval: true,
-    environment: "production",
-    displayName: "Flip traffic to Blue/Green Deployment",
-  },
-);
-
 // ECS Deployment
 export const ecsDeployStaging = new EcsDeploy({
   displayName: "ECS Deploy Staging",
@@ -258,63 +161,6 @@ export const cfDeploymentStaging = new CloudFoundryDeploy({
     },
   },
 );
-
-const setBgDeploymentDetails = async (
-  e: SdmGoalEvent,
-  a: KubernetesApplication,
-): Promise<KubernetesApplication> => {
-  if (e.uniqueName.includes("k8sgreenprod") || e.uniqueName.includes("k8sblueprod")) {
-    const re = /(blue|green)/;
-    const match = re.exec(e.uniqueName);
-
-    logger.debug(`setBgDeploymentDetails => This deploy is ${match[0]}`);
-    const oldName = a.name;
-    a.name = `${a.name}${match[0]}`;
-    a.path = `/${a.ns}/${a.name}`;
-  }
-
-  return a;
-};
-
-const k8sCallback: ApplicationDataCallback = async (a, p, g, e) => {
-  a.ns = e.environment.includes("prod") ? "production" : "testing";
-  a.path = `/${a.ns}/${p.name}`;
-  const app = await setBgDeploymentDetails(e, a);
-
-  let annotations: any;
-  if (
-    app.ingressSpec &&
-    app.ingressSpec.metadata &&
-    app.ingressSpec.metadata.annotations
-  ) {
-    annotations = _.merge({
-        "kubernetes.io/ingress.class": "nginx",
-        "nginx.ingress.kubernetes.io/rewrite-target": "/",
-        "nginx.ingress.kubernetes.io/ssl-redirect": "false",
-      },
-      a.ingressSpec.metadata.annotations,
-    );
-  } else {
-    annotations = {
-      "kubernetes.io/ingress.class": "nginx",
-      "nginx.ingress.kubernetes.io/rewrite-target": "/",
-      "nginx.ingress.kubernetes.io/ssl-redirect": "false",
-    };
-  }
-
-  a.ingressSpec = _.merge(a.ingressSpec, {
-    metadata: {
-      annotations,
-    },
-  });
-
-  return app;
-};
-
-export enum BlueGreenDeploy {
-  blue = 0,
-  green = 1,
-}
 
 /**
  * Implementations
@@ -427,9 +273,6 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
     .with(k8sRegistration);
 
   k8sGreenProd
-    .with(k8sRegistration);
-
-  k8sTrafficUpdate
     .with(k8sRegistration);
 
   fingerprintComplianceGoal

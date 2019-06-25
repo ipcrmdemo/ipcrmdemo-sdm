@@ -44,12 +44,9 @@ COPY target/${name}.jar ${name}.jar
 WORKDIR /usr/src/app
 
 # Install req'd
-COPY package*.json ./
+COPY . .
 RUN npm install --only=production
 
-# Bundle app source
-RUN mkdir dist
-COPY dist/. dist/.
 
 # Configure
 EXPOSE 8080

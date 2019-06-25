@@ -119,7 +119,7 @@ import { isDotNetCore, SimpleDotNetCoreWebApplication } from "../support/dotnet/
 import {
   DotnetCoreProjectFileCodeTransform,
 } from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
-import { replaceSeedSlug } from "../transform/updateRepoSlug";
+import { replaceSeedSlug, replaceSeedSlugNode } from "../transform/updateRepoSlug";
 import { IsEcsDeployable, IsK8sDeployable, ZeroCommitPushTest } from "../support/pushTests";
 import { SuggestEnableEcsDeploy } from "../support/suggestEnableEcsDeploy";
 import { enableEcsDeployRegistration } from "../transform/enableEcsDeploy";
@@ -283,6 +283,7 @@ export function machine(
                 },
             ],
         });
+
     sdm.addGeneratorCommand<SpringProjectCreationParameters>({
             name: "create-spring-external-build",
             intent: "create spring jenkins build",
@@ -297,14 +298,16 @@ export function machine(
                 replaceSeedSlug,
             ],
         });
+
     sdm.addGeneratorCommand({
             name: "typescript-express-generator",
             parameters: NodeProjectCreationParametersDefinition,
-            startingPoint: new GitHubRepoRef("ipcrmdemo", "typescript-node-api"),
+            startingPoint: new GitHubRepoRef("atomist-seeds", "typescript-express-node"),
             intent: "create node",
             transform: [
                 UpdatePackageJsonIdentification,
                 UpdateReadmeTitle,
+                replaceSeedSlugNode,
             ],
         });
 

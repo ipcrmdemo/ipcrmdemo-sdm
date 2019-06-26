@@ -1,17 +1,19 @@
 // Fingerprint Compliance
 import {
-  allSatisfied,
+  allSatisfied, GoalProjectListenerEvent,
   GoalWithFulfillment,
   LogSuppressor,
-  SoftwareDeliveryMachine,
+  SoftwareDeliveryMachine
 } from "@atomist/sdm";
 import {
+  GradleBuild,
+  GradleVersion,
   IsMaven,
   mavenBuilder,
   MavenDefaultOptions,
   MavenProjectVersioner,
   MvnPackage,
-  MvnVersion,
+  MvnVersion
 } from "@atomist/sdm-pack-spring";
 import { CloudFoundryDeploy, CloudFoundryDeploymentStrategy } from "@atomist/sdm-pack-cloudfoundry";
 import { DockerBuild, HasDockerfile } from "@atomist/sdm-pack-docker";
@@ -22,7 +24,7 @@ import {
   NodeProjectVersioner, NpmCompileProjectListener, NpmProgressReporter,
   NpmVersionProjectListener,
 } from "@atomist/sdm-pack-node";
-import { Version } from "@atomist/sdm-core";
+import { cachePut, cacheRemove, cacheRestore, GoalCacheOptions, Version } from "@atomist/sdm-core";
 import { Build } from "@atomist/sdm-pack-build";
 import { KubernetesDeploy } from "@atomist/sdm-pack-k8s";
 import { hasJenkinsfile } from "../support/preChecks";
@@ -35,6 +37,20 @@ import { dotnetCoreBuilder,
 import { isDotNetCore } from "../support/dotnet/support";
 import { EcsDeploy } from "@atomist/sdm-pack-ecs";
 import { IsEcsDeployable } from "../support/pushTests";
+import { projectUtils } from "@atomist/automation-client";
+import * as fs from "fs-extra";
+
+/**
+ * Cache Definitions
+ */
+const mavenJarCache: GoalCacheOptions = {
+  entries: [{classifier: "jars", pattern: {globPattern: "**/target/*.jar"}}],
+  onCacheMiss: [MvnVersion, MvnPackage],
+};
+const gradleJarCache: GoalCacheOptions = {
+  entries: [{classifier: "jars", pattern: {globPattern: "**/build/libs/*.jar"}}],
+  onCacheMiss: [GradleVersion, GradleBuild],
+};
 
 /**
  * Goals
@@ -58,7 +74,8 @@ export const mavenBuild = new Build()
         name: "maven-run-build",
         builder: mavenBuilder(),
         pushTest: MavenDefaultOptions.pushTest,
-    });
+    })
+   .withProjectListener(cachePut(mavenJarCache));
 
 export const externalBuild = new Build();
 export const nodeBuild = new Build();
@@ -191,8 +208,37 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
         },
         pushTest: allSatisfied(IsMaven, HasDockerfile),
       })
-        .withProjectListener(MvnVersion)
-        .withProjectListener(MvnPackage)
+      .withProjectListener(cacheRestore(mavenJarCache))
+      .withProjectListener({
+        name: "copyImageTemplateToBasePath",
+        events: [GoalProjectListenerEvent.before],
+        listener: async p => {
+          await fs.mkdir(`${p.baseDir}/image`);
+          if (await p.hasDirectory(`${p.baseDir}/docker/image-template`)) {
+            await fs.copy(`${p.baseDir}/docker/image-template`, `${p.baseDir}/image`);
+          }
+        },
+      })
+      .withProjectListener({
+        name: "removeGradleVersion",
+        events: [GoalProjectListenerEvent.before],
+        listener: async p => {
+          // Move
+
+          const files = await fs.readdir(`${p.baseDir}/target`);
+          for (const f of files) {
+            await fs.move(`${p.baseDir}/target/${f}`, `${p.baseDir}/image/${p.name}.jar`);
+          }
+          // await projectUtils.doWithFiles(p, "**/*.jar", async f => {
+          //   await fs.move(`${p.baseDir}/${f.path}`, `${p.baseDir}/image`);
+          // });
+          // // Rename
+          // await projectUtils.doWithFiles(p, "**/*.jar", async f => {
+          //   await f.rename(`${p.name}.jar`);
+          // });
+        },
+      })
+      .withProjectListener(cacheRemove(mavenJarCache))
 
     .with({
         options: { push: true, ...sdm.configuration.sdm.dockerinfo },

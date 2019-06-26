@@ -51,6 +51,7 @@
     "axios": "^0.19.0-beta.1",
     "dateformat": "^3.0.3",
     "docker-file-parser": "^1.0.4",
+    "fs-extra": "^8.0.1",
     "git-url-parse": "^11.1.2",
     "lodash": "^4.17.10",
     "ts-essentials": "^2.0.7",

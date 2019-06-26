@@ -34,8 +34,8 @@ import {
   DisableDeploy,
   DisplayDeployEnablement,
   EnableDeploy,
-  githubGoalStatusSupport,
-  goalStateSupport,
+  githubGoalStatusSupport, GoalCacheOptions,
+  goalStateSupport
 } from "@atomist/sdm-core";
 import {
   buildAwareCodeTransforms,
@@ -68,13 +68,13 @@ import {
   UpdateReadmeTitle,
 } from "@atomist/sdm-pack-node";
 import {
-    IsMaven,
-    springSupport,
-    SpringProjectCreationParameters,
-    SpringProjectCreationParameterDefinitions,
-    ReplaceReadmeTitle,
-    SetAtomistTeamInApplicationYml,
-    TransformMavenSpringBootSeedToCustomProject,
+  IsMaven,
+  springSupport,
+  SpringProjectCreationParameters,
+  SpringProjectCreationParameterDefinitions,
+  ReplaceReadmeTitle,
+  SetAtomistTeamInApplicationYml,
+  TransformMavenSpringBootSeedToCustomProject, MvnVersion, MvnPackage, GradleVersion, GradleBuild
 } from "@atomist/sdm-pack-spring";
 import { changelogSupport } from "@atomist/sdm-pack-changelog";
 import { issueSupport } from "@atomist/sdm-pack-issue";

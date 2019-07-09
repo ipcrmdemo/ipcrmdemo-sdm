@@ -1,4 +1,4 @@
-import { getRegistrationInfo, RegObject } from "./registrationInfo";
+import { getRegistrationInfo } from "./registrationInfo";
 import { Configuration, logger } from "@atomist/automation-client";
 
 /**
@@ -10,7 +10,7 @@ import { Configuration, logger } from "@atomist/automation-client";
  */
 const parseRegForIngesterWebhook = async (
   rootType: string,
-  reg: RegObject[],
+  reg: any,
   config: Configuration,
 ): Promise<string> => {
   // Get my registration

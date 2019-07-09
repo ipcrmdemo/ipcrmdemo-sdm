@@ -15,7 +15,7 @@ describe("enable ecs deploy for maven project", async () => {
     const p = InMemoryProject.of({path: "pom.xml", content: "xmlstuff"});
     await enableEcsDeploy(p, {} as any);
     const dF = await p.getFile("Dockerfile");
-    const dFC = await dF.getContent()
+    const dFC = await dF.getContent();
     assert(dFC.includes("dummyRepo.jar"));
   });
 });

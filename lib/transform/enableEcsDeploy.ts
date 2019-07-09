@@ -46,4 +46,3 @@ export const enableEcsDeployRegistration: CodeTransformRegistration = {
         `Add ECS Deployment info
 ${AddDockerfileMarker}`),
 };
-

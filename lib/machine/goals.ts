@@ -1,27 +1,26 @@
 // Fingerprint Compliance
 import {
-  allSatisfied, GoalProjectListenerEvent,
+  allSatisfied,
   GoalWithFulfillment,
   LogSuppressor,
-  SoftwareDeliveryMachine
+  SoftwareDeliveryMachine,
 } from "@atomist/sdm";
 import {
-  GradleBuild,
-  GradleVersion,
   IsMaven,
   mavenBuilder,
   MavenDefaultOptions,
   MavenProjectVersioner,
   MvnPackage,
-  MvnVersion
+  MvnVersion,
 } from "@atomist/sdm-pack-spring";
 import { CloudFoundryDeploy, CloudFoundryDeploymentStrategy } from "@atomist/sdm-pack-cloudfoundry";
 import { DockerBuild, HasDockerfile } from "@atomist/sdm-pack-docker";
 import {
   IsNode,
   nodeBuilder,
-  NodeModulesProjectListener,
-  NodeProjectVersioner, NpmCompileProjectListener, NpmProgressReporter,
+  NodeProjectVersioner,
+  NpmCompileProjectListener, NpmInstallProjectListener,
+  NpmProgressReporter,
   NpmVersionProjectListener,
 } from "@atomist/sdm-pack-node";
 import { cachePut, cacheRemove, cacheRestore, GoalCacheOptions, Version } from "@atomist/sdm-core";
@@ -30,15 +29,14 @@ import { KubernetesDeploy } from "@atomist/sdm-pack-k8s";
 import { hasJenkinsfile } from "../support/preChecks";
 import * as _ from "lodash";
 import { ApplicationDataCallback } from "@atomist/sdm-pack-k8s/lib/deploy/goal";
-import { dotnetCoreBuilder,
+import {
+  dotnetCoreBuilder,
   DotnetCoreProjectVersioner,
   DotnetCoreVersionProjectListener,
 } from "@atomist/sdm-pack-analysis-dotnet";
 import { isDotNetCore } from "../support/dotnet/support";
 import { EcsDeploy } from "@atomist/sdm-pack-ecs";
 import { IsEcsDeployable } from "../support/pushTests";
-import { projectUtils } from "@atomist/automation-client";
-import * as fs from "fs-extra";
 
 /**
  * Cache Definitions
@@ -47,9 +45,12 @@ const mavenJarCache: GoalCacheOptions = {
   entries: [{classifier: "jars", pattern: {globPattern: "**/target/*.jar"}}],
   onCacheMiss: [MvnVersion, MvnPackage],
 };
-const gradleJarCache: GoalCacheOptions = {
-  entries: [{classifier: "jars", pattern: {globPattern: "**/build/libs/*.jar"}}],
-  onCacheMiss: [GradleVersion, GradleBuild],
+
+const NodeModulesCacheOptions: GoalCacheOptions = {
+  entries: [
+    { classifier: "nodeModules", pattern: { directory: "node_modules" } },
+  ],
+  onCacheMiss: [NpmInstallProjectListener],
 };
 
 /**
@@ -80,7 +81,7 @@ export const mavenBuild = new Build()
 export const externalBuild = new Build();
 export const nodeBuild = new Build();
 export const dockerBuild = new DockerBuild();
-export const dotNetBuild = new Build({ displayName: "dotnet build" })
+export const dotNetBuild = new Build({ displayName: "dotnet build" });
 
 // Kubernetes Deploys
 export const k8sStagingDeploy = new KubernetesDeploy({ environment: "testing", approval: true });
@@ -90,6 +91,7 @@ export const k8sProductionDeploy = new KubernetesDeploy({ environment: "producti
 export const ecsDeployStaging = new EcsDeploy({
   displayName: "ECS Deploy Staging",
   approval: true,
+  retry: true,
   uniqueName: "ecsDeployStaging",
   environment: "staging",
   descriptions: {
@@ -101,6 +103,7 @@ export const ecsDeployProd = new EcsDeploy({
   displayName: "ECS Deploy Prod",
   uniqueName: "ecsDeployProd",
   environment: "production",
+  retry: true,
   descriptions: {
     inProcess: "Deploying to ECS `prod`",
     completed: "Deploy to ECS `prod`",
@@ -184,7 +187,8 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
         },
       ),
       pushTest: IsNode,
-    });
+    })
+    .withProjectListener(cachePut(NodeModulesCacheOptions));
 
   externalBuild
     .with({
@@ -202,55 +206,33 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
 
   dockerBuild
     .with({
-        options: {
-          push: true,
+        push: true,
+        registry:  {
           ...sdm.configuration.sdm.dockerinfo,
         },
         pushTest: allSatisfied(IsMaven, HasDockerfile),
       })
       .withProjectListener(cacheRestore(mavenJarCache))
-      .withProjectListener({
-        name: "copyImageTemplateToBasePath",
-        events: [GoalProjectListenerEvent.before],
-        listener: async p => {
-          await fs.mkdir(`${p.baseDir}/image`);
-          if (await p.hasDirectory(`${p.baseDir}/docker/image-template`)) {
-            await fs.copy(`${p.baseDir}/docker/image-template`, `${p.baseDir}/image`);
-          }
-        },
-      })
-      .withProjectListener({
-        name: "removeGradleVersion",
-        events: [GoalProjectListenerEvent.before],
-        listener: async p => {
-          // Move
-
-          const files = await fs.readdir(`${p.baseDir}/target`);
-          for (const f of files) {
-            await fs.move(`${p.baseDir}/target/${f}`, `${p.baseDir}/image/${p.name}.jar`);
-          }
-          // await projectUtils.doWithFiles(p, "**/*.jar", async f => {
-          //   await fs.move(`${p.baseDir}/${f.path}`, `${p.baseDir}/image`);
-          // });
-          // // Rename
-          // await projectUtils.doWithFiles(p, "**/*.jar", async f => {
-          //   await f.rename(`${p.name}.jar`);
-          // });
-        },
-      })
       .withProjectListener(cacheRemove(mavenJarCache))
 
     .with({
-        options: { push: true, ...sdm.configuration.sdm.dockerinfo },
+        push: true,
+        registry:  {
+          ...sdm.configuration.sdm.dockerinfo,
+        },
         pushTest: allSatisfied(IsNode, HasDockerfile),
       })
-        .withProjectListener(NodeModulesProjectListener)
+        .withProjectListener(cacheRestore(NodeModulesCacheOptions))
         .withProjectListener(NpmCompileProjectListener)
         .withProjectListener(NpmVersionProjectListener)
+        .withProjectListener(cacheRemove(NodeModulesCacheOptions))
 
     .with({
-      options: { push: true, ...sdm.configuration.sdm.dockerinfo },
-      pushTest: allSatisfied(isDotNetCore, HasDockerfile),
+        push: true,
+        registry:  {
+          ...sdm.configuration.sdm.dockerinfo,
+        },
+        pushTest: allSatisfied(isDotNetCore, HasDockerfile),
     });
 
   /**
@@ -267,7 +249,7 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
       region: "us-east-1",
       pushTest: allSatisfied(IsEcsDeployable, HasDockerfile),
       serviceRequest: {
-        cluster: "fooecs2", // EC2 Cluster
+        cluster: "prod", // EC2 Cluster
       },
       roleDetail: {
         RoleArn: "arn:aws:iam::247672886355:role/test_ecs_role",
@@ -280,7 +262,7 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
       region: "us-east-1",
       pushTest: allSatisfied(IsEcsDeployable, HasDockerfile),
       serviceRequest: {
-        cluster: "foo", // FARGATE Cluster
+        cluster: "nonProd", // FARGATE Cluster
       },
       roleDetail: {
         RoleArn: "arn:aws:iam::247672886355:role/test_ecs_role",

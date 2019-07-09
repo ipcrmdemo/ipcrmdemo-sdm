@@ -26,7 +26,7 @@ export const EC2CreateListenerRule: EcsDeploymentListenerRegistration = {
       const priority: Array<{ Priority: string }> =
         _.get(JSON.parse(result.stdout), "Rules");
 
-      const newPrioritys: number[] = []
+      const newPrioritys: number[] = [];
       priority.forEach(prio => {
         const num = parseInt(prio.Priority, undefined);
         if (!isNaN(num)) {

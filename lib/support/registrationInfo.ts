@@ -25,10 +25,6 @@ export interface Registration {
   version: string;
   team_ids: string[];
 }
-export interface RegObject {
-  registration: Registration;
-}
-
 export interface ListSkill {
   sdm: string;
   intent: string;
@@ -51,6 +47,7 @@ export interface ListSkillsConfig {
  * Based on the supplied config, filter intents and return updated SdmSkills
  * @param {SdmSkills[]} skills
  * @param {ListSkillsConfig} config
+ * @param {Boolean} exclude
  * @returns {SdmSkills[]} Array of SdmSkills objects
  */
 export function applyIntentFilter(
@@ -142,6 +139,8 @@ export async function listSkillsListener(cli: CommandListenerInvocation<NoParame
         });
       });
 
+      logger.debug(`listSkills: msg body => ${JSON.stringify(msgBody, undefined, 2)}`);
+
       await cli.addressChannels({
         attachments: [
           {
@@ -163,7 +162,10 @@ export async function listSkillsListener(cli: CommandListenerInvocation<NoParame
         `Failed to run list skills`,
         `${e}`,
         cli.context),
-        { id: `list/skills/${cli.configuration.name}`, ttl: 60 * 60},
+        {
+          id: `list/skills/${cli.configuration.name}`,
+          ttl: 60 * 60,
+        },
       );
 
       reject({
@@ -174,11 +176,10 @@ export async function listSkillsListener(cli: CommandListenerInvocation<NoParame
   });
 }
 
-
 /** Build Skill List
- * @param {string} Atomist TeamID (Workspace ID)
  * @param {Configuration} config
- * @return {ListSkills} Skills to be printed
+ * @param {string} teamId
+ * @return {SdmSkills[]} Skills to be printed
  */
 export function buildSkillsList(config: Configuration, teamId: string): Promise<SdmSkills[]> {
   const skills: SdmSkills[] = [];
@@ -186,22 +187,22 @@ export function buildSkillsList(config: Configuration, teamId: string): Promise<
     try {
       const regInfo = await getRegistrationInfo(config);
       regInfo.forEach(r => {
-        logger.info(`buildSkillsList: Processing ${r.registration.name}`);
-        if (!r.registration.hasOwnProperty("commands")) {
+        logger.info(`buildSkillsList: Processing ${r.name}`);
+        if (!r.hasOwnProperty("commands")) {
           return;
         }
         if (
-          !(r.registration.hasOwnProperty("team_ids") && r.registration.team_ids.includes(teamId)) &&
-          !(r.registration.hasOwnProperty("groups") && r.registration.groups.includes("all"))
+          !(r.hasOwnProperty("team_ids") && r.team_ids.includes(teamId)) &&
+          !(r.hasOwnProperty("groups") && r.groups.includes("all"))
         ) {
           return;
         }
         const mySkills: ListSkill[] = [];
-        r.registration.commands.forEach(c => {
+        r.commands.forEach(c => {
           if (c.hasOwnProperty("intent") && c.intent && c.intent.length > 0 ) {
             c.intent.forEach(i => {
               mySkills.push({
-                sdm: r.registration.name,
+                sdm: r.name,
                 intent: i,
                 description: c.description,
               });
@@ -210,7 +211,7 @@ export function buildSkillsList(config: Configuration, teamId: string): Promise<
         });
 
         if (mySkills.length > 0) {
-          skills.push({name: r.registration.name, version: r.registration.version, skills: mySkills});
+          skills.push({name: r.name, version: r.version, skills: mySkills});
         }
       });
     } catch (e) {
@@ -226,16 +227,17 @@ export function buildSkillsList(config: Configuration, teamId: string): Promise<
  * @param {Configuration} config
  * @return {JSON} registration info
  */
-export const getRegistrationInfo = async (config: Configuration): Promise<RegObject[]> => {
-  logger.debug(`Starting  getRegistrationInfo, using URL ${config.endpoints.api}`);
-  const httpClient = config.http.client.factory.create(config.endpoints.api);
+export const getRegistrationInfo = async (config: Configuration): Promise<Registration[]> => {
+  logger.debug(`Starting  getRegistrationInfo`);
+  const url = `https://automation.atomist.com/v2/registration`;
+  const httpClient = config.http.client.factory.create(url);
   try {
     const authorization = `Bearer ${config.apiKey}`;
-    const result = await httpClient.exchange(config.endpoints.api, {
+    const result = await httpClient.exchange(url, {
       method: HttpMethod.Get,
       headers: { Authorization: authorization },
     });
-    return(result.body as RegObject[]);
+    return(result.body as Registration[]);
   } catch (e) {
     logger.error("getRegistrationInfo: Error! Failed to retrieve data. Failure: " + e.message);
     throw new Error(e);

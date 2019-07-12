@@ -50,7 +50,8 @@ import {
 import {
   fingerprintSupport,
   NpmDeps,
-  NpmCoordinates, MavenCoordinates, MavenDeps,
+  NpmCoordinates,
+  DefaultTargetDiffHandler,
 } from "@atomist/sdm-pack-fingerprints";
 import {
   k8sSupport,
@@ -104,7 +105,7 @@ import {
   nodeVersion,
 } from "./goals";
 import { addRandomCommand } from "../support/randomCommand";
-import { jiraSupport } from "@ipcrmdemo/sdm-pack-jira";
+import { jiraSupport } from "@atomist/sdm-pack-jira";
 import { TsLintAutofix } from "../transform/tsLintAutofix";
 import { isDotNetCore, SimpleDotNetCoreWebApplication } from "../support/dotnet/support";
 import {
@@ -119,11 +120,12 @@ import { enableK8sDeployRegistration } from "../transform/enableK8sDeploy";
 import {
   jiraCreateProjectBranchReg,
   jiraFindAndAssignReg,
-} from "@ipcrmdemo/sdm-pack-jira/lib/support/commands/findAndAssign";
-import { createBugIssueReg } from "@ipcrmdemo/sdm-pack-jira/lib/support/commands/createBugIssue";
+} from "@atomist/sdm-pack-jira/lib/support/commands/findAndAssign";
+import { createBugIssueReg } from "@atomist/sdm-pack-jira/lib/support/commands/createBugIssue";
 import {
   TransformMavenSpringBootSeedToCustomProject,
 } from "@atomist/sdm-pack-spring/lib/spring/generate/transformSeedToCustomProject";
+import * as _ from "lodash";
 
 export function machine(
     configuration: SoftwareDeliveryMachineConfiguration,
@@ -203,11 +205,9 @@ export function machine(
         fingerprintSupport({
           pushImpactGoal: pushImpact,
           features: [
-            NpmDeps,
-            NpmCoordinates,
-            DockerFrom,
-            MavenCoordinates,
-            MavenDeps,
+            _.merge(NpmDeps,        NpmDeps.workflows = [DefaultTargetDiffHandler]),
+            _.merge(NpmCoordinates, NpmCoordinates.workflows = [DefaultTargetDiffHandler]),
+            _.merge(DockerFrom,     DockerFrom.workflows = [DefaultTargetDiffHandler]),
           ],
         }),
     );
@@ -331,6 +331,7 @@ export function machine(
     /**
      * Configure Push rules
      */
+
     sdm.addGoalContributions(goalContributors(
         whenPushSatisfies(ZeroCommitPushTest).setGoals(DoNotSetAnyGoalsAndLock),
 

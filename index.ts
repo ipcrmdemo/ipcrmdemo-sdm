@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 import {
-  Configuration,
-} from "@atomist/automation-client";
-import {
-  ConfigureOptions,
-  configureSdm,
+  configure,
 } from "@atomist/sdm-core";
-import { machine } from "./lib/machine/machine";
 import { configureDashboardNotifications } from "@atomist/automation-client-ext-dashboard";
+import { MavenGoalConfigurator, MyGoalCreator, MyGoals } from "./lib/machine/goals";
 
-const machineOptions: ConfigureOptions = {
+configure<MyGoals>(async sdm => {
+  await sdm.createGoals(MyGoalCreator, [MavenGoalConfigurator]);
+
+  when
+
+
+  return sdm.configuration;
+}, {
   requiredConfigurationValues: [],
-};
-
-export const configuration: Configuration = {
   postProcessors: [
-    configureSdm(machine, machineOptions),
     configureDashboardNotifications,
   ],
-};
+});

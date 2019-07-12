@@ -1,8 +1,8 @@
 // Fingerprint Compliance
 import {
-  allSatisfied,
+  allSatisfied, AutoCodeInspection, Autofix, Cancel,
   GoalWithFulfillment,
-  LogSuppressor,
+  LogSuppressor, PushImpact,
   SoftwareDeliveryMachine,
 } from "@atomist/sdm";
 import {
@@ -23,7 +23,15 @@ import {
   NpmProgressReporter,
   NpmVersionProjectListener,
 } from "@atomist/sdm-pack-node";
-import { cachePut, cacheRemove, cacheRestore, GoalCacheOptions, Version } from "@atomist/sdm-core";
+import {
+  AllGoals,
+  cachePut,
+  cacheRemove,
+  cacheRestore,
+  GoalCacheOptions, GoalConfigurer,
+  GoalCreator,
+  Version,
+} from "@atomist/sdm-core";
 import { Build } from "@atomist/sdm-pack-build";
 import { KubernetesDeploy } from "@atomist/sdm-pack-k8s";
 import { hasJenkinsfile } from "../support/preChecks";
@@ -37,6 +45,34 @@ import {
 import { isDotNetCore } from "../support/dotnet/support";
 import { EcsDeploy } from "@atomist/sdm-pack-ecs";
 import { IsEcsDeployable } from "../support/pushTests";
+
+export interface MyGoals extends AllGoals {
+  autofix: Autofix;
+  version: Version;
+  codeInspection: AutoCodeInspection;
+  pushImpact: PushImpact;
+  build: Build;
+  dockerBuild: DockerBuild;
+  stagingDeployment: KubernetesDeploy;
+  productionDeployment: KubernetesDeploy;
+  cancel: Cancel;
+}
+
+export const MyGoalCreator: GoalCreator<MyGoals> = async () => {
+  const goals: MyGoals = {
+    autofix: new Autofix(),
+    version: new Version(),
+    codeInspection: new AutoCodeInspection(),
+    pushImpact: new PushImpact(),
+    build: new Build(),
+    dockerBuild: new DockerBuild(),
+    stagingDeployment: new KubernetesDeploy(),
+    productionDeployment: new KubernetesDeploy(),
+    cancel: new Cancel(),
+  };
+
+  return goals;
+};
 
 /**
  * Cache Definitions
@@ -53,6 +89,27 @@ const NodeModulesCacheOptions: GoalCacheOptions = {
   onCacheMiss: [NpmInstallProjectListener],
 };
 
+export const MavenGoalConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
+  goals.version.withVersioner(MavenProjectVersioner);
+  goals.build.with({
+      ...MavenDefaultOptions,
+      name: "maven-run-build",
+      builder: mavenBuilder(),
+      pushTest: MavenDefaultOptions.pushTest,
+    })
+    .withProjectListener(cachePut(mavenJarCache));
+
+  goals.dockerBuild.with({
+      push: true,
+      registry:  {
+        ...sdm.configuration.sdm.dockerinfo,
+      },
+      pushTest: allSatisfied(IsMaven, HasDockerfile),
+    })
+    .withProjectListener(cacheRestore(mavenJarCache))
+    .withProjectListener(cacheRemove(mavenJarCache));
+};
+
 /**
  * Goals
  */
@@ -64,20 +121,10 @@ export const fingerprintComplianceGoal = new GoalWithFulfillment(
 );
 
 // Version-ers
-export const mavenVersion = new Version().withVersioner(MavenProjectVersioner);
 export const nodeVersion = new Version().withVersioner(NodeProjectVersioner);
 export const dotNetVersion = new Version().withVersioner(DotnetCoreProjectVersioner);
 
 // Builds
-export const mavenBuild = new Build()
-    .with({
-        ...MavenDefaultOptions,
-        name: "maven-run-build",
-        builder: mavenBuilder(),
-        pushTest: MavenDefaultOptions.pushTest,
-    })
-   .withProjectListener(cachePut(mavenJarCache));
-
 export const externalBuild = new Build();
 export const nodeBuild = new Build();
 export const dockerBuild = new DockerBuild();
@@ -205,15 +252,6 @@ export function addImplementation(sdm: SoftwareDeliveryMachine): SoftwareDeliver
     .withProjectListener(DotnetCoreVersionProjectListener);
 
   dockerBuild
-    .with({
-        push: true,
-        registry:  {
-          ...sdm.configuration.sdm.dockerinfo,
-        },
-        pushTest: allSatisfied(IsMaven, HasDockerfile),
-      })
-      .withProjectListener(cacheRestore(mavenJarCache))
-      .withProjectListener(cacheRemove(mavenJarCache))
 
     .with({
         push: true,

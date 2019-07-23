@@ -31,7 +31,7 @@
     "@atomist/sdm-core": "^1.6.0",
     "@atomist/sdm-pack-analysis": "^1.0.0",
     "@atomist/sdm-pack-analysis-dotnet": "0.1.0-master.20190506042825",
-    "@atomist/sdm-pack-build": "^1.0.4",
+    "@atomist/sdm-pack-build": "1.0.6-master.20190723134907",
     "@atomist/sdm-pack-changelog": "^1.0.2",
     "@atomist/sdm-pack-cloudfoundry": "^1.0.3",
     "@atomist/sdm-pack-docker": "2.0.0-master.20190708202131",

@@ -33,7 +33,7 @@ import { CommandsConfigurator } from "./lib/machine/configurers/commands";
 import { EventConfigurator } from "./lib/machine/configurers/event";
 import { GlobalGoalsConfigurator } from "./lib/machine/configurers/globalGoals";
 import { ExternalBuildConfigurator } from "./lib/machine/configurers/externalBuilds";
-import { DoNotSetAnyGoalsAndLock, or} from "@atomist/sdm";
+import { allSatisfied, DoNotSetAnyGoalsAndLock, or, ToDefaultBranch } from "@atomist/sdm";
 import { IsEcsDeployable, IsK8sDeployable, ZeroCommitPushTest } from "./lib/support/pushTests";
 import { IsMaven } from "@atomist/sdm-pack-spring";
 import { IsNode } from "@atomist/sdm-pack-node";
@@ -85,17 +85,17 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
       dependsOn: ["build"],
     },
     pcfDeploy: {
-      test: HasCloudFoundryManifest,
+      test: allSatisfied(HasCloudFoundryManifest, ToDefaultBranch),
       goals: [setGoals.pcfStagingDeploy, setGoals.pcfProductionDeploy],
       dependsOn: ["build"],
     },
     ecsDeploy: {
-      test: IsEcsDeployable,
+      test: allSatisfied(IsEcsDeployable, ToDefaultBranch),
       goals: [setGoals.ecsStagingDeploy, setGoals.ecsProductionDeploy],
       dependsOn: ["dockerBuild"],
     },
     k8sDeploy: {
-      test: IsK8sDeployable,
+      test: allSatisfied(IsK8sDeployable, ToDefaultBranch),
       goals: [setGoals.k8sStagingDeployment, setGoals.k8sProductionDeployment],
       dependsOn: ["dockerBuild"],
     },

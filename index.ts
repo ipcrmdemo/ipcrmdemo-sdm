@@ -32,18 +32,18 @@ import { ExtPacksConfigurator } from "./lib/machine/configurers/extpacks";
 import { CommandsConfigurator } from "./lib/machine/configurers/commands";
 import { EventConfigurator } from "./lib/machine/configurers/event";
 import { GlobalGoalsConfigurator } from "./lib/machine/configurers/globalGoals";
+import { ExternalBuildConfigurator } from "./lib/machine/configurers/externalBuilds";
+import { DoNotSetAnyGoalsAndLock, or} from "@atomist/sdm";
+import { IsEcsDeployable, IsK8sDeployable, ZeroCommitPushTest } from "./lib/support/pushTests";
 import { IsMaven } from "@atomist/sdm-pack-spring";
-import { DoNotSetAnyGoalsAndLock, or } from "@atomist/sdm";
 import { IsNode } from "@atomist/sdm-pack-node";
 import { isDotNetCore } from "./lib/support/dotnet/support";
-import { hasJenkinsfile } from "./lib/support/preChecks";
 import { HasDockerfile } from "@atomist/sdm-pack-docker";
-import { IsEcsDeployable, IsK8sDeployable, ZeroCommitPushTest } from "./lib/support/pushTests";
+import { hasJenkinsfile } from "./lib/support/preChecks";
 import { HasCloudFoundryManifest } from "@atomist/sdm-pack-cloudfoundry";
-import { ExternalBuildConfigurator } from "./lib/machine/configurers/externalBuilds";
 
 export const configuration: Configuration = configure<MyGoals>(async sdm => {
-  const goals = await sdm.createGoals(MyGoalCreator, [
+  const setGoals = await sdm.createGoals(MyGoalCreator, [
       GlobalGoalsConfigurator,
       ExtPacksConfigurator,
       CommandsConfigurator,
@@ -56,6 +56,7 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
       PcfDeployConfigurator,
       K8sDeployConfigurator,
   ]);
+
   return {
     /**
      * GoalSet Definitions
@@ -65,37 +66,37 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
       goals: [DoNotSetAnyGoalsAndLock],
     },
     cancel: {
-      goals: [goals.cancel],
+      goals: [setGoals.cancel],
       dependsOn: ["lock"],
     },
     check: {
       test: or(IsMaven, IsNode, isDotNetCore),
-      goals: [ goals.autofix, [goals.codeInspection, goals.pushImpact] ],
+      goals: [ setGoals.autofix, [setGoals.codeInspection, setGoals.pushImpact] ],
       dependsOn: ["cancel"],
     },
     build: {
       test: or(IsMaven, IsNode, isDotNetCore, hasJenkinsfile),
-      goals: [ goals.version, goals.build ],
+      goals: [ setGoals.version, setGoals.build ],
       dependsOn: ["check"],
     },
     dockerBuild: {
       test: HasDockerfile,
-      goals: [ goals.dockerBuild ],
+      goals: [ setGoals.dockerBuild ],
       dependsOn: ["build"],
     },
     pcfDeploy: {
       test: HasCloudFoundryManifest,
-      goals: [goals.pcfStagingDeploy, goals.pcfProductionDeploy],
+      goals: [setGoals.pcfStagingDeploy, setGoals.pcfProductionDeploy],
       dependsOn: ["build"],
     },
     ecsDeploy: {
       test: IsEcsDeployable,
-      goals: [goals.ecsStagingDeploy, goals.ecsProductionDeploy],
+      goals: [setGoals.ecsStagingDeploy, setGoals.ecsProductionDeploy],
       dependsOn: ["dockerBuild"],
     },
     k8sDeploy: {
       test: IsK8sDeployable,
-      goals: [goals.k8sStagingDeployment, goals.k8sProductionDeployment],
+      goals: [setGoals.k8sStagingDeployment, setGoals.k8sProductionDeployment],
       dependsOn: ["dockerBuild"],
     },
   };

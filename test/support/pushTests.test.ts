@@ -1,6 +1,6 @@
 import {InMemoryProject} from "@atomist/automation-client";
 import * as assert from "assert";
-import { IsEcsDeployable, IsK8sDeployable, IsSdmProject } from "../lib/support/pushTests";
+import { IsEcsDeployable, IsK8sDeployable, IsSdmProject } from "../../lib/support/pushTests";
 
 describe("pushTests", () => {
   describe("IsEcsDeployable", () => {

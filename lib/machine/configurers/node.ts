@@ -6,7 +6,8 @@ import {
   nodeBuilder,
   NodeProjectVersioner,
   NpmCompileProjectListener,
-  NpmProgressReporter, NpmVersionProjectListener
+  NpmProgressReporter,
+  NpmVersionProjectListener,
 } from "@atomist/sdm-pack-node";
 import { allSatisfied, LogSuppressor, not } from "@atomist/sdm";
 import { NodeModulesCacheOptions } from "../cache";
@@ -49,6 +50,5 @@ export const NodeGoalConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
     .withProjectListener(cacheRestore(NodeModulesCacheOptions))
     .withProjectListener(NpmCompileProjectListener)
     .withProjectListener(NpmVersionProjectListener)
-    .withProjectListener(cacheRemove(NodeModulesCacheOptions))
-
+    .withProjectListener(cacheRemove(NodeModulesCacheOptions));
 };

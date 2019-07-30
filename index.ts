@@ -41,6 +41,7 @@ import { isDotNetCore } from "./lib/support/dotnet/support";
 import { HasDockerfile } from "@atomist/sdm-pack-docker";
 import { hasJenkinsfile } from "./lib/support/preChecks";
 import { HasCloudFoundryManifest } from "@atomist/sdm-pack-cloudfoundry";
+import { PrCloserConfigurator } from "./lib/machine/configurers/prCloser";
 
 export const configuration: Configuration = configure<MyGoals>(async sdm => {
   const setGoals = await sdm.createGoals(MyGoalCreator, [
@@ -55,6 +56,7 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
       EcsDeployConfigurator,
       PcfDeployConfigurator,
       K8sDeployConfigurator,
+      PrCloserConfigurator,
   ]);
 
   return {

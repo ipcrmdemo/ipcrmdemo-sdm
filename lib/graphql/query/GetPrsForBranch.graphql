@@ -1,0 +1,19 @@
+query GetPrsForBranch($owner: String!, $repo: String!, $branch: String!) {
+    Repo(owner: $owner, name: $repo) {
+        branches {
+            name
+            pullRequests @required {
+                state
+                id
+                name
+                number
+                sourceBranch {
+                    name
+                }
+                destinationBranch (name:$branch) {
+                    name
+                }
+            }
+        }
+    }
+}

@@ -34,6 +34,15 @@ export const PrCloserConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
       const closeThesePrs: Array<{number: number, branch: string}> = [];
 
       /**
+       * If no open PRs are found exit successfully
+       */
+      if (prsOnThisBranch.length === 0) {
+        return {
+          code: 0,
+        };
+      }
+
+      /**
        * For each one, check if there is a difference between this branch and sourceBranch
        */
       for (const opr of prsOnThisBranch) {
@@ -115,6 +124,10 @@ export const PrCloserConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
           `The base branch for this PR is already up to date with ${i.push.branch}`,
         ));
       }
+
+      return {
+        code: 0,
+      };
     },
   );
 };

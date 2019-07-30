@@ -2,7 +2,7 @@ query GetPrsForBranch($owner: String!, $repo: String!, $branch: String!) {
     Repo(owner: $owner, name: $repo) {
         branches {
             name
-            pullRequests @required {
+            pullRequests(state: "open") @required {
                 state
                 id
                 name

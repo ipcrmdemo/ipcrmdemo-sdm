@@ -29,8 +29,7 @@ export const PrCloserConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
       /**
        * Find all open PRs targeting this branch
        */
-      const prsOnThisBranch = _.flatten(repos.Repo[0].branches.map(
-        b => b.pullRequests.filter(pr => pr.state === "open")));
+      const prsOnThisBranch = _.flatten(repos.Repo[0].branches.map(b => b.pullRequests));
       const closeThesePrs: Array<{number: number, branch: string}> = [];
 
       /**

@@ -13,9 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {
-  configure,
-} from "@atomist/sdm-core";
+import { configure } from "@atomist/sdm-core";
 import { configureDashboardNotifications } from "@atomist/automation-client-ext-dashboard";
 import {
   MyGoalCreator,
@@ -42,6 +40,7 @@ import { HasDockerfile } from "@atomist/sdm-pack-docker";
 import { hasJenkinsfile } from "./lib/support/preChecks";
 import { HasCloudFoundryManifest } from "@atomist/sdm-pack-cloudfoundry";
 import { PrCloserConfigurator } from "./lib/machine/configurers/prCloser";
+import { bitbucketPostProcessor } from "./lib/support/bitbucket/configPostProcessor";
 
 export const configuration: Configuration = configure<MyGoals>(async sdm => {
   const setGoals = await sdm.createGoals(MyGoalCreator, [
@@ -106,5 +105,6 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
   requiredConfigurationValues: [],
   postProcessors: [
     configureDashboardNotifications,
+    bitbucketPostProcessor,
   ],
 });

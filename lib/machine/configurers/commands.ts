@@ -7,7 +7,6 @@ import {
 } from "@atomist/sdm-pack-spring";
 import { replaceSeedSlug, replaceSeedSlugNode } from "../../transform/updateRepoSlug";
 import { GitHubRepoRef } from "@atomist/automation-client";
-import { PreferenceScope } from "@atomist/sdm";
 import {
   DotnetCoreProjectFileCodeTransform,
 } from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
@@ -29,6 +28,9 @@ import { createBugIssueReg } from "@atomist/sdm-pack-jira/lib/support/commands/c
 import { AddJenkinsfileRegistration } from "../../transform/addJenkinsfile";
 import { enableEcsDeployRegistration } from "../../transform/enableEcsDeploy";
 import { FixSmallMemory } from "../../transform/smallMemory";
+import { FixedRepoCreationParameters } from "../../support/bitbucket/creationParams";
+import { channelMappingProjectAction } from "../../support/bitbucket/linkChannelOnCreate";
+import { bitbucketCreateWebHookProjectAction } from "../../support/bitbucket/createWebhook";
 
 export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   /**
@@ -62,15 +64,9 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
       ...TransformMavenSpringBootSeedToCustomProject,
       AddFinalNameToPom,
       replaceSeedSlug,
-      async (p, pi) => {
-        const channel = pi.context.source.slack.channel.id;
-        const team = pi.context.source.slack.team.id;
-        await pi.preferences.put(
-          `generator/${p.id.owner}/${p.id.repo}/channel`,
-          { channel, team },
-          { scope: PreferenceScope.Sdm });
-      },
     ],
+    fallbackTarget: () => new FixedRepoCreationParameters(),
+    afterAction: [ channelMappingProjectAction, bitbucketCreateWebHookProjectAction ],
   });
 
   sdm.addGeneratorCommand<SpringProjectCreationParameters>({
@@ -86,6 +82,8 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
       AddFinalNameToPom,
       replaceSeedSlug,
     ],
+    fallbackTarget: () => new FixedRepoCreationParameters(),
+    afterAction: [ channelMappingProjectAction, bitbucketCreateWebHookProjectAction ],
   });
 
   sdm.addGeneratorCommand({
@@ -98,6 +96,8 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
       UpdateReadmeTitle,
       replaceSeedSlugNode,
     ],
+    fallbackTarget: () => new FixedRepoCreationParameters(),
+    afterAction: [ channelMappingProjectAction, bitbucketCreateWebHookProjectAction ],
   });
 
   sdm.addGeneratorCommand({
@@ -109,5 +109,7 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
       DotnetCoreProjectFileCodeTransform,
       replaceSeedSlug,
     ],
+    fallbackTarget: () => new FixedRepoCreationParameters(),
+    afterAction: [ channelMappingProjectAction, bitbucketCreateWebHookProjectAction ],
   });
 };

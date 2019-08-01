@@ -2,9 +2,14 @@ import { GoalConfigurer } from "@atomist/sdm-core";
 import { MyGoals } from "../goals";
 import { GetPrsForBranch } from "../../typings/types";
 import { execPromise, slackInfoMessage } from "@atomist/sdm";
-import { logger, TokenCredentials } from "@atomist/automation-client";
+import { logger } from "@atomist/automation-client";
 import * as _ from "lodash";
-import * as GithubApi from "@octokit/rest";
+import {
+  BitBucketPrData,
+  createBitbucketPrComment,
+  declineBitBucketPr,
+  deleteBitbucketBranch,
+} from "../../support/bitbucket/utils";
 
 export const PrCloserConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   goals.pushImpact.withListener(
@@ -101,22 +106,17 @@ export const PrCloserConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
        */
       logger.debug(`Found the following PR numbers to close ${JSON.stringify(closeThesePrs)}`);
       for (const closePr of closeThesePrs) {
-        const gh = new GithubApi({
-          auth: `token ${(i.credentials as TokenCredentials).token}`,
-        });
-        const data = {
+        const data: BitBucketPrData = {
           owner: i.push.repo.owner,
           repo: i.push.repo.name,
+          number: closePr.number,
+          branch: closePr.branch,
         };
 
-        await gh.issues.createComment({
-          ...data,
-          issue_number: closePr.number,
-          body: `Atomist closed this PR because it no longer contains any valid changes.`,
-        });
-
-        await gh.pulls.update({ ...data, pull_number: closePr.number, state: "closed"});
-        await gh.git.deleteRef({ ...data, ref: `heads/${closePr.branch}` });
+        await createBitbucketPrComment(data,
+          {text: `Atomist closed this PR because it no longer contains any valid changes.`});
+        await declineBitBucketPr(data);
+        await deleteBitbucketBranch(data);
 
         await i.addressChannels(slackInfoMessage(
           `Closed PR#${closePr.number} and deleted branch ${closePr.branch}`,

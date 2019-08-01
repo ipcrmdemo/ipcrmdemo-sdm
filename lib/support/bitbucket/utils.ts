@@ -90,10 +90,10 @@ export async function sendBitbucketApiRequest<R = any>(
 /**
  * This function can be used to add comments to an existing PR.  See details in the API docs located here
  * https://docs.atlassian.com/bitbucket-server/rest/5.5.1/bitbucket-rest.html#idm139496951085440 in the /comments
- * section.
+ * section for valid comment data structure.
  *
  * @param {BitBucketPrData} data
- * @param {string} comment
+ * @param {Object} comment
  */
 export const createBitbucketPrComment = async (data: BitBucketPrData, comment: any): Promise<void> => {
   await sendBitbucketApiRequest(

@@ -33,7 +33,15 @@ import { CommandsConfigurator } from "./lib/machine/configurers/commands";
 import { EventConfigurator } from "./lib/machine/configurers/event";
 import { GlobalGoalsConfigurator } from "./lib/machine/configurers/globalGoals";
 import { ExternalBuildConfigurator } from "./lib/machine/configurers/externalBuilds";
-import { allSatisfied, DoNotSetAnyGoalsAndLock, or, ToDefaultBranch } from "@atomist/sdm";
+import {
+  allSatisfied,
+  DoNotSetAnyGoalsAndLock,
+  goals,
+  onAnyPush,
+  or,
+  ToDefaultBranch,
+  whenPushSatisfies,
+} from "@atomist/sdm";
 import { IsEcsDeployable, IsK8sDeployable, ZeroCommitPushTest } from "./lib/support/pushTests";
 import { IsMaven } from "@atomist/sdm-pack-spring";
 import { IsNode } from "@atomist/sdm-pack-node";
@@ -41,7 +49,6 @@ import { isDotNetCore } from "./lib/support/dotnet/support";
 import { HasDockerfile } from "@atomist/sdm-pack-docker";
 import { hasJenkinsfile } from "./lib/support/preChecks";
 import { HasCloudFoundryManifest } from "@atomist/sdm-pack-cloudfoundry";
-import { PrCloserConfigurator } from "./lib/machine/configurers/prCloser";
 
 export const configuration: Configuration = configure<MyGoals>(async sdm => {
   const setGoals = await sdm.createGoals(MyGoalCreator, [
@@ -56,52 +63,107 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
       EcsDeployConfigurator,
       PcfDeployConfigurator,
       K8sDeployConfigurator,
-      PrCloserConfigurator,
   ]);
 
-  return {
-    /**
-     * GoalSet Definitions
-     */
-    lock: {
-      test: ZeroCommitPushTest,
-      goals: [DoNotSetAnyGoalsAndLock],
-    },
-    cancel: {
-      goals: [setGoals.cancel],
-      dependsOn: ["lock"],
-    },
-    check: {
-      test: or(IsMaven, IsNode, isDotNetCore),
-      goals: [ setGoals.autofix, [setGoals.codeInspection, setGoals.pushImpact] ],
-      dependsOn: ["cancel"],
-    },
-    build: {
-      test: or(IsMaven, IsNode, isDotNetCore, hasJenkinsfile),
-      goals: [ setGoals.version, setGoals.build ],
-      dependsOn: ["check"],
-    },
-    dockerBuild: {
-      test: HasDockerfile,
-      goals: [ setGoals.dockerBuild ],
-      dependsOn: ["build"],
-    },
-    pcfDeploy: {
-      test: allSatisfied(HasCloudFoundryManifest, ToDefaultBranch),
-      goals: [setGoals.pcfStagingDeploy, setGoals.pcfProductionDeploy],
-      dependsOn: ["build"],
-    },
-    ecsDeploy: {
-      test: allSatisfied(IsEcsDeployable, ToDefaultBranch),
-      goals: [setGoals.ecsStagingDeploy, setGoals.ecsProductionDeploy],
-      dependsOn: ["dockerBuild"],
-    },
-    k8sDeploy: {
-      test: allSatisfied(IsK8sDeployable, ToDefaultBranch),
-      goals: [setGoals.k8sStagingDeployment, setGoals.k8sProductionDeployment],
-      dependsOn: ["dockerBuild"],
-    },
-  };
+  /**
+   * GoalSet Definitions
+   */
+  const lock = goals("lock").plan(DoNotSetAnyGoalsAndLock);
+  const cancel = goals("cancel").plan(setGoals.cancel).after(lock);
+  const check = goals("check")
+    .plan(setGoals.autofix).after(cancel)
+    .plan(setGoals.codeInspection, setGoals.pushImpact).after(setGoals.autofix);
+
+  const build = goals("build")
+    .plan(setGoals.version).after(check)
+    .plan(setGoals.build).after(setGoals.version);
+
+  const dockerBuild = goals("dockerBuild")
+    .plan(setGoals.dockerBuild).after(build);
+
+  const pcfDeploy = goals("pcfDeploy")
+    .plan(setGoals.pcfStagingDeploy).after(build)
+    .plan(setGoals.pcfProductionDeploy).after(setGoals.pcfStagingDeploy);
+
+  const ecsDeploy = goals("ecsDeploy")
+    .plan(setGoals.ecsStagingDeploy).after(dockerBuild)
+    .plan(setGoals.ecsProductionDeploy).after(setGoals.ecsStagingDeploy);
+
+  const k8sDeploy = goals("k8sDeploy")
+    .plan(setGoals.k8sStagingDeployment).after(dockerBuild)
+    .plan(setGoals.k8sProductionDeployment).after(setGoals.k8sStagingDeployment);
+
+  /**
+   * Push Rules
+   */
+  sdm.withPushRules(
+    whenPushSatisfies(ZeroCommitPushTest)
+      .setGoals(lock),
+
+    onAnyPush().setGoals(cancel),
+
+    whenPushSatisfies(or(IsMaven, IsNode, isDotNetCore))
+      .setGoals(check),
+
+    whenPushSatisfies(or(IsMaven, IsNode, isDotNetCore, hasJenkinsfile))
+      .setGoals(build),
+
+    whenPushSatisfies(HasDockerfile)
+      .setGoals(dockerBuild),
+
+    whenPushSatisfies(allSatisfied(HasCloudFoundryManifest, ToDefaultBranch))
+      .setGoals(pcfDeploy),
+
+    whenPushSatisfies(allSatisfied(IsEcsDeployable, ToDefaultBranch))
+      .setGoals(ecsDeploy),
+
+    whenPushSatisfies(allSatisfied(IsK8sDeployable, ToDefaultBranch))
+      .setGoals(k8sDeploy),
+  );
+
+   /**
+    *  return {
+    *     // GoalSet Definitions
+    *    lock: {
+    *      test: ZeroCommitPushTest,
+    *      goals: [DoNotSetAnyGoalsAndLock],
+    *    },
+    *    cancel: {
+    *      goals: [setGoals.cancel],
+    *      dependsOn: ["lock"],
+    *    },
+    *    check: {
+    *      test: or(IsMaven, IsNode, isDotNetCore),
+    *      goals: [ setGoals.autofix, [setGoals.codeInspection, setGoals.pushImpact] ],
+    *      dependsOn: ["cancel"],
+    *    },
+    *    build: {
+    *      test: or(IsMaven, IsNode, isDotNetCore, hasJenkinsfile),
+    *      goals: [ setGoals.version, setGoals.build ],
+    *      dependsOn: ["check"],
+    *    },
+    *    dockerBuild: {
+    *      test: HasDockerfile,
+    *      goals: [ setGoals.dockerBuild ],
+    *      dependsOn: ["build"],
+    *    },
+    *    pcfDeploy: {
+    *      test: allSatisfied(HasCloudFoundryManifest, ToDefaultBranch),
+    *      goals: [setGoals.pcfStagingDeploy, setGoals.pcfProductionDeploy],
+    *      dependsOn: ["build"],
+    *    },
+    *    ecsDeploy: {
+    *      test: allSatisfied(IsEcsDeployable, ToDefaultBranch),
+    *      goals: [setGoals.ecsStagingDeploy, setGoals.ecsProductionDeploy],
+    *      dependsOn: ["dockerBuild"],
+    *    },
+    *    k8sDeploy: {
+    *      test: allSatisfied(IsK8sDeployable, ToDefaultBranch),
+    *      goals: [setGoals.k8sStagingDeployment, setGoals.k8sProductionDeployment],
+    *      dependsOn: ["dockerBuild"],
+    *    },
+    *  };
+    */
 }, {
   requiredConfigurationValues: [],
   postProcessors: [

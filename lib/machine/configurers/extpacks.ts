@@ -4,7 +4,7 @@ import { jiraSupport } from "@atomist/sdm-pack-jira";
 import { springSupport } from "@atomist/sdm-pack-spring";
 import { buildAwareCodeTransforms } from "@atomist/sdm-pack-build";
 import { k8sSupport } from "@atomist/sdm-pack-k8s";
-import { CloudFoundrySupport } from "@atomist/sdm-pack-cloudfoundry";
+import { cloudFoundrySupport } from "@atomist/sdm-pack-cloudfoundry";
 import { changelogSupport } from "@atomist/sdm-pack-changelog";
 import { issueSupport } from "@atomist/sdm-pack-issue";
 import { DefaultTargetDiffHandler, fingerprintSupport, NpmCoordinates, NpmDeps } from "@atomist/sdm-pack-fingerprints";
@@ -33,16 +33,14 @@ export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
     k8sSupport({
       addCommands: true,
     }),
-    CloudFoundrySupport({
-      pushImpactGoal: goals.pushImpact,
-    }),
+    cloudFoundrySupport(),
     githubGoalStatusSupport(),
     goalStateSupport(),
     changelogSupport(),
     issueSupport(),
     fingerprintSupport({
       pushImpactGoal: goals.pushImpact,
-      features: [
+      aspects: [
         _.merge(NpmDeps,        NpmDeps.workflows = [DefaultTargetDiffHandler]),
         _.merge(NpmCoordinates, NpmCoordinates.workflows = [DefaultTargetDiffHandler]),
         _.merge(DockerFrom,     DockerFrom.workflows = [DefaultTargetDiffHandler]),

@@ -36,6 +36,7 @@
     "@atomist/sdm-pack-cloudfoundry": "^2.0.0-master.20190709172113",
     "@atomist/sdm-pack-docker": "^2.0.3-master.20190717104008",
     "@atomist/sdm-pack-ecs": "0.0.3-master.20190709172534",
+    "@atomist/sdm-pack-event-relay": "0.0.1-master.20190831201155",
     "@atomist/sdm-pack-fingerprints": "^4.0.3-master.20190802152058",
     "@atomist/sdm-pack-issue": "^1.2.3-master.20190709202708",
     "@atomist/sdm-pack-jira": "0.0.1-master.20190709172449",

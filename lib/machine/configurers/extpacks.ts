@@ -10,6 +10,8 @@ import { issueSupport } from "@atomist/sdm-pack-issue";
 import { DefaultTargetDiffHandler, fingerprintSupport, NpmCoordinates, NpmDeps } from "@atomist/sdm-pack-fingerprints";
 import * as _ from "lodash";
 import { DockerFrom } from "@atomist/sdm-pack-docker";
+import { eventRelaySupport } from "@atomist/sdm-pack-event-relay";
+import { JiraRelay } from "../../support/jira/support/relayer";
 
 export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   sdm.addExtensionPacks(
@@ -44,6 +46,11 @@ export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
         _.merge(NpmDeps,        NpmDeps.workflows = [DefaultTargetDiffHandler]),
         _.merge(NpmCoordinates, NpmCoordinates.workflows = [DefaultTargetDiffHandler]),
         _.merge(DockerFrom,     DockerFrom.workflows = [DefaultTargetDiffHandler]),
+      ],
+    }),
+    eventRelaySupport({
+      eventRelayers: [
+        JiraRelay,
       ],
     }),
   );

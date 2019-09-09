@@ -108,6 +108,9 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
     whenPushSatisfies(or(IsMaven, IsNode, isDotNetCore, hasJenkinsfile))
       .setGoals(build),
 
+    whenPushSatisfies(IsMaven)
+      .setGoals(goals("publish-to-s3").plan(setGoals.publishS3).after(build)),
+
     whenPushSatisfies(HasDockerfile)
       .setGoals(dockerBuild),
 

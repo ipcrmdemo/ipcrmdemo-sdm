@@ -15,6 +15,7 @@ import {
 import { Build } from "@atomist/sdm-pack-build";
 import { KubernetesDeploy } from "@atomist/sdm-pack-k8s";
 import { EcsDeploy } from "@atomist/sdm-pack-ecs";
+import { PublishToS3 } from "@atomist/sdm-pack-s3";
 
 export interface MyGoals extends AllGoals {
   autofix: Autofix;
@@ -30,6 +31,7 @@ export interface MyGoals extends AllGoals {
   pcfStagingDeploy: CloudFoundryDeploy;
   pcfProductionDeploy: CloudFoundryDeploy;
   cancel: Cancel;
+  publishS3: PublishToS3;
 }
 
 export const MyGoalCreator: GoalCreator<MyGoals> = async () => {
@@ -81,6 +83,12 @@ export const MyGoalCreator: GoalCreator<MyGoals> = async () => {
       },
     }),
     cancel: new Cancel(),
+    publishS3: new PublishToS3({
+      uniqueName: "publish-to-s3",
+      bucketName: "ipcrmtest",
+      region: "us-east2",
+      filesToPublish: ["**/*.jar"],
+    }),
   };
 
   return goals;

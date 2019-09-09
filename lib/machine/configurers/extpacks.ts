@@ -1,4 +1,4 @@
-import { githubGoalStatusSupport, GoalConfigurer, goalStateSupport } from "@atomist/sdm-core";
+import { cacheRestore, githubGoalStatusSupport, GoalConfigurer, goalStateSupport } from "@atomist/sdm-core";
 import { MyGoals} from "../goals";
 import { jiraSupport } from "@atomist/sdm-pack-jira";
 import { springSupport } from "@atomist/sdm-pack-spring";
@@ -12,6 +12,7 @@ import * as _ from "lodash";
 import { DockerFrom } from "@atomist/sdm-pack-docker";
 import { eventRelaySupport } from "@atomist/sdm-pack-event-relay";
 import { JiraRelay } from "../../support/jira/support/relayer";
+import { mavenJarCache } from "../cache";
 
 export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   sdm.addExtensionPacks(
@@ -59,4 +60,6 @@ export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
    * Extension pack specific listeners
    */
   // sdm.addEvent(onJiraIssueEventApproval(JiraApproval));
+  goals.publishS3
+    .withProjectListener(cacheRestore(mavenJarCache));
 };

@@ -7,7 +7,7 @@ import { k8sSupport } from "@atomist/sdm-pack-k8s";
 import { cloudFoundrySupport } from "@atomist/sdm-pack-cloudfoundry";
 import { changelogSupport } from "@atomist/sdm-pack-changelog";
 import { issueSupport } from "@atomist/sdm-pack-issue";
-import { DefaultTargetDiffHandler, fingerprintSupport, NpmCoordinates, NpmDeps } from "@atomist/sdm-pack-fingerprints";
+import { DefaultTargetDiffHandler, fingerprintSupport, NpmCoordinates, NpmDeps } from "@atomist/sdm-pack-fingerprint";
 import * as _ from "lodash";
 import { DockerFrom } from "@atomist/sdm-pack-docker";
 

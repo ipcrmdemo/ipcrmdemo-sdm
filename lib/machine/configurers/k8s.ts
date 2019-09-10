@@ -1,7 +1,7 @@
 import { GoalConfigurer } from "@atomist/sdm-core";
 import { MyGoals } from "../goals";
-import { ApplicationDataCallback } from "@atomist/sdm-pack-k8s/lib/deploy/goal";
 import * as _ from "lodash";
+import { KubernetesApplicationDataCallback } from "@atomist/sdm-pack-k8s";
 
 export const K8sDeployConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   goals.k8sStagingDeployment.with({
@@ -15,7 +15,7 @@ export const K8sDeployConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals)
   });
 };
 
-const k8sCallback: ApplicationDataCallback = async (a, p, g, e) => {
+const k8sCallback: KubernetesApplicationDataCallback = async (a, p, g, e) => {
   a.ns = e.environment.includes("prod") ? "production" : "testing";
   a.path = `/${a.ns}/${p.name}`;
 

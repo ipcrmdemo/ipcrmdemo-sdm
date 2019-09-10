@@ -8,7 +8,7 @@ import {
 import { CloudFoundryDeploy } from "@atomist/sdm-pack-cloudfoundry";
 import { DockerBuild } from "@atomist/sdm-pack-docker";
 import {
-  AllGoals,
+  DeliveryGoals,
   GoalCreator,
   Version,
 } from "@atomist/sdm-core";
@@ -16,7 +16,7 @@ import { Build } from "@atomist/sdm-pack-build";
 import { KubernetesDeploy } from "@atomist/sdm-pack-k8s";
 import { EcsDeploy } from "@atomist/sdm-pack-ecs";
 
-export interface MyGoals extends AllGoals {
+export interface MyGoals extends DeliveryGoals {
   autofix: Autofix;
   version: Version;
   codeInspection: AutoCodeInspection;

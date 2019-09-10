@@ -25,7 +25,7 @@
   "dependencies": {
     "@atomist/automation-client": "^1.7.0",
     "@atomist/automation-client-ext-dashboard": "^1.1.0-master.20190710110751",
-    "@atomist/clj-editors": "^0.7.5-master.20190710024157",
+    "@atomist/clj-editors": "^0.7.4",
     "@atomist/microgrammar": "^1.2.1-master.20190720154946",
     "@atomist/sdm": "^1.7.0",
     "@atomist/sdm-core": "^1.7.0",

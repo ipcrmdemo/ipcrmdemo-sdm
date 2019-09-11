@@ -39,7 +39,7 @@
     "@atomist/sdm-pack-fingerprints": "^4.0.3-master.20190802152058",
     "@atomist/sdm-pack-issue": "^1.2.3-master.20190709202708",
     "@atomist/sdm-pack-jira": "0.0.1-master.20190709172449",
-    "@atomist/sdm-pack-k8s": "^1.7.0-master.20190731190519",
+    "@atomist/sdm-pack-k8s": "^1.10.0",
     "@atomist/sdm-pack-node": "^1.1.2-master.20190710163427",
     "@atomist/sdm-pack-sonarqube": "^1.0.2-master.20190709172442",
     "@atomist/sdm-pack-spring": "^2.0.0-master.20190709204639",

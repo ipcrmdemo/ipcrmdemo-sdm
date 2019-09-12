@@ -2,7 +2,7 @@ import { EventRelayer } from "@atomist/sdm-pack-event-relay";
 import { GetJiraIssueByKey } from "@atomist/sdm-pack-jira/lib/typings/types";
 import JiraIssue = GetJiraIssueByKey.JiraIssue;
 import { addressEvent } from "@atomist/automation-client";
-import { redactObjectProperty } from "../../redactionTools";
+import { redactObjectProperty } from "@atomist/sdm-pack-event-relay/lib/support/util";
 
 /**
  * JIRA Relay

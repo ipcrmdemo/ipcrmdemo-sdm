@@ -21,7 +21,7 @@ export const createHook = async (projectKey: string, repoSlug: string): Promise<
   const basePluginUrl = `${baseUrl}` +
     `/rest/api/1.0/projects/` +
     `${projectKey}` +
-    `/settings/hooks/com.atlassian.stash.plugin.stash-web-post-receive-hooks-plugin:postReceiveHook`;
+    `/repos/${repoSlug}/settings/hooks/com.atlassian.stash.plugin.stash-web-post-receive-hooks-plugin:postReceiveHook`;
   const settingsUrl = `${basePluginUrl}/settings`;
   const enableUrl = `${basePluginUrl}/enabled`;
 

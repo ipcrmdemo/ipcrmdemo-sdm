@@ -6,13 +6,13 @@ import {
   HttpMethod, logger,
   MappedParameter,
   MappedParameters, NoParameters,
-  Parameters
+  Parameters,
 } from "@atomist/automation-client";
 import {
   CommandHandlerRegistration,
   CommandListenerInvocation,
   ProjectAction,
-  slackSuccessMessage
+  slackSuccessMessage,
 } from "@atomist/sdm";
 import * as slack from "@atomist/slack-messages";
 

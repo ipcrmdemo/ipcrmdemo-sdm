@@ -31,6 +31,7 @@ import { FixSmallMemory } from "../../transform/smallMemory";
 import { FixedRepoCreationParameters } from "../../support/bitbucket/creationParams";
 import { channelMappingProjectAction } from "../../support/bitbucket/linkChannelOnCreate";
 import { bitbucketCreateWebHookProjectAction } from "../../support/bitbucket/createWebhook";
+import { createBitbucketHookReg } from "../../support/bitbucket/configureHook";
 
 export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   /**
@@ -42,6 +43,7 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
     .addCommand(jiraFindAndAssignReg)
     .addCommand(jiraCreateProjectBranchReg)
     .addCommand(createBugIssueReg)
+    .addCommand(createBitbucketHookReg)
     .addCodeTransformCommand(AddDockerFile)
     .addCodeTransformCommand(AddJenkinsfileRegistration)
     .addCodeTransformCommand(UpdateDockerfileMaintainer)

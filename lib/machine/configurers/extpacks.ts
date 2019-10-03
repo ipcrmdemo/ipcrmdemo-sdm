@@ -7,9 +7,12 @@ import { k8sSupport } from "@atomist/sdm-pack-k8s";
 import { cloudFoundrySupport } from "@atomist/sdm-pack-cloudfoundry";
 import { changelogSupport } from "@atomist/sdm-pack-changelog";
 import { issueSupport } from "@atomist/sdm-pack-issue";
-import { DefaultTargetDiffHandler, fingerprintSupport, NpmCoordinates, NpmDeps } from "@atomist/sdm-pack-fingerprint";
-import * as _ from "lodash";
-import { DockerFrom } from "@atomist/sdm-pack-docker";
+// import
+// { DefaultTargetDiffHandler, fingerprintSupport, NpmCoordinates, NpmDeps } from "@atomist/sdm-pack-fingerprint";
+// import * as _ from "lodash";
+// import { DockerFrom } from "@atomist/sdm-pack-docker";
+import { aspectSupport } from "@atomist/sdm-pack-aspect";
+import { MavenPropertiesAspect } from "../../support/aspects/mavenProperties";
 
 export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   sdm.addExtensionPacks(
@@ -38,12 +41,20 @@ export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
     goalStateSupport(),
     changelogSupport(),
     issueSupport(),
-    fingerprintSupport({
-      pushImpactGoal: goals.pushImpact,
+    // fingerprintSupport({
+    //   pushImpactGoal: goals.pushImpact,
+    //   aspects: [
+    //     _.merge(NpmDeps,        NpmDeps.workflows = [DefaultTargetDiffHandler]),
+    //     _.merge(NpmCoordinates, NpmCoordinates.workflows = [DefaultTargetDiffHandler]),
+    //     _.merge(DockerFrom,     DockerFrom.workflows = [DefaultTargetDiffHandler]),
+    //   ],
+    // }),
+    aspectSupport({
+      goals: {
+        pushImpact: goals.pushImpact,
+      },
       aspects: [
-        _.merge(NpmDeps,        NpmDeps.workflows = [DefaultTargetDiffHandler]),
-        _.merge(NpmCoordinates, NpmCoordinates.workflows = [DefaultTargetDiffHandler]),
-        _.merge(DockerFrom,     DockerFrom.workflows = [DefaultTargetDiffHandler]),
+        MavenPropertiesAspect,
       ],
     }),
   );

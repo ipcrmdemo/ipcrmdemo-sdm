@@ -15,6 +15,7 @@ import {
 import { Build } from "@atomist/sdm-pack-build";
 import { KubernetesDeploy } from "@atomist/sdm-pack-k8s";
 import { EcsDeploy } from "@atomist/sdm-pack-ecs";
+import { ServerlessDeploy } from "@ipcrm/sdm-pack-serverless";
 
 export interface MyGoals extends DeliveryGoals {
   autofix: Autofix;
@@ -30,6 +31,7 @@ export interface MyGoals extends DeliveryGoals {
   pcfStagingDeploy: CloudFoundryDeploy;
   pcfProductionDeploy: CloudFoundryDeploy;
   cancel: Cancel;
+  serverless: ServerlessDeploy;
 }
 
 export const MyGoalCreator: GoalCreator<MyGoals> = async () => {
@@ -81,6 +83,7 @@ export const MyGoalCreator: GoalCreator<MyGoals> = async () => {
       },
     }),
     cancel: new Cancel(),
+    serverless: new ServerlessDeploy(),
   };
 
   return goals;

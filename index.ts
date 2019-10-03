@@ -49,6 +49,8 @@ import { isDotNetCore } from "./lib/support/dotnet/support";
 import { HasDockerfile } from "@atomist/sdm-pack-docker";
 import { hasJenkinsfile } from "./lib/support/preChecks";
 import { HasCloudFoundryManifest } from "@atomist/sdm-pack-cloudfoundry";
+import { IsServerlessDeployable } from "@ipcrm/sdm-pack-serverless";
+import { ServerlessConfigurer } from "./lib/machine/configurers/serverless";
 
 export const configuration: Configuration = configure<MyGoals>(async sdm => {
   const setGoals = await sdm.createGoals(MyGoalCreator, [
@@ -63,6 +65,7 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
       EcsDeployConfigurator,
       PcfDeployConfigurator,
       K8sDeployConfigurator,
+      ServerlessConfigurer,
   ]);
 
   /**
@@ -93,6 +96,9 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
     .plan(setGoals.k8sStagingDeployment).after(dockerBuild)
     .plan(setGoals.k8sProductionDeployment).after(setGoals.k8sStagingDeployment);
 
+  const serverlessDeploy = goals("serverless")
+    .plan(setGoals.serverless).after(check);
+
   /**
    * Push Rules
    */
@@ -101,6 +107,9 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
       .setGoals(lock),
 
     onAnyPush().setGoals(cancel),
+
+    whenPushSatisfies(IsServerlessDeployable)
+      .setGoals(serverlessDeploy),
 
     whenPushSatisfies(or(IsMaven, IsNode, isDotNetCore))
       .setGoals(check),

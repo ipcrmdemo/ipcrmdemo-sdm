@@ -6,8 +6,8 @@ import {
   SpringProjectCreationParameters, TransformMavenSpringBootSeedToCustomProject,
 } from "@atomist/sdm-pack-spring";
 import { replaceSeedSlug, replaceSeedSlugNode } from "../../transform/updateRepoSlug";
-import { GitHubRepoRef } from "@atomist/automation-client";
-import { PreferenceScope } from "@atomist/sdm";
+import { GitHubRepoRef, Success } from "@atomist/automation-client";
+import { createJob, PreferenceScope, slackSuccessMessage } from "@atomist/sdm";
 import {
   DotnetCoreProjectFileCodeTransform,
 } from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
@@ -109,5 +109,29 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
       DotnetCoreProjectFileCodeTransform,
       replaceSeedSlug,
     ],
+  });
+
+  sdm.addCommand({
+    name: "exampleRunMeAsAJob",
+    listener: async ctx => {
+      await ctx.addressChannels(slackSuccessMessage(
+        "Yes!",
+        "Listener has run...",
+      ));
+      return Success;
+    },
+  });
+
+  sdm.addCommand({
+    name: "runJobExample",
+    intent: "run example job",
+    listener: async ctx => {
+      await createJob( {
+        command: "exampleRunMeAsAJob",
+        concurrentTasks: 2,
+        parameters: [{}, {}, {}],
+        description: "Example running command as job",
+      }, ctx.context);
+    },
   });
 };

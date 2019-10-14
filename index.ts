@@ -176,6 +176,9 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
 }, {
   requiredConfigurationValues: [],
   postProcessors: [
+    async c => {
+      return c;
+    },
     configureDashboardNotifications,
   ],
 });

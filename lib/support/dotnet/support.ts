@@ -16,10 +16,15 @@ export const dotnetCoreGrammar = microgrammar<{ target: string }>({
 });
 
 export const DotnetCoreProjectFileGlob = "*.csproj";
+export const isDotNet: PredicatePushTest = predicatePushTest(
+  "isDotNetCore",
+  async p => {
+    return projectUtils.fileExists(p, "**/*.csproj");
+  });
 export const isDotNetCore: PredicatePushTest = predicatePushTest(
   "isDotNetCore",
   async p => {
-    const csprojFiles = await projectUtils.gatherFromFiles(p, DotnetCoreProjectFileGlob, async f => f);
+    const csprojFiles = await projectUtils.gatherFromFiles(p, [DotnetCoreProjectFileGlob, "**/*.csproj"], async f => f);
     if (!csprojFiles || csprojFiles.length === 0) {
       return false;
     }

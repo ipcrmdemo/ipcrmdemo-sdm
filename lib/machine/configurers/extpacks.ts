@@ -11,8 +11,11 @@ import { issueSupport } from "@atomist/sdm-pack-issue";
 // { DefaultTargetDiffHandler, fingerprintSupport, NpmCoordinates, NpmDeps } from "@atomist/sdm-pack-fingerprint";
 // import * as _ from "lodash";
 // import { DockerFrom } from "@atomist/sdm-pack-docker";
-import { aspectSupport } from "@atomist/sdm-pack-aspect";
+import { aspectSupport, enrich } from "@atomist/sdm-pack-aspect";
 import { MavenPropertiesAspect } from "../../support/aspects/mavenProperties";
+import { DotNetPackageAspect } from "../../support/aspects/dotNetPackage";
+import { DotNetTargetFrameworkAspect } from "../../support/aspects/dotNetTargetFramework";
+import { languageAspect, languageTests } from "../../support/aspects/language";
 
 export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   sdm.addExtensionPacks(
@@ -55,6 +58,9 @@ export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
       },
       aspects: [
         MavenPropertiesAspect,
+        languageAspect(languageTests),
+        DotNetPackageAspect,
+        DotNetTargetFrameworkAspect,
       ],
     }),
   );

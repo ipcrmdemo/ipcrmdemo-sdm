@@ -107,27 +107,25 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
       .setGoals(lock),
 
     onAnyPush().setGoals(cancel),
+    onAnyPush().setGoals(check),
 
-    whenPushSatisfies(IsServerlessDeployable)
-      .setGoals(serverlessDeploy),
-
-    whenPushSatisfies(or(IsMaven, IsNode, isDotNetCore))
-      .setGoals(check),
-
-    whenPushSatisfies(or(IsMaven, IsNode, isDotNetCore, hasJenkinsfile))
-      .setGoals(build),
-
-    whenPushSatisfies(HasDockerfile)
-      .setGoals(dockerBuild),
-
-    whenPushSatisfies(allSatisfied(HasCloudFoundryManifest, ToDefaultBranch))
-      .setGoals(pcfDeploy),
-
-    whenPushSatisfies(allSatisfied(IsEcsDeployable, ToDefaultBranch))
-      .setGoals(ecsDeploy),
-
-    whenPushSatisfies(allSatisfied(IsK8sDeployable, ToDefaultBranch))
-      .setGoals(k8sDeploy),
+    // whenPushSatisfies(IsServerlessDeployable)
+    //   .setGoals(serverlessDeploy),
+    //
+    // whenPushSatisfies(or(IsMaven, IsNode, isDotNetCore, hasJenkinsfile))
+    //   .setGoals(build),
+    //
+    // whenPushSatisfies(HasDockerfile)
+    //   .setGoals(dockerBuild),
+    //
+    // whenPushSatisfies(allSatisfied(HasCloudFoundryManifest, ToDefaultBranch))
+    //   .setGoals(pcfDeploy),
+    //
+    // whenPushSatisfies(allSatisfied(IsEcsDeployable, ToDefaultBranch))
+    //   .setGoals(ecsDeploy),
+    //
+    // whenPushSatisfies(allSatisfied(IsK8sDeployable, ToDefaultBranch))
+    //   .setGoals(k8sDeploy),
   );
 
    /**

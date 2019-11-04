@@ -56,7 +56,7 @@
     "docker-file-parser": "^1.0.4",
     "fs-extra": "^8.0.1",
     "git-url-parse": "^11.1.2",
-    "lodash": "^4.17.10",
+    "lodash": "^4.17.13",
     "ts-essentials": "^2.0.7",
     "typescript": "^3.5.3"
   },

@@ -51,6 +51,7 @@ import { hasJenkinsfile } from "./lib/support/preChecks";
 import { HasCloudFoundryManifest } from "@atomist/sdm-pack-cloudfoundry";
 import { IsServerlessDeployable } from "@ipcrm/sdm-pack-serverless";
 import { ServerlessConfigurer } from "./lib/machine/configurers/serverless";
+import { OWaspGoalConfigurator } from "./lib/machine/configurers/owasp";
 
 export const configuration: Configuration = configure<MyGoals>(async sdm => {
   const setGoals = await sdm.createGoals(MyGoalCreator, [
@@ -66,6 +67,7 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
       PcfDeployConfigurator,
       K8sDeployConfigurator,
       ServerlessConfigurer,
+      OWaspGoalConfigurator,
   ]);
 
   /**
@@ -94,7 +96,8 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
 
   const k8sDeploy = goals("k8sDeploy")
     .plan(setGoals.k8sStagingDeployment).after(dockerBuild)
-    .plan(setGoals.k8sProductionDeployment).after(setGoals.k8sStagingDeployment);
+    .plan(setGoals.owasp).after(setGoals.k8sStagingDeployment)
+    .plan(setGoals.k8sProductionDeployment).after(setGoals.owasp);
 
   const serverlessDeploy = goals("serverless")
     .plan(setGoals.serverless).after(check);

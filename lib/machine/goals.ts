@@ -8,6 +8,7 @@ import {
 import { CloudFoundryDeploy } from "@atomist/sdm-pack-cloudfoundry";
 import { DockerBuild } from "@atomist/sdm-pack-docker";
 import {
+  Container,
   DeliveryGoals,
   GoalCreator,
   Version,
@@ -32,6 +33,7 @@ export interface MyGoals extends DeliveryGoals {
   pcfProductionDeploy: CloudFoundryDeploy;
   cancel: Cancel;
   serverless: ServerlessDeploy;
+  owasp: Container;
 }
 
 export const MyGoalCreator: GoalCreator<MyGoals> = async () => {
@@ -42,8 +44,10 @@ export const MyGoalCreator: GoalCreator<MyGoals> = async () => {
     pushImpact: new PushImpact(),
     build: new Build(),
     dockerBuild: new DockerBuild(),
-    k8sStagingDeployment: new KubernetesDeploy({environment: "staging"}),
-    k8sProductionDeployment: new KubernetesDeploy({environment: "production", preApproval: true}),
+    owasp: new Container({ displayName: "OWasp Full Scan", uniqueName: "owasp-full-scan" }),
+    k8sStagingDeployment: new KubernetesDeploy({uniqueName: "k8s-staging", environment: "staging"}),
+    k8sProductionDeployment: new KubernetesDeploy({
+      uniqueName: "k8s-production", environment: "production", preApproval: true}),
     ecsStagingDeploy: new EcsDeploy({
       displayName: "ECS Deploy Staging",
       approval: true,

@@ -105,4 +105,3 @@ export const DotNetPackageAspect: AspectWithReportDetails<DotNetPackagePropertie
     manage: true,
   },
 };
-

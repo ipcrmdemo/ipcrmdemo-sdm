@@ -35,8 +35,6 @@ export const MavenPropertiesAspect: AspectWithReportDetails<MavenProperties> = {
       },
     );
   },
-  apply: async (p, papi, data) => {
-  },
   details: {
     description: "Maven Properties",
     shortName: "maven-properties",

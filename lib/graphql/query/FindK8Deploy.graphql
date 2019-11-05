@@ -1,0 +1,8 @@
+query FindK8Deploy($uniqueName:String!, $sha:String!){
+    SdmGoal(uniqueName:[$uniqueName], sha:[$sha]) {
+        externalUrls {
+            url
+            label
+        }
+    }
+}

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import {
+  CompressingGoalCache,
   configure,
 } from "@atomist/sdm-core";
 import { configureDashboardNotifications } from "@atomist/automation-client-ext-dashboard";
@@ -36,11 +37,8 @@ import { ExternalBuildConfigurator } from "./lib/machine/configurers/externalBui
 import {
   allSatisfied,
   DoNotSetAnyGoalsAndLock,
-  goals,
-  onAnyPush,
   or,
   ToDefaultBranch,
-  whenPushSatisfies,
 } from "@atomist/sdm";
 import { IsEcsDeployable, IsK8sDeployable, ZeroCommitPushTest } from "./lib/support/pushTests";
 import { IsMaven } from "@atomist/sdm-pack-spring";
@@ -49,9 +47,9 @@ import { isDotNetCore } from "./lib/support/dotnet/support";
 import { HasDockerfile } from "@atomist/sdm-pack-docker";
 import { hasJenkinsfile } from "./lib/support/preChecks";
 import { HasCloudFoundryManifest } from "@atomist/sdm-pack-cloudfoundry";
-import { IsServerlessDeployable } from "@ipcrm/sdm-pack-serverless";
 import { ServerlessConfigurer } from "./lib/machine/configurers/serverless";
 import { OWaspGoalConfigurator } from "./lib/machine/configurers/owasp";
+import { JiraApproval } from "@atomist/sdm-pack-jira/lib/goals/JiraApproval";
 
 export const configuration: Configuration = configure<MyGoals>(async sdm => {
   const setGoals = await sdm.createGoals(MyGoalCreator, [
@@ -70,112 +68,72 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
       OWaspGoalConfigurator,
   ]);
 
-  /**
-   * GoalSet Definitions
-   */
-  const lock = goals("lock").plan(DoNotSetAnyGoalsAndLock);
-  const cancel = goals("cancel").plan(setGoals.cancel).after(lock);
-  const check = goals("check")
-    .plan(setGoals.autofix).after(cancel)
-    .plan(setGoals.codeInspection, setGoals.pushImpact).after(setGoals.autofix);
+  return {
+     // GoalSet Definitions
+    lock: {
+      test: ZeroCommitPushTest,
+      goals: [DoNotSetAnyGoalsAndLock],
+    },
+    cancel: {
+      goals: [setGoals.cancel],
+      dependsOn: ["lock"],
+    },
+    check: {
+      test: or(IsMaven, IsNode, isDotNetCore),
+      goals: [ setGoals.autofix, [setGoals.codeInspection, setGoals.pushImpact] ],
+      dependsOn: ["cancel"],
+    },
+    sonar: {
+      dependsOn: ["check"],
+      test: ToDefaultBranch,
+      goals: [ setGoals.sonar],
+    },
+    build: {
+      test: or(IsMaven, IsNode, isDotNetCore, hasJenkinsfile),
+      goals: [ setGoals.version, setGoals.build ],
+      dependsOn: ["check"],
+    },
+    dockerBuild: {
+      test: HasDockerfile,
+      goals: [ setGoals.dockerBuild ],
+      dependsOn: ["build", "sonar"],
+    },
+    pcfDeploy: {
+      test: allSatisfied(HasCloudFoundryManifest, ToDefaultBranch),
+      goals: [setGoals.pcfStagingDeploy, setGoals.pcfProductionDeploy],
+      dependsOn: ["build", "sonar"],
+    },
+    ecsDeploy: {
+      test: allSatisfied(IsEcsDeployable, ToDefaultBranch),
+      goals: [setGoals.ecsStagingDeploy, setGoals.ecsProductionDeploy],
+      dependsOn: ["dockerBuild"],
+    },
+    k8sDeploy: {
+      test: allSatisfied(IsK8sDeployable, ToDefaultBranch),
+      goals: [
+        setGoals.k8sStagingDeployment,
+        setGoals.owasp,
+        JiraApproval,
+        setGoals.k8sProductionDeployment,
+      ],
+      dependsOn: ["dockerBuild"],
+    },
+  };
 
-  const build = goals("build")
-    .plan(setGoals.version).after(check)
-    .plan(setGoals.build).after(setGoals.version);
-
-  const dockerBuild = goals("dockerBuild")
-    .plan(setGoals.dockerBuild).after(build);
-
-  const pcfDeploy = goals("pcfDeploy")
-    .plan(setGoals.pcfStagingDeploy).after(build)
-    .plan(setGoals.pcfProductionDeploy).after(setGoals.pcfStagingDeploy);
-
-  const ecsDeploy = goals("ecsDeploy")
-    .plan(setGoals.ecsStagingDeploy).after(dockerBuild)
-    .plan(setGoals.ecsProductionDeploy).after(setGoals.ecsStagingDeploy);
-
-  const k8sDeploy = goals("k8sDeploy")
-    .plan(setGoals.k8sStagingDeployment).after(dockerBuild)
-    .plan(setGoals.owasp).after(setGoals.k8sStagingDeployment)
-    .plan(setGoals.k8sProductionDeployment).after(setGoals.owasp);
-
-  const serverlessDeploy = goals("serverless")
-    .plan(setGoals.serverless).after(check);
-
-  /**
-   * Push Rules
-   */
-  sdm.withPushRules(
-    whenPushSatisfies(ZeroCommitPushTest)
-      .setGoals(lock),
-
-    onAnyPush().setGoals(cancel),
-    onAnyPush().setGoals(check),
-
-    whenPushSatisfies(IsServerlessDeployable)
-      .setGoals(serverlessDeploy),
-
-    whenPushSatisfies(or(IsMaven, IsNode, isDotNetCore, hasJenkinsfile))
-      .setGoals(build),
-
-    whenPushSatisfies(HasDockerfile)
-      .setGoals(dockerBuild),
-
-    whenPushSatisfies(allSatisfied(HasCloudFoundryManifest, ToDefaultBranch))
-      .setGoals(pcfDeploy),
-
-    whenPushSatisfies(allSatisfied(IsEcsDeployable, ToDefaultBranch))
-      .setGoals(ecsDeploy),
-
-    whenPushSatisfies(allSatisfied(IsK8sDeployable, ToDefaultBranch))
-      .setGoals(k8sDeploy),
-  );
-
-   /**
-    *  return {
-    *     // GoalSet Definitions
-    *    lock: {
-    *      test: ZeroCommitPushTest,
-    *      goals: [DoNotSetAnyGoalsAndLock],
-    *    },
-    *    cancel: {
-    *      goals: [setGoals.cancel],
-    *      dependsOn: ["lock"],
-    *    },
-    *    check: {
-    *      test: or(IsMaven, IsNode, isDotNetCore),
-    *      goals: [ setGoals.autofix, [setGoals.codeInspection, setGoals.pushImpact] ],
-    *      dependsOn: ["cancel"],
-    *    },
-    *    build: {
-    *      test: or(IsMaven, IsNode, isDotNetCore, hasJenkinsfile),
-    *      goals: [ setGoals.version, setGoals.build ],
-    *      dependsOn: ["check"],
-    *    },
-    *    dockerBuild: {
-    *      test: HasDockerfile,
-    *      goals: [ setGoals.dockerBuild ],
-    *      dependsOn: ["build"],
-    *    },
-    *    pcfDeploy: {
-    *      test: allSatisfied(HasCloudFoundryManifest, ToDefaultBranch),
-    *      goals: [setGoals.pcfStagingDeploy, setGoals.pcfProductionDeploy],
-    *      dependsOn: ["build"],
-    *    },
-    *    ecsDeploy: {
-    *      test: allSatisfied(IsEcsDeployable, ToDefaultBranch),
-    *      goals: [setGoals.ecsStagingDeploy, setGoals.ecsProductionDeploy],
-    *      dependsOn: ["dockerBuild"],
-    *    },
-    *    k8sDeploy: {
-    *      test: allSatisfied(IsK8sDeployable, ToDefaultBranch),
-    *      goals: [setGoals.k8sStagingDeployment, setGoals.k8sProductionDeployment],
-    *      dependsOn: ["dockerBuild"],
-    *    },
-    *  };
-    */
 }, {
   requiredConfigurationValues: [],
+  preProcessors: [
+    async cfg => {
+      return {
+        ...cfg,
+        cache: {
+          enabled: true,
+          store: new CompressingGoalCache(),
+          path: process.platform === "win32" ? "C:/tmp" : "/var/tmp/cache",
+        },
+      };
+    },
+  ],
   postProcessors: [
     async c => {
       return c;

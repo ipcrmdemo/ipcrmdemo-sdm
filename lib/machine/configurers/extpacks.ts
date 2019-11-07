@@ -16,6 +16,9 @@ import { MavenPropertiesAspect } from "../../support/aspects/mavenProperties";
 import { DotNetPackageAspect } from "../../support/aspects/dotNetPackage";
 import { DotNetTargetFrameworkAspect } from "../../support/aspects/dotNetTargetFramework";
 import { languageAspect, languageTests } from "../../support/aspects/language";
+import { sonarQubeSupport } from "@atomist/sdm-pack-sonarqube";
+import { onJiraIssueEventApproval } from "@atomist/sdm-pack-jira/lib/event/onJiraIssueEventApproval";
+import { JiraApproval } from "@atomist/sdm-pack-jira/lib/goals/JiraApproval";
 
 export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   sdm.addExtensionPacks(
@@ -44,14 +47,7 @@ export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
     goalStateSupport(),
     changelogSupport(),
     issueSupport(),
-    // fingerprintSupport({
-    //   pushImpactGoal: goals.pushImpact,
-    //   aspects: [
-    //     _.merge(NpmDeps,        NpmDeps.workflows = [DefaultTargetDiffHandler]),
-    //     _.merge(NpmCoordinates, NpmCoordinates.workflows = [DefaultTargetDiffHandler]),
-    //     _.merge(DockerFrom,     DockerFrom.workflows = [DefaultTargetDiffHandler]),
-    //   ],
-    // }),
+    sonarQubeSupport(goals.sonar),
     aspectSupport({
       goals: {
         pushImpact: goals.pushImpact,
@@ -68,5 +64,5 @@ export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
   /**
    * Extension pack specific listeners
    */
-  // sdm.addEvent(onJiraIssueEventApproval(JiraApproval));
+  sdm.addEvent(onJiraIssueEventApproval(JiraApproval));
 };

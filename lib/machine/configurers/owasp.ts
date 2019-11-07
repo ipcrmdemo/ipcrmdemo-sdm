@@ -1,4 +1,4 @@
-import { GoalConfigurer } from "@atomist/sdm-core";
+import { cacheRestore, GoalConfigurer } from "@atomist/sdm-core";
 import { IsK8sDeployable } from "../../support/pushTests";
 import { FindK8Deploy } from "../../typings/types";
 import { MyGoals } from "../goals";
@@ -21,13 +21,13 @@ export const OWaspGoalConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals)
           "report.html",
           "-t",
           "placeholder",
-          "|| exit 0",
+          "; mv /zap/wrk/report.* .; exit 0",
         ],
-      }],
-      output: [{
-        classifier: "owasp-zap-reports",
-        pattern: {globPattern: ["/zap/wrk/report.json", "/zap/wrk/report.html"]},
-      }],
+        volumeMounts: [{
+          mountPath: "/zap/wrk",
+          name: "zapwrk",
+        }],
+    }],
       callback: async (r, p, e, g, c) => {
         // This callback swaps out the URL for the just deployed K8s deployment
         r.volumes = [{
@@ -50,10 +50,6 @@ export const OWaspGoalConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals)
           "-c",
           r.containers[0].args.join(" "),
         ];
-        r.containers[0].volumeMounts = [{
-          mountPath: "/zap/wrk",
-          name: "zapwrk",
-        }];
         return r;
       },
     })
@@ -61,13 +57,14 @@ export const OWaspGoalConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals)
       name: "processReport",
       events: [GoalProjectListenerEvent.after],
       listener: async (p, r) => {
-        const rawReport = await (await p.getFile("zap/report.json")).getContent();
+        const rawReport = await (await p.getFile("report.json")).getContent();
         const report: ZapReport = JSON.parse(rawReport);
-        const alerts = report.site[0].alerts.filter(a => parseInt(a.riskcode, undefined) > 1);
+        const alerts = report.site[0].alerts.filter(a => parseInt(a.riskcode, undefined) > 2);
         if (alerts.length > 0) {
           r.progressLog.write(`OWasp Scan found alerts that exceed severity threshold (see goal log)`);
           return {
             state: SdmGoalState.failure,
+            description:  r.goal.failureDescription + ": High Severity Warnings found!",
           };
         }
 

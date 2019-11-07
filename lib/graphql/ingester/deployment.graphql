@@ -1,0 +1,17 @@
+type AppDeployment @rootType {
+    afterSha: String! @compositeId
+    branch: String! @compositeId
+    environment: String! @compositeId
+    infrastructure: String!
+    state: String!
+    ts: String!
+    endpoint: String!
+    push: Push!
+        @linkTo(
+            queryName: "pushBySha",
+            variables: [
+                {name: "afterSha", path: "$.afterSha"},
+                {name: "branchName", path: "$.branchName"}
+            ]
+        )
+}

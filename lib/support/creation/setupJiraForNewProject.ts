@@ -1,9 +1,12 @@
 import { ParametersDefinition, ProjectAction } from "@atomist/sdm";
-import { SeedDrivenGeneratorParameters } from "@atomist/automation-client";
+import { configurationValue, SeedDrivenGeneratorParameters } from "@atomist/automation-client";
 import {
   createJiraComponent,
   submitMappingPayload,
 } from "@atomist/sdm-pack-jira/lib/support/commands/shared";
+import { JiraConfig } from "@atomist/sdm-pack-jira/lib/jira";
+import { getJiraDetails } from "@atomist/sdm-pack-jira/lib/support/jiraDataLookup";
+import { Project } from "@atomist/sdm-pack-jira/lib/support/jiraDefs";
 
 export interface SetupJiraForNewProject {
   newComponent: string;
@@ -44,14 +47,19 @@ export const setupJiraForNewProject:
       assigneeType: "PROJECT_DEFAULT",
       description: ctx.parameters.componentName,
     }, ctx);
+    // Now lookup the projectId
+    const jiraConfig = configurationValue<object>("sdm.jira") as JiraConfig;
+    const projectDetail =
+      await getJiraDetails<Project>(
+        `${jiraConfig.url}/rest/api/2/project/${ctx.parameters.project}`, true, undefined, ctx);
 
     data = {
-      project: ctx.parameters.project,
+      projectId: projectDetail.id,
       componentId: result.id,
     };
   } else {
     data = {
-      project: ctx.parameters.project,
+      projectId: ctx.parameters.project,
       componentId: ctx.parameters.componentName,
     };
   }

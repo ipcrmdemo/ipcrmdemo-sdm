@@ -7,6 +7,7 @@ import {
 } from "@atomist/sdm-pack-spring";
 import { replaceSeedSlug, replaceSeedSlugNode } from "../../transform/updateRepoSlug";
 import {
+  configurationValue,
   GitCommandGitProject,
   GitHubRepoRef,
   SeedDrivenGeneratorParameters,
@@ -42,6 +43,9 @@ import {
   SetupJiraForNewProjectParams
 } from "../../support/creation/setupJiraForNewProject";
 import { prepComponentSelect, prepProjectSelect } from "@atomist/sdm-pack-jira/lib/support/commands/shared";
+import { getJiraDetails } from "@atomist/sdm-pack-jira/lib/support/jiraDataLookup";
+import { Project } from "@atomist/sdm-pack-jira/lib/support/jiraDefs";
+import { JiraConfig } from "@atomist/sdm-pack-jira/lib/jira";
 
 export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   /**
@@ -103,7 +107,7 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
     afterAction: [channelMappingProjectAction],
   });
 
-  sdm.addGeneratorCommand<SetupJiraForNewProject, NodeProjectCreationParameters>({
+  sdm.addGeneratorCommand<SetupJiraForNewProject & NodeProjectCreationParameters>({
     name: "typescript-express-generator",
     parameters: { ...NodeProjectCreationParametersDefinition, ...SetupJiraForNewProjectParams},
     autoSubmit: true,
@@ -121,7 +125,11 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
             },
           },
         });
-        pi.parameters.project = project.project;
+
+        const jiraConfig = configurationValue<object>("sdm.jira") as JiraConfig;
+        const projectDetail =
+          await getJiraDetails<Project>(`${jiraConfig.url}/rest/api/2/project/${project.project}`, true, undefined, pi);
+        pi.parameters.project = projectDetail.key;
       } else {
         await pi.addressChannels(slackErrorMessage(
           `Error: No projects found with search term [${pi.parameters.projectSearch}]`,
@@ -145,7 +153,7 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
               },
             },
           });
-          pi.parameters.newComponent = component.component;
+          pi.parameters.componentName = component.component;
         } else {
           await pi.addressChannels(slackErrorMessage(
             `Error: No components found within project [${pi.parameters.project}]`,
@@ -154,11 +162,23 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
           ));
           throw new Error(`No components found in supplied project, ${pi.parameters.project}, please try again`);
         }
+      } else {
+        pi.parameters.componentName = pi.parameters.appName;
       }
+
+      (pi.parameters as any).source = {
+        repoRef: {
+          owner: "atomist-seeds",
+          repo: "typescript-express-node",
+        },
+      };
 
       return GitCommandGitProject.cloned(
         pi.credentials,
-        GitHubRepoRef.from({ owner: "atomist-seeds", repo: "typescript-express-node", branch: "master" }),
+        GitHubRepoRef.from({
+          ...(pi.parameters as any).source.repoRef,
+          branch: "master",
+        }),
         { depth: 1 });
     },
     intent: "create node",

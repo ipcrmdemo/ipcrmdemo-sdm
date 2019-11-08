@@ -23,18 +23,6 @@ import { JiraApproval } from "@atomist/sdm-pack-jira/lib/goals/JiraApproval";
 export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   sdm.addExtensionPacks(
     jiraSupport(),
-    springSupport({
-      review: {
-        springStyle: true,
-        cloudNative: true,
-      },
-      autofix: {
-        springStyle: true,
-      },
-      inspectGoal: goals.codeInspection,
-      autofixGoal: goals.autofix,
-      reviewListeners: [],
-    }),
     buildAwareCodeTransforms({
       buildGoal: goals.build,
       issueCreation: {},

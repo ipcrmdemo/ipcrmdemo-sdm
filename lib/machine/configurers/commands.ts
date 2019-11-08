@@ -46,6 +46,7 @@ import { prepComponentSelect, prepProjectSelect } from "@atomist/sdm-pack-jira/l
 import { getJiraDetails } from "@atomist/sdm-pack-jira/lib/support/jiraDataLookup";
 import { Project } from "@atomist/sdm-pack-jira/lib/support/jiraDefs";
 import { JiraConfig } from "@atomist/sdm-pack-jira/lib/jira";
+import { addSonarProp } from "../../transform/sonarProps";
 
 export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   /**
@@ -198,6 +199,7 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
       SimpleDotNetCoreWebApplication,
       DotnetCoreProjectFileCodeTransform,
       replaceSeedSlug,
+      addSonarProp,
     ],
     afterAction: [channelMappingProjectAction],
   });

@@ -19,6 +19,7 @@ import { languageAspect, languageTests } from "../../support/aspects/language";
 import { sonarQubeSupport } from "@atomist/sdm-pack-sonarqube";
 import { onJiraIssueEventApproval } from "@atomist/sdm-pack-jira/lib/event/onJiraIssueEventApproval";
 import { JiraApproval } from "@atomist/sdm-pack-jira/lib/goals/JiraApproval";
+import { NpmInstallProjectListener } from "@atomist/sdm-pack-node";
 
 export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   sdm.addExtensionPacks(
@@ -47,6 +48,10 @@ export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
         DotNetTargetFrameworkAspect,
       ],
     }),
+  );
+
+  goals.sonar.withProjectListener(
+    NpmInstallProjectListener,
   );
 
   /**

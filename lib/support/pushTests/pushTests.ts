@@ -47,6 +47,11 @@ export const IsK8sDeployable: PredicatePushTest = predicatePushTest(
   },
 );
 
+export const HasJiraCommit = pushTest("has-jira-commit", async pi => {
+  const match = /((?<!([A-Z]{1,10})-?)[A-Z]+-\d+)/gm.exec(pi.push.after.message);
+  return !!match;
+});
+
 export const ZeroCommitPushTest = pushTest("zero-commits", async pi => pi.push.commits.length === 0);
 export const IsSdmProject: PredicatePushTest = predicatePushTest(
   "IsSdmProject",

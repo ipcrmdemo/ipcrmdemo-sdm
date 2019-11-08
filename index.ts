@@ -40,7 +40,7 @@ import {
   or,
   ToDefaultBranch,
 } from "@atomist/sdm";
-import { IsEcsDeployable, IsK8sDeployable, ZeroCommitPushTest } from "./lib/support/pushTests/pushTests";
+import { HasJiraCommit, IsEcsDeployable, IsK8sDeployable, ZeroCommitPushTest } from "./lib/support/pushTests/pushTests";
 import { IsMaven } from "@atomist/sdm-pack-spring";
 import { IsNode } from "@atomist/sdm-pack-node";
 import { isDotNetCore } from "./lib/support/dotnet/support";
@@ -99,17 +99,17 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
       dependsOn: ["build", "sonar"],
     },
     pcfDeploy: {
-      test: allSatisfied(HasCloudFoundryManifest, ToDefaultBranch),
+      test: allSatisfied(HasCloudFoundryManifest, ToDefaultBranch, HasJiraCommit),
       goals: [setGoals.pcfStagingDeploy, setGoals.pcfProductionDeploy],
       dependsOn: ["build", "sonar"],
     },
     ecsDeploy: {
-      test: allSatisfied(IsEcsDeployable, ToDefaultBranch),
+      test: allSatisfied(IsEcsDeployable, ToDefaultBranch, HasJiraCommit),
       goals: [setGoals.ecsStagingDeploy, setGoals.ecsProductionDeploy],
       dependsOn: ["dockerBuild"],
     },
     k8sDeploy: {
-      test: allSatisfied(IsK8sDeployable, ToDefaultBranch),
+      test: allSatisfied(IsK8sDeployable, ToDefaultBranch, HasJiraCommit),
       goals: [
         setGoals.k8sStagingDeployment,
         setGoals.owasp,

@@ -2,10 +2,10 @@ import { CodeTransform } from "@atomist/sdm";
 import { SeedDrivenGeneratorParameters } from "@atomist/automation-client";
 
 export const addSonarProp: CodeTransform<SeedDrivenGeneratorParameters> = async (p, papi) => {
-  if (!await p.hasFile("sonar-properties.properties")) {
+  if (!await p.hasFile("sonar-project.properties")) {
     await p.addFile(
-      "sonar-properties.properties",
-      example.replace("PROJECTNAME", papi.parameters.target.repoRef.repo),
+      "sonar-project.properties",
+      example.replace(/PROJECTNAME/g, papi.parameters.target.repoRef.repo),
     );
   }
   return p;

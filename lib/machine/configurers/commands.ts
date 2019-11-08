@@ -187,6 +187,7 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
       UpdatePackageJsonIdentification,
       UpdateReadmeTitle,
       replaceSeedSlugNode,
+      addSonarProp,
     ],
     afterAction: [channelMappingProjectAction, setupJiraForNewProject],
   });

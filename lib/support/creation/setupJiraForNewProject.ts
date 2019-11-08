@@ -1,12 +1,14 @@
 import { ParametersDefinition, ProjectAction } from "@atomist/sdm";
 import { configurationValue, SeedDrivenGeneratorParameters } from "@atomist/automation-client";
 import {
+  buildJiraHashKey,
   createJiraComponent,
-  submitMappingPayload,
+  submitMappingPayload
 } from "@atomist/sdm-pack-jira/lib/support/commands/shared";
 import { JiraConfig } from "@atomist/sdm-pack-jira/lib/jira";
 import { getJiraDetails } from "@atomist/sdm-pack-jira/lib/support/jiraDataLookup";
 import { Project } from "@atomist/sdm-pack-jira/lib/support/jiraDefs";
+import { purgeCacheEntry } from "@atomist/sdm-pack-jira/lib/support/cache/manage";
 
 export interface SetupJiraForNewProject {
   newComponent: string;
@@ -40,6 +42,7 @@ export const SetupJiraForNewProjectParams: ParametersDefinition<SetupJiraForNewP
 export const setupJiraForNewProject:
   ProjectAction<SeedDrivenGeneratorParameters & SetupJiraForNewProject> = async (p, ctx) => {
   let data;
+  const jiraConfig = configurationValue<object>("sdm.jira") as JiraConfig;
   if (ctx.parameters.newComponent === "yes") {
     const result = await createJiraComponent({
       name: ctx.parameters.componentName,
@@ -48,10 +51,10 @@ export const setupJiraForNewProject:
       description: ctx.parameters.componentName,
     }, ctx);
     // Now lookup the projectId
-    const jiraConfig = configurationValue<object>("sdm.jira") as JiraConfig;
+    const jiraUrl =  `${jiraConfig.url}/rest/api/2/project/${ctx.parameters.project}`;
     const projectDetail =
-      await getJiraDetails<Project>(
-        `${jiraConfig.url}/rest/api/2/project/${ctx.parameters.project}`, true, undefined, ctx);
+      await getJiraDetails<Project>(jiraUrl, true, undefined, ctx);
+    await purgeCacheEntry(`${jiraConfig.url}/rest/api/2/project/${projectDetail.id}`);
 
     data = {
       projectId: projectDetail.id,

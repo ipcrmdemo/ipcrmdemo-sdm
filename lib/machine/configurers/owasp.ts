@@ -1,5 +1,5 @@
 import { cacheRestore, GoalConfigurer } from "@atomist/sdm-core";
-import { IsK8sDeployable } from "../../support/pushTests";
+import { IsK8sDeployable } from "../../support/pushTests/pushTests";
 import { FindK8Deploy } from "../../typings/types";
 import { MyGoals } from "../goals";
 import { GoalProjectListenerEvent, SdmGoalState } from "@atomist/sdm";

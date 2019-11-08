@@ -41,6 +41,7 @@
     "@atomist/sdm-pack-issue": "^1.2.3-master.20190910091152",
     "@atomist/sdm-pack-jira": "file:../sdm-pack-jira/atomist-sdm-pack-jira-0.0.1.tgz",
     "@atomist/sdm-pack-k8s": "^1.10.0-master.20190909193253",
+    "@atomist/sdm-pack-lifecycle": "^0.1.0",
     "@atomist/sdm-pack-node": "^1.1.2-master.20190910090011",
     "@atomist/sdm-pack-sonarqube": "1.0.2-ipcrm-fix-prs.20191106215935",
     "@atomist/sdm-pack-spring": "^2.0.1-master.20190910075255",

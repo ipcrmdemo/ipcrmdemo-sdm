@@ -40,12 +40,12 @@ import {
   or,
   ToDefaultBranch,
 } from "@atomist/sdm";
-import { IsEcsDeployable, IsK8sDeployable, ZeroCommitPushTest } from "./lib/support/pushTests";
+import { IsEcsDeployable, IsK8sDeployable, ZeroCommitPushTest } from "./lib/support/pushTests/pushTests";
 import { IsMaven } from "@atomist/sdm-pack-spring";
 import { IsNode } from "@atomist/sdm-pack-node";
 import { isDotNetCore } from "./lib/support/dotnet/support";
 import { HasDockerfile } from "@atomist/sdm-pack-docker";
-import { hasJenkinsfile } from "./lib/support/preChecks";
+import { hasJenkinsfile } from "./lib/support/pushTests/preChecks";
 import { HasCloudFoundryManifest } from "@atomist/sdm-pack-cloudfoundry";
 import { ServerlessConfigurer } from "./lib/machine/configurers/serverless";
 import { OWaspGoalConfigurator } from "./lib/machine/configurers/owasp";

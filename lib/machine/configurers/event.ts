@@ -1,9 +1,9 @@
 import { GoalConfigurer } from "@atomist/sdm-core";
 import { MyGoals } from "../goals";
-import { SuggestEnableEcsDeploy } from "../../support/suggestEnableEcsDeploy";
-import { SuggestAddingDockerfile } from "../../support/suggestAddDockerfile";
-import { SuggestEnableK8sDeploy } from "../../support/suggestEnableK8sDeploy";
 import { GraphQL } from "@atomist/automation-client";
+import { SuggestEnableEcsDeploy } from "../../support/creation/suggestEnableEcsDeploy";
+import { SuggestAddingDockerfile } from "../../support/creation/suggestAddDockerfile";
+import { SuggestEnableK8sDeploy } from "../../support/creation/suggestEnableK8sDeploy";
 
 export const EventConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   /**

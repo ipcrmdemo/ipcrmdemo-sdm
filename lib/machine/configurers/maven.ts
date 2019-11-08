@@ -4,7 +4,7 @@ import { MyGoals } from "../goals";
 import { HasDockerfile } from "@atomist/sdm-pack-docker";
 import { allSatisfied, not } from "@atomist/sdm";
 import { mavenJarCache } from "../cache";
-import { hasJenkinsfile } from "../../support/preChecks";
+import { hasJenkinsfile } from "../../support/pushTests/preChecks";
 
 export const MavenGoalConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   goals.version.with({

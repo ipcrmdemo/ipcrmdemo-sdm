@@ -1,7 +1,7 @@
 import { ChannelLinkListener  } from "@atomist/sdm";
 import { buttonForCommand, logger } from "@atomist/automation-client";
 import { Attachment, SlackMessage } from "@atomist/slack-messages";
-import { enableEcsDeployRegistration } from "../transform/enableEcsDeploy";
+import { enableEcsDeployRegistration } from "../../transform/enableEcsDeploy";
 
 export const SuggestEnableEcsDeploy: ChannelLinkListener = async inv => {
     if (!inv.project.fileExistsSync("pom.xml") && !inv.project.fileExistsSync("package.json")) {

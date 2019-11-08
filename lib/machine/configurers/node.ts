@@ -11,7 +11,7 @@ import {
 } from "@atomist/sdm-pack-node";
 import { allSatisfied, LogSuppressor, not } from "@atomist/sdm";
 import { NodeModulesCacheOptions } from "../cache";
-import { hasJenkinsfile } from "../../support/preChecks";
+import { hasJenkinsfile } from "../../support/pushTests/preChecks";
 
 export const NodeGoalConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   goals.version.with({

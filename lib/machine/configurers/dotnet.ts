@@ -7,7 +7,7 @@ import {
 } from "@atomist/sdm-pack-analysis-dotnet";
 import { isDotNetCore } from "../../support/dotnet/support";
 import { allSatisfied, LogSuppressor, not } from "@atomist/sdm";
-import { hasJenkinsfile } from "../../support/preChecks";
+import { hasJenkinsfile } from "../../support/pushTests/preChecks";
 
 export const DotNetCoreGoalConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   goals.version.with({

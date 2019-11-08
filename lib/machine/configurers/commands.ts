@@ -6,16 +6,22 @@ import {
   SpringProjectCreationParameters, TransformMavenSpringBootSeedToCustomProject,
 } from "@atomist/sdm-pack-spring";
 import { replaceSeedSlug, replaceSeedSlugNode } from "../../transform/updateRepoSlug";
-import { GitHubRepoRef, Success } from "@atomist/automation-client";
-import { createJob, PreferenceScope, slackSuccessMessage } from "@atomist/sdm";
+import {
+  GitCommandGitProject,
+  GitHubRepoRef,
+  SeedDrivenGeneratorParameters,
+  Success
+} from "@atomist/automation-client";
+import { createJob, PreferenceScope, slackErrorMessage, slackSuccessMessage } from "@atomist/sdm";
 import {
   DotnetCoreProjectFileCodeTransform,
 } from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
 import { SimpleDotNetCoreWebApplication } from "../../support/dotnet/support";
 import {
+  NodeProjectCreationParameters,
   NodeProjectCreationParametersDefinition,
   UpdatePackageJsonIdentification,
-  UpdateReadmeTitle,
+  UpdateReadmeTitle
 } from "@atomist/sdm-pack-node";
 import { AddFinalNameToPom } from "../../transform/addFinalName";
 import { AddDockerFile } from "../../transform/addDockerfile";
@@ -29,6 +35,13 @@ import { createBugIssueReg } from "@atomist/sdm-pack-jira/lib/support/commands/c
 import { AddJenkinsfileRegistration } from "../../transform/addJenkinsfile";
 import { enableEcsDeployRegistration } from "../../transform/enableEcsDeploy";
 import { FixSmallMemory } from "../../transform/smallMemory";
+import { channelMappingProjectAction } from "../../support/creation/createAndMapChannel";
+import {
+  setupJiraForNewProject,
+  SetupJiraForNewProject,
+  SetupJiraForNewProjectParams
+} from "../../support/creation/setupJiraForNewProject";
+import { prepComponentSelect, prepProjectSelect } from "@atomist/sdm-pack-jira/lib/support/commands/shared";
 
 export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   /**
@@ -71,6 +84,7 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
           { scope: PreferenceScope.Sdm });
       },
     ],
+    afterAction: [channelMappingProjectAction],
   });
 
   sdm.addGeneratorCommand<SpringProjectCreationParameters>({
@@ -86,18 +100,74 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
       AddFinalNameToPom,
       replaceSeedSlug,
     ],
+    afterAction: [channelMappingProjectAction],
   });
 
-  sdm.addGeneratorCommand({
+  sdm.addGeneratorCommand<SetupJiraForNewProject, NodeProjectCreationParameters>({
     name: "typescript-express-generator",
-    parameters: NodeProjectCreationParametersDefinition,
-    startingPoint: new GitHubRepoRef("atomist-seeds", "typescript-express-node"),
+    parameters: { ...NodeProjectCreationParametersDefinition, ...SetupJiraForNewProjectParams},
+    autoSubmit: true,
+    startingPoint: async pi => {
+      // Present list of projects
+      const projectValues = await prepProjectSelect(pi.parameters.projectSearch, pi);
+      if (projectValues) {
+        const project = await pi.promptFor<{ project: string }>({
+          project: {
+            displayName: `Please select a project`,
+            description: `Please select a project`,
+            type: {
+              kind: "single",
+              options: projectValues,
+            },
+          },
+        });
+        pi.parameters.project = project.project;
+      } else {
+        await pi.addressChannels(slackErrorMessage(
+          `Error: No projects found with search term [${pi.parameters.projectSearch}]`,
+          `Please try this command again`,
+          pi.context,
+        ));
+        throw new Error(`Invalid Project Search; please update search term and try again`);
+      }
+
+      // Present list of components
+      if (pi.parameters.newComponent === "no") {
+        const componentValues = await prepComponentSelect(pi.parameters.project, pi);
+        if (componentValues) {
+          const component = await pi.promptFor<{ component: string }>({
+            component: {
+              description: `Please select a component`,
+              displayName: `Please select a component`,
+              type: {
+                kind: "single",
+                options: componentValues,
+              },
+            },
+          });
+          pi.parameters.newComponent = component.component;
+        } else {
+          await pi.addressChannels(slackErrorMessage(
+            `Error: No components found within project [${pi.parameters.project}]`,
+            `Please try this command again with a different project`,
+            pi.context,
+          ));
+          throw new Error(`No components found in supplied project, ${pi.parameters.project}, please try again`);
+        }
+      }
+
+      return GitCommandGitProject.cloned(
+        pi.credentials,
+        GitHubRepoRef.from({ owner: "atomist-seeds", repo: "typescript-express-node", branch: "master" }),
+        { depth: 1 });
+    },
     intent: "create node",
     transform: [
       UpdatePackageJsonIdentification,
       UpdateReadmeTitle,
       replaceSeedSlugNode,
     ],
+    afterAction: [channelMappingProjectAction, setupJiraForNewProject],
   });
 
   sdm.addGeneratorCommand({
@@ -109,6 +179,7 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
       DotnetCoreProjectFileCodeTransform,
       replaceSeedSlug,
     ],
+    afterAction: [channelMappingProjectAction],
   });
 
   sdm.addCommand({

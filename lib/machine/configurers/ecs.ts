@@ -1,7 +1,7 @@
 import { GoalConfigurer } from "@atomist/sdm-core";
 import { MyGoals } from "../goals";
 import { HasDockerfile } from "@atomist/sdm-pack-docker";
-import { IsEcsDeployable } from "../../support/pushTests";
+import { IsEcsDeployable } from "../../support/pushTests/pushTests";
 import { allSatisfied } from "@atomist/sdm";
 
 export const EcsDeployConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {

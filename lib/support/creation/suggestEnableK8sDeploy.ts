@@ -1,7 +1,7 @@
 import { ChannelLinkListener  } from "@atomist/sdm";
 import { buttonForCommand, logger } from "@atomist/automation-client";
 import { Attachment, SlackMessage } from "@atomist/slack-messages";
-import { enableK8sDeployRegistration } from "../transform/enableK8sDeploy";
+import { enableK8sDeployRegistration } from "../../transform/enableK8sDeploy";
 
 export const SuggestEnableK8sDeploy: ChannelLinkListener = async inv => {
     if (!inv.project.fileExistsSync("pom.xml") && !inv.project.fileExistsSync("package.json")) {

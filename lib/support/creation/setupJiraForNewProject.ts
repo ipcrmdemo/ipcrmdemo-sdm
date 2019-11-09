@@ -1,4 +1,4 @@
-import { ParametersDefinition, ProjectAction } from "@atomist/sdm";
+import { ParametersDefinition, ProjectAction, slackSuccessMessage } from "@atomist/sdm";
 import { configurationValue, SeedDrivenGeneratorParameters } from "@atomist/automation-client";
 import {
   buildJiraHashKey,
@@ -50,6 +50,10 @@ export const setupJiraForNewProject:
       assigneeType: "PROJECT_DEFAULT",
       description: ctx.parameters.componentName,
     }, ctx);
+    await ctx.addressChannels(slackSuccessMessage(
+      `Created new JIRA Component`,
+      `New component created for ${ctx.parameters.componentName}.}`,
+    ));
     // Now lookup the projectId
     const jiraUrl =  `${jiraConfig.url}/rest/api/2/project/${ctx.parameters.project}`;
     const projectDetail =
@@ -70,4 +74,8 @@ export const setupJiraForNewProject:
     channel: ctx.parameters.target.repoRef.repo,
     ...data,
   });
+  await ctx.addressChannels(slackSuccessMessage(
+    `Linked JIRA Component`,
+    `Component linked to channel.`,
+  ));
 };

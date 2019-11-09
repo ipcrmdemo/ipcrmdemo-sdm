@@ -39,7 +39,7 @@
     "@atomist/sdm-pack-ecs": "0.0.3-master.20190916024346",
     "@atomist/sdm-pack-fingerprint": "^5.0.1-master.20191006120505",
     "@atomist/sdm-pack-issue": "^1.2.3-master.20190916025056",
-    "@atomist/sdm-pack-jira": "0.0.1-ipcrm-update-promptfor.20191108034751",
+    "@atomist/sdm-pack-jira": "0.0.1-ipcrm-update-promptfor.20191108043629",
     "@atomist/sdm-pack-k8s": "^1.11.0-master.20191105150834",
     "@atomist/sdm-pack-lifecycle": "^0.3.0-master.20191018181318",
     "@atomist/sdm-pack-node": "^1.2.0-master.20191106224427",

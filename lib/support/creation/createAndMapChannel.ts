@@ -1,4 +1,4 @@
-import { ProjectAction } from "@atomist/sdm";
+import { ProjectAction, slackSuccessMessage } from "@atomist/sdm";
 import { createChannel } from "@atomist/sdm-pack-lifecycle/lib/handlers/command/slack/CreateChannel";
 import * as _ from "lodash";
 import { inviteUserToSlackChannel } from "@atomist/sdm-pack-lifecycle/lib/handlers/command/slack/AssociateRepo";
@@ -68,4 +68,8 @@ export const channelMappingProjectAction: ProjectAction<NoParameters> = async (p
     },
   });
   await inviteUserToSlackChannel(ctx.context, chatTeam, newId.createSlackChannel.id, ctx.context.source.slack.user.id);
+  await ctx.addressChannels(slackSuccessMessage(
+    `Created new Slack Channel`,
+    `Created new Slack Channel <#${newId.createSlackChannel.id}|${p.id.repo}> and linked repository.}`,
+  ));
 };

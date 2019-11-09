@@ -7,11 +7,8 @@ import {
 } from "@atomist/sdm-pack-spring";
 import { replaceSeedSlug, replaceSeedSlugNode } from "../../transform/updateRepoSlug";
 import {
-  configurationValue,
-  GitCommandGitProject,
   GitHubRepoRef,
-  SeedDrivenGeneratorParameters,
-  Success
+  Success,
 } from "@atomist/automation-client";
 import { createJob, PreferenceScope, slackErrorMessage, slackSuccessMessage } from "@atomist/sdm";
 import {
@@ -42,11 +39,8 @@ import {
   SetupJiraForNewProject,
   SetupJiraForNewProjectParams
 } from "../../support/creation/setupJiraForNewProject";
-import { prepComponentSelect, prepProjectSelect } from "@atomist/sdm-pack-jira/lib/support/commands/shared";
-import { getJiraDetails } from "@atomist/sdm-pack-jira/lib/support/jiraDataLookup";
-import { Project } from "@atomist/sdm-pack-jira/lib/support/jiraDefs";
-import { JiraConfig } from "@atomist/sdm-pack-jira/lib/jira";
 import { addSonarProp } from "../../transform/sonarProps";
+import { prepJira } from "../../support/creation/prepJiraSetup";
 
 export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   /**
@@ -68,12 +62,13 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
   /**
    * Generators
    */
-  sdm.addGeneratorCommand<SpringProjectCreationParameters>({
+  sdm.addGeneratorCommand<SetupJiraForNewProject & SpringProjectCreationParameters>({
     name: "create-spring",
     intent: "create spring",
     description: "Create a new Java Spring Boot REST service",
-    parameters: SpringProjectCreationParameterDefinitions,
-    startingPoint: GitHubRepoRef.from({ owner: "atomist-seeds", repo: "spring-rest", branch: "master" }),
+    parameters: { ...SpringProjectCreationParameterDefinitions, ...SetupJiraForNewProjectParams },
+    // startingPoint: GitHubRepoRef.from({ owner: "atomist-seeds", repo: "spring-rest", branch: "master" }),
+    startingPoint: prepJira("atomist-seeds", "spring-rest"),
     transform: [
       ReplaceReadmeTitle,
       SetAtomistTeamInApplicationYml,
@@ -89,7 +84,7 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
           { scope: PreferenceScope.Sdm });
       },
     ],
-    afterAction: [channelMappingProjectAction],
+    afterAction: [channelMappingProjectAction, setupJiraForNewProject],
   });
 
   sdm.addGeneratorCommand<SpringProjectCreationParameters>({
@@ -112,76 +107,7 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
     name: "typescript-express-generator",
     parameters: { ...NodeProjectCreationParametersDefinition, ...SetupJiraForNewProjectParams},
     autoSubmit: true,
-    startingPoint: async pi => {
-      // Present list of projects
-      const projectValues = await prepProjectSelect(pi.parameters.projectSearch, pi);
-      if (projectValues) {
-        const project = await pi.promptFor<{ project: string }>({
-          project: {
-            displayName: `Please select a project`,
-            description: `Please select a project`,
-            type: {
-              kind: "single",
-              options: projectValues,
-            },
-          },
-        });
-
-        const jiraConfig = configurationValue<object>("sdm.jira") as JiraConfig;
-        const projectDetail =
-          await getJiraDetails<Project>(`${jiraConfig.url}/rest/api/2/project/${project.project}`, true, undefined, pi);
-        pi.parameters.project = projectDetail.key;
-      } else {
-        await pi.addressChannels(slackErrorMessage(
-          `Error: No projects found with search term [${pi.parameters.projectSearch}]`,
-          `Please try this command again`,
-          pi.context,
-        ));
-        throw new Error(`Invalid Project Search; please update search term and try again`);
-      }
-
-      // Present list of components
-      if (pi.parameters.newComponent === "no") {
-        const componentValues = await prepComponentSelect(pi.parameters.project, pi);
-        if (componentValues) {
-          const component = await pi.promptFor<{ component: string }>({
-            component: {
-              description: `Please select a component`,
-              displayName: `Please select a component`,
-              type: {
-                kind: "single",
-                options: componentValues,
-              },
-            },
-          });
-          pi.parameters.componentName = component.component;
-        } else {
-          await pi.addressChannels(slackErrorMessage(
-            `Error: No components found within project [${pi.parameters.project}]`,
-            `Please try this command again with a different project`,
-            pi.context,
-          ));
-          throw new Error(`No components found in supplied project, ${pi.parameters.project}, please try again`);
-        }
-      } else {
-        pi.parameters.componentName = pi.parameters.appName;
-      }
-
-      (pi.parameters as any).source = {
-        repoRef: {
-          owner: "atomist-seeds",
-          repo: "typescript-express-node",
-        },
-      };
-
-      return GitCommandGitProject.cloned(
-        pi.credentials,
-        GitHubRepoRef.from({
-          ...(pi.parameters as any).source.repoRef,
-          branch: "master",
-        }),
-        { depth: 1 });
-    },
+    startingPoint: prepJira("atomist-seeds", "typescript-express-node"),
     intent: "create node",
     transform: [
       UpdatePackageJsonIdentification,

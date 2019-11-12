@@ -4,9 +4,8 @@ import { HasDockerfile } from "@atomist/sdm-pack-docker";
 import {
   IsNode,
   nodeBuilder,
-  NodeProjectVersioner,
   NpmCompileProjectListener,
-  NpmProgressReporter,
+  NpmProgressReporter, NpmVersioner,
   NpmVersionProjectListener,
 } from "@atomist/sdm-pack-node";
 import { allSatisfied, LogSuppressor, not } from "@atomist/sdm";
@@ -17,7 +16,7 @@ export const NodeGoalConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
   goals.version.with({
     name: "node-versioner",
     pushTest: IsNode,
-    versioner: NodeProjectVersioner,
+    versioner: NpmVersioner,
   });
 
   goals.build

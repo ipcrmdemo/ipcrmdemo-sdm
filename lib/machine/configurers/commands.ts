@@ -10,7 +10,7 @@ import {
   GitHubRepoRef,
   Success,
 } from "@atomist/automation-client";
-import { createJob, PreferenceScope, slackErrorMessage, slackSuccessMessage } from "@atomist/sdm";
+import { createJob, PreferenceScope, slackSuccessMessage } from "@atomist/sdm";
 import {
   DotnetCoreProjectFileCodeTransform,
 } from "@atomist/sdm-pack-analysis-dotnet/lib/tranform/dotnetCoreTransforms";
@@ -19,7 +19,7 @@ import {
   NodeProjectCreationParameters,
   NodeProjectCreationParametersDefinition,
   UpdatePackageJsonIdentification,
-  UpdateReadmeTitle
+  UpdateReadmeTitle,
 } from "@atomist/sdm-pack-node";
 import { AddFinalNameToPom } from "../../transform/addFinalName";
 import { AddDockerFile } from "../../transform/addDockerfile";
@@ -37,12 +37,12 @@ import { channelMappingProjectAction } from "../../support/creation/createAndMap
 import {
   setupJiraForNewProject,
   SetupJiraForNewProject,
-  SetupJiraForNewProjectParams
+  SetupJiraForNewProjectParams,
 } from "../../support/creation/setupJiraForNewProject";
 import { addSonarProp } from "../../transform/sonarProps";
 import { prepJira } from "../../support/creation/prepJiraSetup";
 
-export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
+export const CommandsConfigurator: GoalConfigurer<MyGoals> = async sdm => {
   /**
    * Bot Commands
    */
@@ -134,7 +134,8 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
   sdm.addCommand({
     name: "exampleRunMeAsAJob",
     listener: async ctx => {
-      await ctx.addressChannels(slackSuccessMessage(
+      await ctx.addressChannels(
+        slackSuccessMessage(
         "Yes!",
         "Listener has run...",
       ));

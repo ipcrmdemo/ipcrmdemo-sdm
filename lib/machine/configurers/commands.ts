@@ -7,8 +7,9 @@ import {
 } from "@atomist/sdm-pack-spring";
 import { replaceSeedSlug, replaceSeedSlugNode } from "../../transform/updateRepoSlug";
 import {
+  addressEvent,
   GitHubRepoRef,
-  Success,
+  Success
 } from "@atomist/automation-client";
 import { createJob, PreferenceScope, slackSuccessMessage } from "@atomist/sdm";
 import {
@@ -134,12 +135,12 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async sdm => {
   sdm.addCommand({
     name: "exampleRunMeAsAJob",
     listener: async ctx => {
-      await ctx.addressChannels(
-        slackSuccessMessage(
-        "Yes!",
-        "Listener has run...",
-      ));
-      return Success;
+        await ctx.addressChannels(
+          slackSuccessMessage(
+          "Yes!",
+          "Listener has run...",
+        ));
+        return Success;
     },
   });
 

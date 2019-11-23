@@ -36,7 +36,7 @@
     "@atomist/sdm-pack-changelog": "^1.0.4-master.20191010120908",
     "@atomist/sdm-pack-cloudfoundry": "^2.0.0-master.20190916033253",
     "@atomist/sdm-pack-docker": "^2.0.3-master.20191004184845",
-    "@atomist/sdm-pack-ecs": "0.0.3-master.20190916024346",
+    "@atomist/sdm-pack-ecs": "0.0.3-ipcrm-remove-default-healthcheck.20191122224347",
     "@atomist/sdm-pack-fingerprint": "^5.0.1-master.20191006120505",
     "@atomist/sdm-pack-issue": "^1.2.3-master.20190916025056",
     "@atomist/sdm-pack-jira": "0.0.1-master.20191109200455",

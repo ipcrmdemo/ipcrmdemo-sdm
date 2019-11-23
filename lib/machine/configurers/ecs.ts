@@ -7,7 +7,7 @@ import { allSatisfied } from "@atomist/sdm";
 export const EcsDeployConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   goals.ecsStagingDeploy
     .with({
-      region: "us-east-1",
+      region: "us-east-2",
       pushTest: allSatisfied(IsEcsDeployable, HasDockerfile),
       serviceRequest: {
         cluster: "nonProd", // FARGATE Cluster

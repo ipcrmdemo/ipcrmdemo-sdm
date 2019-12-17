@@ -10292,6 +10292,39 @@ export type GetPrsForBranchQuery = (
     )>>> }
   )>>> }
 );
+
+export type HeadFingerPrintCommitsQueryVariables = {
+  name: Scalars['String'],
+  type: Scalars['String'],
+  paging?: Maybe<PagingInfoInput>
+};
+
+
+export type HeadFingerPrintCommitsQuery = (
+  { __typename?: 'Query' }
+  & { commitsWithFingerprints: (
+    { __typename?: 'CommitsWithFingerprints' }
+    & { _paging?: Maybe<(
+      { __typename?: 'PagingInfo' }
+      & Pick<PagingInfo, 'after'>
+    )>, commits: Array<(
+      { __typename?: 'FingerprintedCommit' }
+      & { analysis: Array<(
+        { __typename?: 'SourceFingerprint' }
+        & Pick<SourceFingerprint, 'name'>
+      )>, branch?: Maybe<(
+        { __typename?: 'Branch' }
+        & Pick<Branch, 'name'>
+      )>, commit?: Maybe<(
+        { __typename?: 'Commit' }
+        & Pick<Commit, 'sha'>
+      )>, repo?: Maybe<(
+        { __typename?: 'Repo' }
+        & Pick<Repo, 'name' | 'owner'>
+      )> }
+    )> }
+  ) }
+);
 export namespace FindK8Deploy {
   export type Variables = FindK8DeployQueryVariables;
   export type Query = FindK8DeployQuery;
@@ -10307,4 +10340,16 @@ export namespace GetPrsForBranch {
   export type PullRequests = (NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<GetPrsForBranchQuery['Repo']>)[0]>)['branches']>)[0]>)['pullRequests']>)[0]>);
   export type SourceBranch = (NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<GetPrsForBranchQuery['Repo']>)[0]>)['branches']>)[0]>)['pullRequests']>)[0]>)['sourceBranch']>);
   export type DestinationBranch = (NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<GetPrsForBranchQuery['Repo']>)[0]>)['branches']>)[0]>)['pullRequests']>)[0]>)['destinationBranch']>);
+}
+
+export namespace HeadFingerPrintCommits {
+  export type Variables = HeadFingerPrintCommitsQueryVariables;
+  export type Query = HeadFingerPrintCommitsQuery;
+  export type CommitsWithFingerprints = HeadFingerPrintCommitsQuery['commitsWithFingerprints'];
+  export type _Paging = (NonNullable<HeadFingerPrintCommitsQuery['commitsWithFingerprints']['_paging']>);
+  export type Commits = (NonNullable<HeadFingerPrintCommitsQuery['commitsWithFingerprints']['commits'][0]>);
+  export type Analysis = (NonNullable<(NonNullable<HeadFingerPrintCommitsQuery['commitsWithFingerprints']['commits'][0]>)['analysis'][0]>);
+  export type Branch = (NonNullable<(NonNullable<HeadFingerPrintCommitsQuery['commitsWithFingerprints']['commits'][0]>)['branch']>);
+  export type Commit = (NonNullable<(NonNullable<HeadFingerPrintCommitsQuery['commitsWithFingerprints']['commits'][0]>)['commit']>);
+  export type Repo = (NonNullable<(NonNullable<HeadFingerPrintCommitsQuery['commitsWithFingerprints']['commits'][0]>)['repo']>);
 }

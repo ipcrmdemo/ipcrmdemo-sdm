@@ -20,6 +20,18 @@ import { sonarQubeSupport } from "@atomist/sdm-pack-sonarqube";
 import { onJiraIssueEventApproval } from "@atomist/sdm-pack-jira/lib/event/onJiraIssueEventApproval";
 import { JiraApproval } from "@atomist/sdm-pack-jira/lib/goals/JiraApproval";
 import { NpmInstallProjectListener } from "@atomist/sdm-pack-node";
+import { FrameworkAspect } from "../../support/aspects/classification";
+import { Aspect } from "@atomist/sdm-pack-fingerprint/lib/machine/Aspect";
+import { DockerFrom } from "../../support/aspects/docker";
+
+export const aspects: Array<Aspect<any>> = [
+  FrameworkAspect,
+  MavenPropertiesAspect,
+  languageAspect(languageTests),
+  DotNetPackageAspect,
+  DotNetTargetFrameworkAspect,
+  DockerFrom,
+];
 
 export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) => {
   sdm.addExtensionPacks(
@@ -41,12 +53,7 @@ export const ExtPacksConfigurator: GoalConfigurer<MyGoals> = async (sdm, goals) 
       goals: {
         pushImpact: goals.pushImpact,
       },
-      aspects: [
-        MavenPropertiesAspect,
-        languageAspect(languageTests),
-        DotNetPackageAspect,
-        DotNetTargetFrameworkAspect,
-      ],
+      aspects,
     }),
   );
 

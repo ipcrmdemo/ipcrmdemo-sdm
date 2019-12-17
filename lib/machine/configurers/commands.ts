@@ -42,6 +42,8 @@ import {
 } from "../../support/creation/setupJiraForNewProject";
 import { addSonarProp } from "../../transform/sonarProps";
 import { prepJira } from "../../support/creation/prepJiraSetup";
+import { filteredAspectApply } from "../../support/aspects/filteredAspectApply";
+import { aspects } from "./extpacks";
 
 export const CommandsConfigurator: GoalConfigurer<MyGoals> = async sdm => {
   /**
@@ -156,4 +158,6 @@ export const CommandsConfigurator: GoalConfigurer<MyGoals> = async sdm => {
       }, ctx.context);
     },
   });
+
+  sdm.addCommand(filteredAspectApply);
 };

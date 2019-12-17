@@ -1,0 +1,22 @@
+query headFingerPrintCommits($name: String!, $type: String!, $paging: PagingInfoInput) {
+    commitsWithFingerprints(name: $name, type: $type, _paging: $paging) {
+        _paging {
+            after
+        }
+        commits {
+            analysis {
+                name
+            }
+            branch {
+                name
+            }
+            commit {
+                sha
+            }
+            repo {
+                name
+                owner
+            }
+        }
+    }
+}

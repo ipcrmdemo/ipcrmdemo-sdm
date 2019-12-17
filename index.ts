@@ -15,7 +15,7 @@
  */
 import {
   CompressingGoalCache,
-  configure,
+  configure, DefaultRepoRefResolver
 } from "@atomist/sdm-core";
 import { configureDashboardNotifications } from "@atomist/automation-client-ext-dashboard";
 import {
@@ -50,6 +50,7 @@ import { HasCloudFoundryManifest } from "@atomist/sdm-pack-cloudfoundry";
 import { ServerlessConfigurer } from "./lib/machine/configurers/serverless";
 import { OWaspGoalConfigurator } from "./lib/machine/configurers/owasp";
 import { JiraApproval } from "@atomist/sdm-pack-jira/lib/goals/JiraApproval";
+import { customRepoFinder } from "./lib/support/customRepoFinder";
 
 export const configuration: Configuration = configure<MyGoals>(async sdm => {
   const setGoals = await sdm.createGoals(MyGoalCreator, [
@@ -124,6 +125,7 @@ export const configuration: Configuration = configure<MyGoals>(async sdm => {
   requiredConfigurationValues: [],
   preProcessors: [
     async cfg => {
+      cfg.sdm.repoFinder = customRepoFinder(new DefaultRepoRefResolver());
       return {
         ...cfg,
         cache: {

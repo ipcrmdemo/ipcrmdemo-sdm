@@ -10292,6 +10292,27 @@ export type GetPrsForBranchQuery = (
     )>>> }
   )>>> }
 );
+
+export type TeamReposQueryVariables = {
+  offset: Scalars['Int'],
+  size: Scalars['Int']
+};
+
+
+export type TeamReposQuery = (
+  { __typename?: 'Query' }
+  & { Repo?: Maybe<Array<Maybe<(
+    { __typename?: 'Repo' }
+    & Pick<Repo, 'name' | 'owner'>
+    & { org?: Maybe<(
+      { __typename?: 'Org' }
+      & { provider?: Maybe<(
+        { __typename?: 'GitHubProvider' }
+        & Pick<GitHubProvider, 'providerType' | 'apiUrl'>
+      )> }
+    )> }
+  )>>> }
+);
 export namespace FindK8Deploy {
   export type Variables = FindK8DeployQueryVariables;
   export type Query = FindK8DeployQuery;
@@ -10307,4 +10328,12 @@ export namespace GetPrsForBranch {
   export type PullRequests = (NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<GetPrsForBranchQuery['Repo']>)[0]>)['branches']>)[0]>)['pullRequests']>)[0]>);
   export type SourceBranch = (NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<GetPrsForBranchQuery['Repo']>)[0]>)['branches']>)[0]>)['pullRequests']>)[0]>)['sourceBranch']>);
   export type DestinationBranch = (NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<(NonNullable<GetPrsForBranchQuery['Repo']>)[0]>)['branches']>)[0]>)['pullRequests']>)[0]>)['destinationBranch']>);
+}
+
+export namespace TeamRepos {
+  export type Variables = TeamReposQueryVariables;
+  export type Query = TeamReposQuery;
+  export type Repo = (NonNullable<(NonNullable<TeamReposQuery['Repo']>)[0]>);
+  export type Org = (NonNullable<(NonNullable<(NonNullable<TeamReposQuery['Repo']>)[0]>)['org']>);
+  export type Provider = (NonNullable<(NonNullable<(NonNullable<(NonNullable<TeamReposQuery['Repo']>)[0]>)['org']>)['provider']>);
 }

@@ -1,0 +1,12 @@
+query TeamRepos($offset: Int!, $size: Int!) {
+    Repo(first: $size, offset: $offset) {
+        name
+        owner
+        org {
+            provider {
+                providerType
+                apiUrl
+            }
+        }
+    }
+}
